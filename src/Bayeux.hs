@@ -2,48 +2,18 @@
 
 module Bayeux
   ( Lp(..)
+  , (/\), (\/), (==>)
   , app
   , evalLp
   , prettyLp
   , prove
   ) where
 
+import Bayeux.Lp
 import Data.List.NonEmpty
-import Data.String
 
 app :: IO ()
 app = undefined
-
--- | Language of propositions
-data Lp a = Bv a
-          | Bar  (Lp a)
-          | Conj (Lp a) (Lp a)
-          | Disj (Lp a) (Lp a)
-          | Impl (Lp a) (Lp a)
-  deriving (Eq, Read, Show)
-
-instance IsString a => IsString (Lp a) where
-  fromString = Bv . fromString
-
-evalLp :: Lp Bool -> Bool
-evalLp = \case
-  Bv b     -> b
-  Bar  x   -> not $ evalLp x
-  Conj x y -> evalLp x && evalLp y
-  Disj x y -> evalLp x || evalLp y
-  Impl x y -> not (evalLp x) || evalLp y
-
-prettyLp :: Show a => Lp a -> String
-prettyLp = \case
-  Bv b     -> show b
-  Bar x    -> "~" <> prettySub x
-  Conj x y -> prettySub x <> " " <> "/\\" <> " " <> prettySub y
-  Disj x y -> prettySub x <> " " <> "\\/" <> " " <> prettySub y
-  Impl x y -> prettySub x <> " => " <> prettySub y
-  where
-    prettySub = \case
-      e@Bv{} -> prettyLp e
-      e      -> "(" <> prettyLp e <> ")"
 
 data Tableaux a = Leaf   a
                 | Stem   a (Tableaux a)
@@ -76,12 +46,6 @@ growLp (e :| es) =  case e of
     let l = Bar x :| es
         r =     y :| es
     in Branch e (growLp l) (growLp r)
-
-isSignedBv :: Lp a -> Bool
-isSignedBv = \case
-  Bar Bv{} -> True
-  Bv{}     -> True
-  _        -> False
 
 closeLp :: Eq a => [Lp a] -> Tableaux (Lp a) -> Bool
 closeLp signedBvs = \case
