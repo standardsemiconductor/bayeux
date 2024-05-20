@@ -6,7 +6,7 @@ license:            MIT
 license-file:       LICENSE
 author:             dopamane
 maintainer:         dwc1295@gmail.com
-copyright:          (C) David Cox
+copyright:          David Cox
 category:           Language
 build-type:         Simple
 extra-doc-files:    CHANGELOG.md
@@ -15,8 +15,9 @@ library
     ghc-options: -Wall
     exposed-modules:  Bayeux
                     , Bayeux.Lp
-    build-depends:    base ^>=4.19.0.0
+    build-depends:    base
                     , megaparsec
+                    , parser-combinators
     hs-source-dirs:   src
     default-language: Haskell2010
 
@@ -24,7 +25,7 @@ executable bayeux
     ghc-options: -Wall
     main-is:          Main.hs
     build-depends:
-        base ^>=4.19.0.0,
+        base,
         bayeux
 
     hs-source-dirs:   app
@@ -37,7 +38,7 @@ test-suite test
     hs-source-dirs:   test
     main-is:          Main.hs
     build-depends:
-        base ^>=4.19.0.0,
+        base,
         bayeux,
         tasty,
         tasty-hunit

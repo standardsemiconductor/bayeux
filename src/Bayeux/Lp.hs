@@ -9,7 +9,9 @@ module Bayeux.Lp
   , prettyLp
   ) where
 
+import Control.Monad.Combinators.Expr
 import Data.String
+import Text.Megaparsec
 
 data Lp a = Bv a
           | Bar  (Lp a)
@@ -61,9 +63,14 @@ prettyLp = \case
       e@Bv{} -> prettyLp e
       e      -> "(" <> prettyLp e <> ")"
 
+------------
+-- Parser --
+------------
+{-
+--parseLp :: _
 parseLp = makeExprParser term table <?> "Propositional logic expression"
 
-term = parens parseLp <|> some alphaNum
+term = parens parseLp <|> some alphaNumChar
 
 table :: [[Operator m a]]
 table = [ [ prefix "~" Bar ]
@@ -73,8 +80,9 @@ table = [ [ prefix "~" Bar ]
           ]
         ]
 
-binary :: _ -> (_ -> Lp a) -> Operator m a
+--binary :: _ -> (_ -> Lp a) -> Operator m a
 binary name f = InfixL (f <$ symbol name)
 
-prefix :: _ -> (_ -> Lp a) -> Operator m a
+--prefix :: _ -> (_ -> Lp a) -> Operator m a
 prefix name f = Prefix (f <$ symbol name)
+-}

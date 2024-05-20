@@ -8,14 +8,14 @@ import Test.Tasty.HUnit
 
 main :: IO ()
 main = defaultMain $ testGroup "Bayeux"
-  [ lpTautology $ "~x" \/ "x"
-  , -- smullyan FOL pg 24 ex 1
-    lpTautology $ "q" ==> "p" ==> "q"
+  [ testGroup "R. Smullyan \"First-order Logic\"" $ mkTestCase <$> smullyan
   ]
 
-lpTautology :: Eq a => Show a => Lp a -> TestTree
-lpTautology lp = testCase (prettyLp lp) $ assertBool "" $ prove lp
-{-
+mkTestCase :: Eq a => Show a => (Lp a, Bool, String) -> TestTree
+mkTestCase (lp, expected, description) =
+  let display = unwords [description, prettyLp lp]
+  in testCase display $ prove lp @=? expected
+
 smullyan
   :: [(Lp String, Bool, String)]
 smullyan =
@@ -27,7 +27,7 @@ smullyan =
     , True
     , "pg. 16"
     )
-  , ( "q" ==> ("p" ==> "q")
+  , ( "q" ==> "p" ==> "q"
     , True
     , "pg. 24"
     )
@@ -43,15 +43,15 @@ smullyan =
     , True
     , "pg. 24"
     )
-  , ( bar ("p" /\ "q") ==> (bar "p" \/ bar "q")
+  , ( Bar ("p" /\ "q") ==> ("~p" \/ "~q")
     , True
     , "pg. 24"
     )
-  , ( bar ("p" \/ "q") ==> (bar "p" /\ bar "q")
+  , ( Bar ("p" \/ "q") ==> ("~p" /\ "~q")
     , True
     , "pg. 24"
     )
-  , ( (bar "p" \/ bar "q") ==> Bar ("p" /\ "q")
+  , ( ("~p" \/ "~q") ==> Bar ("p" /\ "q")
     , True
     , "pg. 24"
     )
@@ -59,7 +59,7 @@ smullyan =
     , False
     , "pg. 28"
     )
-  , ( "p" \/ bar "p"
+  , ( "p" \/ "~p"
     , True
     , "Law of excluded middle"
     )
@@ -72,4 +72,3 @@ smullyan =
     , "Peirce's law"
     )
   ]
--}
