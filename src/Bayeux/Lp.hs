@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
 
@@ -24,7 +25,7 @@ data Lp a = Bv a
           | Conj (Lp a) (Lp a)
           | Disj (Lp a) (Lp a)
           | Impl (Lp a) (Lp a)
-  deriving (Eq, Read, Show)
+  deriving (Eq, Foldable, Functor, Read, Show, Traversable)
 
 infixr 3 /\
 (/\) :: Lp a -> Lp a -> Lp a
@@ -94,7 +95,7 @@ table :: [[Operator Parser (Lp Text)]]
 table = [ [ prefix "~" Bar ]
         , [ binary "/\\" Conj
           , binary "\\/" Disj
-          , binary "==>" Impl
+          , binary "=>" Impl
           ]
         ]
 

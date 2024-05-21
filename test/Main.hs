@@ -3,7 +3,12 @@
 module Main (main) where
 
 import Bayeux
+import Data.String
+import Hedgehog
+import qualified Hedgehog.Gen   as Gen
+import qualified Hedgehog.Range as Range
 import Test.Tasty
+import Test.Tasty.Hedgehog
 import Test.Tasty.HUnit
 import Text.Megaparsec
 
@@ -79,4 +84,16 @@ parseTests :: [TestTree]
 parseTests =
   [ testCase "" $ parseMaybe parseLp "a"  @?= Just "a"
   , testCase "" $ parseMaybe parseLp "~a" @?= Just "~a"
+  , testGroup "Smullyan parse after pretty" $ mkParsePrettyTestCase <$> smullyan
   ]
+  where
+    mkParsePrettyTestCase (lp, _, _) = testCase (prettyLp lp) $ (parseMaybe parseLp . fromString . prettyLp . fmap fromString) lp @?= Just (fromString <$> lp)
+{-
+hedgehogTests :: [TestTree]
+hedgehogTests =
+  [ testProperty "parse . pretty = id" undefined
+  ]
+
+genName :: MonadGen m => m String
+genName = Gen.string Gen.alphaNum
+-}

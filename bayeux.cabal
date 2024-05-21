@@ -39,6 +39,8 @@ test-suite test
     main-is:          Main.hs
     build-depends:    base
                     , bayeux
+                    , hedgehog
                     , megaparsec
                     , tasty
+                    , tasty-hedgehog
                     , tasty-hunit
