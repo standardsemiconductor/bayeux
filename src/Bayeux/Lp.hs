@@ -14,7 +14,6 @@ module Bayeux.Lp
 import Control.Monad.Combinators.Expr
 import Data.String
 import Data.Text (Text)
-import qualified Data.Text as T
 import Data.Void
 import Text.Megaparsec
 import Text.Megaparsec.Char
