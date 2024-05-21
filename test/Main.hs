@@ -23,13 +23,15 @@ main = defaultMain $ testGroup "Bayeux"
   , testGroup "Hedgehog" hedgehogTests
   ]
 
-mkTestCase :: Eq a => Pretty a => (Lp a, Bool, String) -> TestTree
+mkTestCase :: (Lp Text, Bool, String) -> TestTree
 mkTestCase (lp, expected, description) =
   let display = unwords [description, T.unpack $ prettyLp lp]
-  in testCase display $ prove lp @?= expected
+  in testGroup display
+       [ testCase "prove" $ prove lp @?= expected
+       , testCase "parse . pretty" $ (parseMaybe parseLp . prettyLp) lp @?= Just (lp)
+       ]
 
-smullyan
-  :: [(Lp String, Bool, String)]
+smullyan :: [(Lp Text, Bool, String)]
 smullyan =
   [ ( ("p" ==> ("q" ==> "r")) ==> (("p" ==> "q") ==> ("p" ==> "r"))
     , True
@@ -87,12 +89,15 @@ smullyan =
 
 parseTests :: [TestTree]
 parseTests =
-  [ testCase "" $ parseMaybe parseLp "a"  @?= Just "a"
-  , testCase "" $ parseMaybe parseLp "~a" @?= Just "~a"
-  , testGroup "Smullyan parse after pretty" $ mkParsePrettyTestCase <$> smullyan
+  [ tc  "a"  "a"
+  , tc "~a" "~a"
+  , tc "a =>  b => c"  $ "a" ==> "b" ==> "c"
+  , tc "a => (b => c)" $ "a" ==> "b" ==> "c"
+  , tc "(a => b) => c" $ ("a" ==> "b") ==> "c"
+  , tc "~a \\/ ~b" $ "~a" \/ "~b"
   ]
   where
-    mkParsePrettyTestCase (lp, _, _) = testCase (T.unpack $ prettyLp lp) $ (parseMaybe parseLp . prettyLp) lp @?= Just (fromString <$> lp)
+    tc t lp = testCase (T.unpack t) $ parseMaybe parseLp t @?= Just lp
 
 genName :: MonadGen m => m Text
 genName = Gen.text (Range.linear 1 10) Gen.alphaNum

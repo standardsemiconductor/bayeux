@@ -105,7 +105,7 @@ table = [ [ prefix "~" Bar ]
         ]
 
 binary :: Text -> (Lp Text -> Lp Text -> Lp Text) -> Operator Parser (Lp Text)
-binary name f = InfixL (f <$ symbol name)
+binary name f = InfixR (f <$ symbol name)
 
 prefix :: Text -> (Lp Text -> Lp Text) -> Operator Parser (Lp Text)
 prefix name f = Prefix (f <$ symbol name)
