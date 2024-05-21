@@ -3,7 +3,16 @@
 module Main (main) where
 
 import Bayeux
+import Data.Maybe
+import Data.String
+import Data.Text (Text)
+import qualified Data.Text as T
+import Hedgehog
+import qualified Hedgehog.Gen   as Gen
+import qualified Hedgehog.Range as Range
+import Prettyprinter
 import Test.Tasty
+import Test.Tasty.Hedgehog
 import Test.Tasty.HUnit
 import Text.Megaparsec
 
@@ -11,15 +20,18 @@ main :: IO ()
 main = defaultMain $ testGroup "Bayeux"
   [ testGroup "R. Smullyan \"First-order Logic\"" $ mkTestCase <$> smullyan
   , testGroup "Parse" parseTests
+  , testGroup "Hedgehog" hedgehogTests
   ]
 
-mkTestCase :: Eq a => Show a => (Lp a, Bool, String) -> TestTree
+mkTestCase :: (Lp Text, Bool, String) -> TestTree
 mkTestCase (lp, expected, description) =
-  let display = unwords [description, prettyLp lp]
-  in testCase display $ prove lp @?= expected
+  let display = unwords [description, T.unpack $ prettyLp lp]
+  in testGroup display
+       [ testCase "prove" $ prove lp @?= expected
+       , testCase "parse . pretty" $ (parseMaybe parseLp . prettyLp) lp @?= Just (lp)
+       ]
 
-smullyan
-  :: [(Lp String, Bool, String)]
+smullyan :: [(Lp Text, Bool, String)]
 smullyan =
   [ ( ("p" ==> ("q" ==> "r")) ==> (("p" ==> "q") ==> ("p" ==> "r"))
     , True
@@ -77,6 +89,30 @@ smullyan =
 
 parseTests :: [TestTree]
 parseTests =
-  [ testCase "" $ parseMaybe parseLp "a"  @?= Just "a"
-  , testCase "" $ parseMaybe parseLp "~a" @?= Just "~a"
+  [ tc  "a"  "a"
+  , tc "~a" "~a"
+  , tc "a =>  b => c"  $ "a" ==> "b" ==> "c"
+  , tc "a => (b => c)" $ "a" ==> "b" ==> "c"
+  , tc "(a => b) => c" $ ("a" ==> "b") ==> "c"
+  , tc "~a \\/ ~b" $ "~a" \/ "~b"
+  ]
+  where
+    tc t lp = testCase (T.unpack t) $ parseMaybe parseLp t @?= Just lp
+
+genName :: MonadGen m => m Text
+genName = Gen.text (Range.linear 1 10) Gen.alphaNum
+
+genLp :: MonadGen m => m (Lp Text)
+genLp = Gen.recursive Gen.choice [Bv <$> genName]
+  [ Gen.subterm  genLp       Bar
+  , Gen.subterm2 genLp genLp Conj
+  , Gen.subterm2 genLp genLp Disj
+  , Gen.subterm2 genLp genLp Impl
+  ]
+
+hedgehogTests :: [TestTree]
+hedgehogTests =
+  [ testProperty "parse . pretty = id" $ property $ do
+      lp <- forAll genLp
+      (fromJust . parseMaybe parseLp . prettyLp) lp === lp
   ]

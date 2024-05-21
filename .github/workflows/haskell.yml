@@ -58,7 +58,7 @@ jobs:
         key: ${{ steps.cache.outputs.cache-primary-key }}
 
     - name: build
-      run: cabal build
+      run: cabal build all
 
 # TODO
 #    - name: check
