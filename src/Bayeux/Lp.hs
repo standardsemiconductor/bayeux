@@ -16,6 +16,8 @@ import Control.Monad.Combinators.Expr
 import Data.String
 import Data.Text (Text)
 import Data.Void
+import Prettyprinter hiding (parens)
+import Prettyprinter.Render.Text
 import Text.Megaparsec
 import Text.Megaparsec.Char
 import qualified Text.Megaparsec.Char.Lexer as L
@@ -58,17 +60,20 @@ evalLp = \case
   Disj x y -> evalLp x || evalLp y
   Impl x y -> not (evalLp x) || evalLp y
 
-prettyLp :: Show a => Lp a -> String
-prettyLp = \case
-  Bv b     -> show b
-  Bar x    -> "~" <> prettySub x
-  Conj x y -> prettySub x <> " " <> "/\\" <> " " <> prettySub y
-  Disj x y -> prettySub x <> " " <> "\\/" <> " " <> prettySub y
-  Impl x y -> prettySub x <> " => " <> prettySub y
-  where
-    prettySub = \case
-      e@Bv{} -> prettyLp e
-      e      -> "(" <> prettyLp e <> ")"
+instance Pretty a => Pretty (Lp a) where
+  pretty = \case
+    Bv b     -> pretty b
+    Bar x    -> "~" <> prettySub x
+    Conj x y -> prettySub x <+> "/\\" <+> prettySub y
+    Disj x y -> prettySub x <+> "\\/" <+> prettySub y
+    Impl x y -> prettySub x <+> "=>"  <+> prettySub y
+    where
+      prettySub = \case
+        e@Bv{} -> pretty e
+        e      -> "(" <> pretty e <> ")"
+
+prettyLp :: Pretty a => Lp a -> Text
+prettyLp = renderStrict . layoutPretty defaultLayoutOptions . pretty
 
 ------------
 -- Parser --
@@ -89,7 +94,7 @@ parens :: Parser a -> Parser a
 parens = between (symbol "(") (symbol ")")
 
 term :: Parser (Lp Text)
-term = parens parseLp <|> fromString `fmap` some alphaNumChar
+term = parens parseLp <|> fromString `fmap` (L.lexeme sc (some alphaNumChar))
 
 table :: [[Operator Parser (Lp Text)]]
 table = [ [ prefix "~" Bar ]

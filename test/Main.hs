@@ -4,9 +4,12 @@ module Main (main) where
 
 import Bayeux
 import Data.String
+import Data.Text (Text)
+import qualified Data.Text as T
 import Hedgehog
 import qualified Hedgehog.Gen   as Gen
 import qualified Hedgehog.Range as Range
+import Prettyprinter
 import Test.Tasty
 import Test.Tasty.Hedgehog
 import Test.Tasty.HUnit
@@ -18,9 +21,9 @@ main = defaultMain $ testGroup "Bayeux"
   , testGroup "Parse" parseTests
   ]
 
-mkTestCase :: Eq a => Show a => (Lp a, Bool, String) -> TestTree
+mkTestCase :: Eq a => Pretty a => (Lp a, Bool, String) -> TestTree
 mkTestCase (lp, expected, description) =
-  let display = unwords [description, prettyLp lp]
+  let display = unwords [description, T.unpack $ prettyLp lp]
   in testCase display $ prove lp @?= expected
 
 smullyan
@@ -87,11 +90,16 @@ parseTests =
   , testGroup "Smullyan parse after pretty" $ mkParsePrettyTestCase <$> smullyan
   ]
   where
-    mkParsePrettyTestCase (lp, _, _) = testCase (prettyLp lp) $ (parseMaybe parseLp . fromString . prettyLp . fmap fromString) lp @?= Just (fromString <$> lp)
+    mkParsePrettyTestCase (lp, _, _) = testCase (T.unpack $ prettyLp lp) $ (parseMaybe parseLp . prettyLp) lp @?= Just (fromString <$> lp)
 {-
+genLp :: MonadGen m => m (Lp Text)
+genLp = undefined
+
 hedgehogTests :: [TestTree]
 hedgehogTests =
-  [ testProperty "parse . pretty = id" undefined
+  [ testProperty "parse . pretty = id" $ property $ do
+      lp <- forAll genLp
+      (fromJust . parseMaybe . fromString . prettyLp) lp === lp
   ]
 
 genName :: MonadGen m => m String
