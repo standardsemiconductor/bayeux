@@ -3,6 +3,7 @@
 module Main (main) where
 
 import Bayeux
+import Data.Maybe
 import Data.String
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -19,6 +20,7 @@ main :: IO ()
 main = defaultMain $ testGroup "Bayeux"
   [ testGroup "R. Smullyan \"First-order Logic\"" $ mkTestCase <$> smullyan
   , testGroup "Parse" parseTests
+  , testGroup "Hedgehog" hedgehogTests
   ]
 
 mkTestCase :: Eq a => Pretty a => (Lp a, Bool, String) -> TestTree
@@ -91,17 +93,21 @@ parseTests =
   ]
   where
     mkParsePrettyTestCase (lp, _, _) = testCase (T.unpack $ prettyLp lp) $ (parseMaybe parseLp . prettyLp) lp @?= Just (fromString <$> lp)
-{-
+
+genName :: MonadGen m => m Text
+genName = Gen.text (Range.linear 1 10) Gen.alphaNum
+
 genLp :: MonadGen m => m (Lp Text)
-genLp = undefined
+genLp = Gen.recursive Gen.choice [Bv <$> genName]
+  [ Gen.subterm  genLp       Bar
+  , Gen.subterm2 genLp genLp Conj
+  , Gen.subterm2 genLp genLp Disj
+  , Gen.subterm2 genLp genLp Impl
+  ]
 
 hedgehogTests :: [TestTree]
 hedgehogTests =
   [ testProperty "parse . pretty = id" $ property $ do
       lp <- forAll genLp
-      (fromJust . parseMaybe . fromString . prettyLp) lp === lp
+      (fromJust . parseMaybe parseLp . prettyLp) lp === lp
   ]
-
-genName :: MonadGen m => m String
-genName = Gen.string Gen.alphaNum
--}
