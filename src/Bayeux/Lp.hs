@@ -1,4 +1,5 @@
-{-# LANGUAGE LambdaCase #-}
+{-# LANGUAGE LambdaCase        #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 -- | Language of propositions
 module Bayeux.Lp
@@ -7,11 +8,17 @@ module Bayeux.Lp
   , isSignedBv
   , evalLp
   , prettyLp
+  , parseLp
   ) where
 
 import Control.Monad.Combinators.Expr
 import Data.String
+import Data.Text (Text)
+import qualified Data.Text as T
+import Data.Void
 import Text.Megaparsec
+import Text.Megaparsec.Char
+import qualified Text.Megaparsec.Char.Lexer as L
 
 data Lp a = Bv a
           | Bar  (Lp a)
@@ -66,13 +73,25 @@ prettyLp = \case
 ------------
 -- Parser --
 ------------
-{-
---parseLp :: _
+
+type Parser = Parsec Void Text
+
+sc :: Parser ()
+sc = L.space space1 (L.skipLineComment "--") (L.skipBlockComment "{-" "-}")
+
+symbol :: Text -> Parser Text
+symbol = L.symbol sc
+
+parseLp :: Parser (Lp Text)
 parseLp = makeExprParser term table <?> "Propositional logic expression"
 
-term = parens parseLp <|> some alphaNumChar
+parens :: Parser a -> Parser a
+parens = between (symbol "(") (symbol ")")
 
-table :: [[Operator m a]]
+term :: Parser (Lp Text)
+term = parens parseLp <|> fromString `fmap` some alphaNumChar
+
+table :: [[Operator Parser (Lp Text)]]
 table = [ [ prefix "~" Bar ]
         , [ binary "/\\" Conj
           , binary "\\/" Disj
@@ -80,9 +99,8 @@ table = [ [ prefix "~" Bar ]
           ]
         ]
 
---binary :: _ -> (_ -> Lp a) -> Operator m a
+binary :: Text -> (Lp Text -> Lp Text -> Lp Text) -> Operator Parser (Lp Text)
 binary name f = InfixL (f <$ symbol name)
 
---prefix :: _ -> (_ -> Lp a) -> Operator m a
+prefix :: Text -> (Lp Text -> Lp Text) -> Operator Parser (Lp Text)
 prefix name f = Prefix (f <$ symbol name)
--}

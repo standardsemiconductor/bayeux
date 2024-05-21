@@ -5,16 +5,18 @@ module Main (main) where
 import Bayeux
 import Test.Tasty
 import Test.Tasty.HUnit
+import Text.Megaparsec
 
 main :: IO ()
 main = defaultMain $ testGroup "Bayeux"
   [ testGroup "R. Smullyan \"First-order Logic\"" $ mkTestCase <$> smullyan
+  , testGroup "Parse" parseTests
   ]
 
 mkTestCase :: Eq a => Show a => (Lp a, Bool, String) -> TestTree
 mkTestCase (lp, expected, description) =
   let display = unwords [description, prettyLp lp]
-  in testCase display $ prove lp @=? expected
+  in testCase display $ prove lp @?= expected
 
 smullyan
   :: [(Lp String, Bool, String)]
@@ -71,4 +73,10 @@ smullyan =
     , True
     , "Peirce's law"
     )
+  ]
+
+parseTests :: [TestTree]
+parseTests =
+  [ testCase "" $ parseMaybe parseLp "a"  @?= Just "a"
+  , testCase "" $ parseMaybe parseLp "~a" @?= Just "~a"
   ]

@@ -6,6 +6,7 @@ module Bayeux
   , app
   , evalLp
   , prettyLp
+  , parseLp
   , prove
   ) where
 
