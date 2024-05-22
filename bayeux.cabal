@@ -17,6 +17,7 @@ library
                     , Bayeux.Cli
                     , Bayeux.L
                     , Bayeux.Lp
+                    , Bayeux.Tableaux
     build-depends:    base
                     , megaparsec
                     , parser-combinators

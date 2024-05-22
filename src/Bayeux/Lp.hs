@@ -10,9 +10,14 @@ module Bayeux.Lp
   , evalLp
   , prettyLp
   , parseLp
+  , growLp
+  , closeLp
+  , proveLp
   ) where
 
+import Bayeux.Tableaux
 import Control.Monad.Combinators.Expr
+import Data.List.NonEmpty
 import Data.String
 import Data.Text (Text)
 import Data.Void
@@ -109,3 +114,59 @@ binary name f = InfixR (f <$ symbol name)
 
 prefix :: Text -> (Lp Text -> Lp Text) -> Operator Parser (Lp Text)
 prefix name f = Prefix (f <$ symbol name)
+
+------------
+-- Prover --
+------------
+
+growLp
+  :: NonEmpty (Lp a) -- ^ Assumptions
+  -> Tableaux (Lp a)
+growLp (e :| es) =  case e of
+  Bv{}           -> case nonEmpty es of
+    Nothing      -> Leaf e
+    Just es'     -> Stem e $ growLp es'
+  Bar Bv{}       -> case nonEmpty es of
+    Nothing      -> Leaf e
+    Just es'     -> Stem e $ growLp es'
+  Bar (Bar x)    -> Stem e $ growLp $ x :| es
+  Conj x y       -> Stem e $ growLp $ x <| y :| es
+  Bar (Disj x y) -> Stem e $ growLp $ Bar x <| Bar y :| es
+  Bar (Impl x y) -> Stem e $ growLp $ x <| Bar y :| es
+  Bar (Conj x y) ->
+    let l = Bar x :| es
+        r = Bar y :| es
+    in Branch e (growLp l) (growLp r)
+  Disj x y ->
+    let l = x :| es
+        r = y :| es
+    in Branch e (growLp l) (growLp r)
+  Impl x y ->
+    let l = Bar x :| es
+        r =     y :| es
+    in Branch e (growLp l) (growLp r)
+
+closeLp :: Eq a => [Lp a] -> Tableaux (Lp a) -> Bool
+closeLp signedBvs = \case
+  Leaf a -> hasContra $ a : signedBvs
+  Stem a t
+    | isSignedBv a -> closeLp (a : signedBvs) t
+    | otherwise    -> closeLp signedBvs t
+  Branch a l r
+    | isSignedBv a -> let signedBvs' = a : signedBvs
+                      in closeLp signedBvs' l &&
+                         closeLp signedBvs' r
+    | otherwise    -> closeLp signedBvs l &&
+                      closeLp signedBvs r
+  where
+    hasContra :: Eq a => [Lp a] -> Bool
+    hasContra bvs = any (flip elem bvs . invert) bvs
+      where
+        invert :: Lp a -> Lp a
+        invert = \case
+          Bar v@Bv{} -> v
+          v@Bv{}     -> Bar v
+          lp         -> lp
+
+proveLp :: Eq a => Lp a -> Bool
+proveLp = closeLp mempty . growLp . pure . Bar
