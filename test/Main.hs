@@ -4,13 +4,11 @@ module Main (main) where
 
 import Bayeux
 import Data.Maybe
-import Data.String
 import Data.Text (Text)
 import qualified Data.Text as T
 import Hedgehog
 import qualified Hedgehog.Gen   as Gen
 import qualified Hedgehog.Range as Range
-import Prettyprinter
 import Test.Tasty
 import Test.Tasty.Hedgehog
 import Test.Tasty.HUnit

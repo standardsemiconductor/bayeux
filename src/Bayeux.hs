@@ -8,13 +8,21 @@ module Bayeux
   , prettyLp
   , parseLp
   , prove
+  , Input(..)
+  , Cli(..)
   ) where
 
+import Bayeux.Cli
 import Bayeux.Lp
 import Data.List.NonEmpty
+import Data.Maybe
+import qualified Data.Text.IO as TIO
+import Text.Megaparsec
 
-app :: IO ()
-app = undefined
+app :: Cli -> IO ()
+app cli = print . prove . fromJust =<< case input cli of
+  FileInput f -> parseMaybe (parseLp <* eof) <$> TIO.readFile f
+  StdInput    -> parseMaybe parseLp <$> TIO.getLine
 
 data Tableaux a = Leaf   a
                 | Stem   a (Tableaux a)
