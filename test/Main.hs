@@ -2,7 +2,7 @@
 
 module Main (main) where
 
-import Bayeux
+import Bayeux.Lp
 import Data.Maybe
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -25,7 +25,7 @@ mkTestCase :: (Lp Text, Bool, String) -> TestTree
 mkTestCase (lp, expected, description) =
   let display = unwords [description, T.unpack $ prettyLp lp]
   in testGroup display
-       [ testCase "prove" $ prove lp @?= expected
+       [ testCase "prove" $ proveLp lp @?= expected
        , testCase "parse . pretty" $ (parseMaybe parseLp . prettyLp) lp @?= Just (lp)
        ]
 

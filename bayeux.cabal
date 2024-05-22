@@ -16,6 +16,7 @@ library
     exposed-modules:  Bayeux
                     , Bayeux.Cli
                     , Bayeux.Lp
+                    , Bayeux.Tableaux
     build-depends:    base
                     , megaparsec
                     , parser-combinators
