@@ -6,20 +6,43 @@
 -- | First-Order Logic
 module Bayeux.L
   ( L(..)
+  , (/\)
+  , (\/)
+  , (==>)
+  , Node(..)
+  , render
+  , prove
   ) where
 
 import Bayeux.Tableaux
-import Data.Functor
-import Data.List.NonEmpty
+import Data.Monoid (Endo(..))
+import Data.Set (Set)
+import qualified Data.Set as S
+import Data.Text (Text)
+import Prettyprinter
+import Prettyprinter.Render.Text
 
-data L a = Fun a (NonEmpty a)
+data L a = Fun a [a]
          | Bar (L a)
          | Conj (L a) (L a)
          | Disj (L a) (L a)
          | Impl (L a) (L a)
-         | All a (L a)
+         | All   a (L a)
          | Exist a (L a)
   deriving (Eq, Foldable, Functor, Read, Show, Traversable)
+
+instance Eq a => Ord (L a) where
+  Bar Bar{}   <= _ = True
+  Conj{}      <= _ = True
+  Bar Disj{}  <= _ = True
+  Bar Impl{}  <= _ = True
+  Bar All{}   <= _ = True
+  Bar Exist{} <= _ = True
+  All{}       <= _ = True
+  Exist{}     <= _ = True
+  Fun{}       <= _ = True
+  Bar Fun{}   <= _ = True
+  _           <= _ = False
 
 infixr 3 /\
 (/\) :: L a -> L a -> L a
@@ -33,44 +56,78 @@ infixr 1 ==>
 (==>) :: L a -> L a -> L a
 (==>) = Impl
 
+instance Pretty a => Pretty (L a) where
+  pretty = \case
+    Fun   a ns -> pretty a <+> hsep (pretty <$> ns)
+    Bar   x    -> "~" <> prettySub x
+    Conj  x y  -> prettySub x <+> "/\\" <+> prettySub y
+    Disj  x y  -> prettySub x <+> "\\/" <+> prettySub y
+    Impl  x y  -> prettySub x <+> "=>"  <+> prettySub y
+    All   a x  -> ".A" <+> pretty a <+> pretty x
+    Exist a x  -> ".E" <+> pretty a <+> pretty x
+    where
+      prettySub = \case
+        e@Fun{} -> pretty e
+        e       -> "(" <> pretty e <> ")"
+
+render :: Pretty a => L a -> Text
+render = renderStrict . layoutPretty defaultLayoutOptions . pretty
+
 ------------
 -- Prover --
 ------------
 
 data Node a = Parameter Integer
-            | Variable  a
+            | Var a
   deriving (Eq, Read, Show)
 
-grow :: Eq a => Integer -> NonEmpty (L (Node a)) -> Tableaux (L (Node a))
-grow p (e :| es) =  case e of
-  Fun{}          -> case nonEmpty es of
-    Nothing      -> Leaf e
-    Just es'     -> Stem e $ grow p es'
-  Bar Fun{}      -> case nonEmpty es of
-    Nothing      -> Leaf e
-    Just es'     -> Stem e $ grow p es'
-  Bar (Bar x)    -> Stem e $ grow p  $ x :| es
-  Conj x y       -> Stem e $ grow p  $ x <| y :| es
-  Bar (Disj x y) -> Stem e $ grow p  $ Bar x <| Bar y :| es
-  Bar (Impl x y) -> Stem e $ grow p  $ x <| Bar y :| es
-  All (Variable x) a         -> Stem e $ grow p  $ sub x p a :| es
-  Bar (Exist (Variable x) a) -> Stem e $ grow p  $ Bar (sub x p a) :| es
-  Exist (Variable x) a       -> Stem e $ grow p' $ sub x p' a :| es
-  Bar (All (Variable x) a)   -> Stem e $ grow p' $ Bar (sub x p' a) :| es
+instance Pretty a => Pretty (Node a) where
+  pretty = \case
+    Parameter i -> pretty i
+    Var a       -> pretty a
+
+grow
+  :: Eq a
+  => Integer
+  -> Set (L (Node a)) -- ^ gamma
+  -> Set (L (Node a))
+  -> Tableaux (L (Node a))
+grow p g s = case e of
+  Fun{}     | S.null s' -> Leaf e
+            | otherwise -> Stem e $ grow p g s'
+  Bar Fun{} | S.null s' -> Leaf e
+            | otherwise -> Stem e $ grow p g s'
+  Bar (Bar x)    -> Stem e $ grow p g $ S.insert x s'
+  Conj x y       -> Stem e $ grow p g $ S.insert x $ S.insert y s'
+  Bar (Disj x y) -> Stem e $ grow p g $ S.insert (Bar x) $ S.insert (Bar y) s'
+  Bar (Impl x y) -> Stem e $ grow p g $ S.insert x $ S.insert (Bar y) s'
+  All{}               -> Stem e $ grow p (S.insert e g) s'
+  Bar Exist{}         -> Stem e $ grow p (S.insert e g) s'
+  Exist (Var x) a     -> Stem e $ grow p' g $ S.insert (sub x p a) $ tab p g s'
+  Bar (All (Var x) a) -> Stem e $ grow p' g $ S.insert (Bar $ sub x p a) $ tab p g s'
   Bar (Conj x y)  ->
-    let l = Bar x :| es
-        r = Bar y :| es
-    in Branch e (grow p l) (grow p r)
+    let l = S.insert (Bar x) s'
+        r = S.insert (Bar y) s'
+    in Branch e (grow p g l) (grow p g r)
   Disj x y ->
-    let l = x :| es
-        r = y :| es
-    in Branch e (grow p l) (grow p r)
+    let l = S.insert x s'
+        r = S.insert y s'
+    in Branch e (grow p g l) (grow p g r)
   Impl x y ->
-    let l = Bar x :| es
-        r =     y :| es
-    in Branch e (grow p l) (grow p r)
+    let l = S.insert (Bar x) s'
+        r = S.insert y s'
+    in Branch e (grow p g l) (grow p g r)
   where
+    (e, s') = S.deleteFindMin s
     p' = p + 1
+
+tab :: Eq a => Integer -> Set (L (Node a)) -> Set (L (Node a)) -> Set (L (Node a))
+tab i g = appEndo $ foldMap updates g
+  where
+    updates = \case
+      Bar (Exist (Var x) a) -> Endo $ S.insert $ Bar $ sub x i a
+      All (Var x) a         -> Endo $ S.insert $ sub x i a
+      _                     -> mempty
 
 sub :: Eq a => a -> Integer -> L (Node a) -> L (Node a)
 sub x p = \case
@@ -79,18 +136,14 @@ sub x p = \case
   Conj a b -> Conj (sub x p a) (sub x p b)
   Disj a b -> Disj (sub x p a) (sub x p b)
   Impl a b -> Impl (sub x p a) (sub x p b)
-  All   (Variable y) a | x == y    -> All   (Variable y) a
-                       | otherwise -> All   (Variable y) $ sub x p a
-  Exist (Variable y) a | x == y    -> Exist (Variable y) a
-                       | otherwise -> Exist (Variable y) $ sub x p a
+  All   (Var y) a | x == y    -> All   (Var y) a
+                  | otherwise -> All   (Var y) $ sub x p a
+  Exist (Var y) a | x == y    -> Exist (Var y) a
+                  | otherwise -> Exist (Var y) $ sub x p a
   where
     subVar = \case
-      Variable v | v == x -> Parameter p
-      other               -> other
-
--- pg. 44
-testSubA :: L (Node String)
-testSubA = sub "x" 0 $ fmap Variable $ All "x" (Fun "P" ["x"]) \/ Bar (Exist "y" (Fun "Q" ["x", "y"]))
+      Var v | v == x -> Parameter p
+      other          -> other
 
 close :: Eq a => [L a] -> Tableaux (L a) -> Bool
 close signedFuns = \case
@@ -121,6 +174,4 @@ isSignedFun = \case
   _         -> False
 
 prove :: Eq a => L a -> Bool
-prove = close mempty . grow 0 . pure . fmap Variable . Bar
-
-testProof = prove $ All "x" (Fun "P" ["x"] ==> Fun "Q" ["x"]) ==> All "x" (Fun "P" ["x"]) ==> All "x" (Fun "Q" ["x"])
+prove = close mempty . grow 0 mempty . S.singleton . fmap Var . Bar
