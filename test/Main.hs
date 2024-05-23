@@ -12,7 +12,7 @@ import qualified Hedgehog.Range as Range
 import Test.Tasty
 import Test.Tasty.Hedgehog
 import Test.Tasty.HUnit
-import Text.Megaparsec
+import Text.Megaparsec hiding (parse)
 
 main :: IO ()
 main = defaultMain $ testGroup "Bayeux"
@@ -23,10 +23,10 @@ main = defaultMain $ testGroup "Bayeux"
 
 mkTestCase :: (Lp Text, Bool, String) -> TestTree
 mkTestCase (lp, expected, description) =
-  let display = unwords [description, T.unpack $ prettyLp lp]
+  let display = unwords [description, T.unpack $ render lp]
   in testGroup display
-       [ testCase "prove" $ proveLp lp @?= expected
-       , testCase "parse . pretty" $ (parseMaybe parseLp . prettyLp) lp @?= Just (lp)
+       [ testCase "prove" $ prove lp @?= expected
+       , testCase "parse . pretty" $ (parseMaybe parse . render) lp @?= Just (lp)
        ]
 
 smullyan :: [(Lp Text, Bool, String)]
@@ -95,7 +95,7 @@ parseTests =
   , tc "~a \\/ ~b" $ "~a" \/ "~b"
   ]
   where
-    tc t lp = testCase (T.unpack t) $ parseMaybe parseLp t @?= Just lp
+    tc t lp = testCase (T.unpack t) $ parseMaybe parse t @?= Just lp
 
 genName :: MonadGen m => m Text
 genName = Gen.text (Range.linear 1 10) Gen.alphaNum
@@ -112,5 +112,5 @@ hedgehogTests :: [TestTree]
 hedgehogTests =
   [ testProperty "parse . pretty = id" $ property $ do
       lp <- forAll genLp
-      (fromJust . parseMaybe parseLp . prettyLp) lp === lp
+      (fromJust . parseMaybe parse . render) lp === lp
   ]
