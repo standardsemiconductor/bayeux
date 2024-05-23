@@ -18,6 +18,7 @@ library
                     , Bayeux.Lp
                     , Bayeux.Tableaux
     build-depends:    base
+                    , containers
                     , megaparsec
                     , parser-combinators
                     , prettyprinter
