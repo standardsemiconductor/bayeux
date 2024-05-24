@@ -43,9 +43,10 @@ test-suite test
     hs-source-dirs:   test
     main-is:          Main.hs
     other-modules:    Test.Bayeux.L
-                      Test.Bayeux.Lp
+                    , Test.Bayeux.Lp
     build-depends:    base
                     , bayeux
+                    , containers
                     , hedgehog
                     , megaparsec
                     , prettyprinter

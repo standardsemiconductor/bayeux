@@ -11,6 +11,7 @@ module Bayeux.L
   , (==>)
   , Node(..)
   , render
+  , unfold
   , prove
   ) where
 
@@ -86,43 +87,44 @@ instance Pretty a => Pretty (Node a) where
     Parameter i -> pretty i
     Var a       -> pretty a
 
-grow
+unfold
   :: Eq a
   => Integer
   -> Set (L (Node a)) -- ^ gamma
   -> Set (L (Node a))
   -> Tableaux (L (Node a))
-grow p g s = case e of
+unfold p g s = case e of
   Fun{}     | S.null s' -> Leaf e
-            | otherwise -> Stem e $ grow p g s'
+            | otherwise -> Stem e $ unfold p g s'
   Bar Fun{} | S.null s' -> Leaf e
-            | otherwise -> Stem e $ grow p g s'
-  Bar (Bar x)    -> Stem e $ grow p g $ S.insert x s'
-  Conj x y       -> Stem e $ grow p g $ S.insert x $ S.insert y s'
-  Bar (Disj x y) -> Stem e $ grow p g $ S.insert (Bar x) $ S.insert (Bar y) s'
-  Bar (Impl x y) -> Stem e $ grow p g $ S.insert x $ S.insert (Bar y) s'
-  All{}               -> Stem e $ grow p (S.insert e g) s'
-  Bar Exist{}         -> Stem e $ grow p (S.insert e g) s'
-  Exist (Var x) a     -> Stem e $ grow p' g $ S.insert (sub x p a) $ tab p g s'
-  Bar (All (Var x) a) -> Stem e $ grow p' g $ S.insert (Bar $ sub x p a) $ tab p g s'
-  Bar (Conj x y)  ->
+            | otherwise -> Stem e $ unfold p g s'
+  Bar (Bar x)    -> Stem e $ unfold p g $ S.insert x s'
+  Conj x y       -> Stem e $ unfold p g $ S.insert x $ S.insert y s'
+  Bar (Disj x y) -> Stem e $ unfold p g $ S.insert (Bar x) $ S.insert (Bar y) s'
+  Bar (Impl x y) -> Stem e $ unfold p g $ S.insert x $ S.insert (Bar y) s'
+  All (Var x) a         -> Stem e $ unfold p (S.insert e g) $ S.insert (sub x p a) s'
+  Bar (Exist (Var x) a) -> Stem e $ unfold p (S.insert e g) $ S.insert (Bar $ sub x p a) s'
+  Exist (Var x) a     -> Stem e $ unfold p' g $ delta id  x a $ gamma p g s'
+  Bar (All (Var x) a) -> Stem e $ unfold p' g $ delta Bar x a $ gamma p g s'
+  Bar (Conj x y) ->
     let l = S.insert (Bar x) s'
         r = S.insert (Bar y) s'
-    in Branch e (grow p g l) (grow p g r)
+    in Branch e (unfold p g l) (unfold p g r)
   Disj x y ->
     let l = S.insert x s'
         r = S.insert y s'
-    in Branch e (grow p g l) (grow p g r)
+    in Branch e (unfold p g l) (unfold p g r)
   Impl x y ->
     let l = S.insert (Bar x) s'
         r = S.insert y s'
-    in Branch e (grow p g l) (grow p g r)
+    in Branch e (unfold p g l) (unfold p g r)
   where
     (e, s') = S.deleteFindMin s
     p' = p + 1
+    delta f x a = appEndo $ foldMap Endo [ S.insert (f (sub x i a)) | i <- [0..p] ]
 
-tab :: Eq a => Integer -> Set (L (Node a)) -> Set (L (Node a)) -> Set (L (Node a))
-tab i g = appEndo $ foldMap updates g
+gamma :: Eq a => Integer -> Set (L (Node a)) -> Set (L (Node a)) -> Set (L (Node a))
+gamma i g = appEndo $ foldMap updates g
   where
     updates = \case
       Bar (Exist (Var x) a) -> Endo $ S.insert $ Bar $ sub x i a
@@ -174,4 +176,4 @@ isSignedFun = \case
   _         -> False
 
 prove :: Eq a => L a -> Bool
-prove = close mempty . grow 0 mempty . S.singleton . fmap Var . Bar
+prove = close mempty . unfold 0 mempty . S.singleton . fmap Var . Bar
