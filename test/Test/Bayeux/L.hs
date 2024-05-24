@@ -37,17 +37,18 @@ smullyan =
     )
   , ( All "y" (All "x" (Fun "P" ["x"] ==> Fun "P" ["y"]))
     , True
-    , "pg 56. Ex 1"
+    , "pg 56. Exr 1"
     )
---  , ( All "x" (Fun "P" ["x"] ==> Exist "x" (Fun "P" ["x"]))
---    , True
---    , "pg 56. Ex2"
---    )
+  , ( All "x" (Fun "P" ["x"] ==> Exist "x" (Fun "P" ["x"]))
+    , True
+    , "pg 56. Exr 2"
+    )
   ]
 
 --{-
 testE :: L String
-testE = All "y" (All "x" (Fun "P" ["x"] ==> Fun "P" ["y"]))
+testE = All "x" (Fun "P" ["x"] ==> Exist "x" (Fun "P" ["x"]))
+
 testT :: Tableaux (L (Node String))
 testT = unfold 0 mempty $ S.singleton $ fmap Var $ Bar testE
 

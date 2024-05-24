@@ -102,8 +102,8 @@ unfold p g s = case e of
   Conj x y       -> Stem e $ unfold p g $ S.insert x $ S.insert y s'
   Bar (Disj x y) -> Stem e $ unfold p g $ S.insert (Bar x) $ S.insert (Bar y) s'
   Bar (Impl x y) -> Stem e $ unfold p g $ S.insert x $ S.insert (Bar y) s'
-  All (Var x) a         -> Stem e $ unfold p (S.insert e g) $ S.insert (sub x p a) s'
-  Bar (Exist (Var x) a) -> Stem e $ unfold p (S.insert e g) $ S.insert (Bar $ sub x p a) s'
+  All (Var x) a         -> Stem e $ unfold p (S.insert e g) $ delta id  x a s'
+  Bar (Exist (Var x) a) -> Stem e $ unfold p (S.insert e g) $ delta Bar x a s'
   Exist (Var x) a     -> Stem e $ unfold p' g $ delta id  x a $ gamma p g s'
   Bar (All (Var x) a) -> Stem e $ unfold p' g $ delta Bar x a $ gamma p g s'
   Bar (Conj x y) ->
