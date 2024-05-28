@@ -4,7 +4,8 @@ module Bayeux.Cli
   ) where
 
 data Cli = Cli
-  { input :: Input
+  { input    :: Input
+  , tableaux :: Bool
   }
   deriving (Eq, Read, Show)
 
