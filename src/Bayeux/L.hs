@@ -1,3 +1,5 @@
+{-# LANGUAGE DeriveAnyClass    #-}
+{-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE DeriveTraversable #-}
 {-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
@@ -6,43 +8,71 @@
 -- | First-Order Logic
 module Bayeux.L
   ( L(..)
-  , (/\)
-  , (\/)
-  , (==>)
-  , Node(..)
-  , render
-  , unfold
-  , prove
+--  , (/\)
+--  , (\/)
+--  , (==>)
+--  , Node(..)
+--  , render
+--  , unfold
+--  , prove
   ) where
 
 import Bayeux.Tableaux
+import Control.Monad.Trans.Class
+import Control.Monad.Trans.Except
+import Control.Unification
+import Control.Unification.IntVar
+import Control.Unification.Types
+import Data.Functor.Identity
 import Data.Monoid (Endo(..))
 import Data.Set (Set)
 import qualified Data.Set as S
 import Data.Text (Text)
+import GHC.Generics
 import Prettyprinter
 import Prettyprinter.Render.Text
 
-data L a = Fun a [a]
-         | Bar (L a)
-         | Conj (L a) (L a)
-         | Disj (L a) (L a)
-         | Impl (L a) (L a)
-         | All   a (L a)
-         | Exist a (L a)
-  deriving (Eq, Foldable, Functor, Read, Show, Traversable)
+data L a = Var Text
+         | Fun a a
+         | Bar a
+         | Conj a a
+         | Disj a a
+         | Impl a a
+         | All   a a
+         | Exist a a
+  deriving (Eq, Foldable, Functor, Generic1, Read, Show, Traversable, Unifiable)
 
+type Term = UTerm L Text
+type Failure = UFailure L IntVar
+type BindingState = IntBindingState L
+type LMonad = ExceptT Failure (IntBindingT L Identity)
+--var :: Text -> Term
+var = UVar . Var
+fun n a = UTerm $ Fun n a
+bar = UTerm . Bar
+conj x y = UTerm $ Conj x y
+
+--getFreeVar :: BindingMonad t v m => m v
+--getFreeVar = lift $ UVar <$> freeVar
+runUnifier :: LMonad a -> (Either Failure a, BindingState)
+runUnifier = runIdentity . runIntBindingT . runExceptT
+
+ex1 = runUnifier $ do
+  let pa = UTerm $ Fun (UVar $ Var "P") (UVar $ Var "a")
+      pc = UTerm $ Fun (UVar $ Var "P") (UVar $ Var "c")
+  pa =:= pc
+{-
 instance Eq a => Ord (L a) where
   Bar Bar{}   <= _ = True
   Conj{}      <= _ = True
   Bar Disj{}  <= _ = True
   Bar Impl{}  <= _ = True
-  Bar All{}   <= _ = True
-  Bar Exist{} <= _ = True
-  All{}       <= _ = True
-  Exist{}     <= _ = True
   Fun{}       <= _ = True
   Bar Fun{}   <= _ = True
+  Bar All{}   <= _ = True
+  Exist{}     <= _ = True
+  Bar Exist{} <= _ = False
+  All{}       <= _ = False
   _           <= _ = False
 
 infixr 3 /\
@@ -89,11 +119,16 @@ instance Pretty a => Pretty (Node a) where
 
 unfold
   :: Eq a
-  => Integer
+  => Integer -- ^ unique parameter
   -> Set (L (Node a)) -- ^ gamma
   -> Set (L (Node a))
   -> Tableaux (L (Node a))
-unfold p g s = case e of
+unfold p g s
+  | S.null s = unfold p g $ S.fromList [ g' | i <- [0..p] 
+                                            , l <- S.toList g
+                                            ]
+  | otherwise = case e of
+  -- alpha
   Fun{}     | S.null s' -> Leaf e
             | otherwise -> Stem e $ unfold p g s'
   Bar Fun{} | S.null s' -> Leaf e
@@ -102,10 +137,13 @@ unfold p g s = case e of
   Conj x y       -> Stem e $ unfold p g $ S.insert x $ S.insert y s'
   Bar (Disj x y) -> Stem e $ unfold p g $ S.insert (Bar x) $ S.insert (Bar y) s'
   Bar (Impl x y) -> Stem e $ unfold p g $ S.insert x $ S.insert (Bar y) s'
-  All (Var x) a         -> Stem e $ unfold p (S.insert e g) $ delta id  x a s'
-  Bar (Exist (Var x) a) -> Stem e $ unfold p (S.insert e g) $ delta Bar x a s'
-  Exist (Var x) a     -> Stem e $ unfold p' g $ delta id  x a $ gamma p g s'
-  Bar (All (Var x) a) -> Stem e $ unfold p' g $ delta Bar x a $ gamma p g s'
+  -- gamma
+  All (Var x) a         -> Stem e $ unfold p (S.insert e g) s'
+  Bar (Exist (Var x) a) -> Stem e $ unfold p (S.insert e g) s'
+  -- delta
+  Exist (Var x) a     -> Stem e $ unfold p' g $ S.insert (sub x p' a) s'
+  Bar (All (Var x) a) -> Stem e $ unfold p' g $ S.insert (Bar $ sub x p' a) s'
+  -- beta
   Bar (Conj x y) ->
     let l = S.insert (Bar x) s'
         r = S.insert (Bar y) s'
@@ -177,3 +215,4 @@ isSignedFun = \case
 
 prove :: Eq a => L a -> Bool
 prove = close mempty . unfold 0 mempty . S.singleton . fmap Var . Bar
+-}

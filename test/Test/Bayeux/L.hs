@@ -29,25 +29,29 @@ smullyan :: [(L Text, Bool, String)]
 smullyan =
   [ ( All "x" (Fun "P" ["x"] ==> Fun "Q" ["x"]) ==> All "x" (Fun "P" ["x"]) ==> All "x" (Fun "Q" ["x"])
     , True
-    , "pg. 55, ex 1"
+    , "pg. 55 exp 1"
     )
   , ( Exist "y" (Exist "x" (Fun "P" ["x"] ==> Fun "P" ["y"]))
     , True
-    , "pg. 55, 56 ex2"
+    , "pg. 55, 56 exp 2"
     )
   , ( All "y" (All "x" (Fun "P" ["x"] ==> Fun "P" ["y"]))
     , True
-    , "pg 56. Exr 1"
+    , "pg 56 exr 1"
     )
   , ( All "x" (Fun "P" ["x"] ==> Exist "x" (Fun "P" ["x"]))
     , True
-    , "pg 56. Exr 2"
+    , "pg 56 exr 2"
+    )
+  , ( Exist "y" (Fun "P" ["y"] ==> All "x" (Fun "P" ["x"]))
+    , True
+    , "pg 56 exr 3"
     )
   ]
 
 --{-
 testE :: L String
-testE = All "x" (Fun "P" ["x"] ==> Exist "x" (Fun "P" ["x"]))
+testE = Exist "y" (Fun "P" ["y"] ==> All "x" (Fun "P" ["x"]))
 
 testT :: Tableaux (L (Node String))
 testT = unfold 0 mempty $ S.singleton $ fmap Var $ Bar testE
