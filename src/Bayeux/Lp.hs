@@ -10,7 +10,7 @@ module Bayeux.Lp
   , eval
   , render
   , parse
-  , grow
+  , unfold
   , close
   , prove
   ) where
@@ -129,31 +129,31 @@ prefix name f = Prefix (f <$ symbol name)
 -- Prover --
 ------------
 
-grow
+unfold
   :: Eq a
   => Set (Lp a) -- ^ Assumptions
   -> Tableaux (Lp a)
-grow s = case e of
+unfold s = case e of
   Bv{}     | S.null s' -> Leaf e
-           | otherwise -> Stem e $ grow s'
+           | otherwise -> Stem e $ unfold s'
   Bar Bv{} | S.null s' -> Leaf e
-           | otherwise -> Stem e $ grow s'
-  Bar (Bar x)    -> Stem e $ grow $ S.insert x s'
-  Conj x y       -> Stem e $ grow $ S.insert x $ S.insert y s'
-  Bar (Disj x y) -> Stem e $ grow $ S.insert (Bar x) $ S.insert (Bar y) s'
-  Bar (Impl x y) -> Stem e $ grow $ S.insert x $ S.insert (Bar y) s'
+           | otherwise -> Stem e $ unfold s'
+  Bar (Bar x)    -> Stem e $ unfold $ S.insert x s'
+  Conj x y       -> Stem e $ unfold $ S.insert x $ S.insert y s'
+  Bar (Disj x y) -> Stem e $ unfold $ S.insert (Bar x) $ S.insert (Bar y) s'
+  Bar (Impl x y) -> Stem e $ unfold $ S.insert x $ S.insert (Bar y) s'
   Bar (Conj x y) ->
     let l = S.insert (Bar x) s'
         r = S.insert (Bar y) s'
-    in Branch e (grow l) (grow r)
+    in Branch e (unfold l) (unfold r)
   Disj x y ->
     let l = S.insert x s'
         r = S.insert y s'
-    in Branch e (grow l) (grow r)
+    in Branch e (unfold l) (unfold r)
   Impl x y ->
     let l = S.insert (Bar x) s'
         r = S.insert y s'
-    in Branch e (grow l) (grow r)
+    in Branch e (unfold l) (unfold r)
   where
     (e, s') = S.deleteFindMin s
 
@@ -180,4 +180,4 @@ close signedBvs = \case
           lp         -> lp
 
 prove :: Eq a => Lp a -> Bool
-prove = close mempty . grow . S.singleton . Bar
+prove = close mempty . unfold . S.singleton . Bar

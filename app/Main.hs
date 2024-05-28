@@ -10,12 +10,11 @@ main = app =<< execParser opts
 opts :: ParserInfo Cli
 opts = info (parseCli <**> helper) $ mconcat
   [ fullDesc
-  , progDesc "Bayeux language /\\ prover"
-  , header "bx => cli"
+  , header "Bayeux"
   ]
 
 parseCli :: Parser Cli
-parseCli = Cli <$> parseInput
+parseCli = Cli <$> parseInput <*> parseTableauxOutput
 
 parseInput :: Parser Input
 parseInput = parseFileInput <|> parseStdInput
@@ -30,3 +29,6 @@ parseFileInput = FileInput <$> (strOption . mconcat)
 
 parseStdInput :: Parser Input
 parseStdInput = flag' StdInput $ long "stdin" <> help "Read from stdin"
+
+parseTableauxOutput :: Parser Bool
+parseTableauxOutput = switch $ long "tableaux" <> short 't' <> help "Display tableaux"
