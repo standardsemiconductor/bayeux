@@ -16,6 +16,7 @@ library
     exposed-modules:  Bayeux
                     , Bayeux.Cli
                     , Bayeux.Lp
+                    , Bayeux.Rtlil
                     , Bayeux.Tableaux
     build-depends:    base
                     , containers
