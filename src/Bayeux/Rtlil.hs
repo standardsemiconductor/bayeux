@@ -68,10 +68,7 @@ import Data.Text (Text)
 import Prettyprinter
 
 newtype Ident = Ident Text
-  deriving (Eq, Read, Show)
-
-instance Pretty Ident where
-  pretty (Ident i) = "\\" <> pretty i
+  deriving (Eq, Pretty, Read, Show)
 
 data Value = Value Integer [BinaryDigit]
   deriving (Eq, Read, Show)
@@ -118,7 +115,7 @@ instance Pretty Module where
   pretty (Module as m bs e) = vsep
     [ vsep $ pretty <$> as
     , pretty m
-    , vsep $ pretty <$> bs
+    , indent 2 $ vsep $ pretty <$> bs
     , pretty e
     ]
 
@@ -186,7 +183,7 @@ instance Pretty SigSpec where
   pretty = \case
     SigSpecConstant c   -> pretty c
     SigSpecWireId w     -> pretty w
-    SigSpecSlice s x yM -> pretty s <> brackets (pretty x <> maybe mempty ((":" <>) . pretty) yM)
+    SigSpecSlice s x yM -> pretty s <+> brackets (pretty x <> maybe mempty ((":" <>) . pretty) yM)
     SigSpecCat ss       -> braces $ foldMap pretty ss
 
 data ConnStmt = ConnStmt SigSpec SigSpec
@@ -256,10 +253,9 @@ data Cell = Cell [AttrStmt] CellStmt [CellBodyStmt] CellEndStmt
   deriving (Eq, Read, Show)
 
 instance Pretty Cell where
-  pretty (Cell as s bs e) = mconcat
-    [ foldMap pretty as
-    , pretty s
-    , foldMap pretty bs
+  pretty (Cell as s bs e) = vsep
+    [ foldMap pretty as <> pretty s
+    , indent 2 $ foldMap pretty bs
     , pretty e
     ]
 
@@ -302,10 +298,9 @@ data Process = Process [AttrStmt] ProcStmt ProcessBody ProcEndStmt
   deriving (Eq, Read, Show)
 
 instance Pretty Process where
-  pretty (Process as s b e) = hsep
-    [ foldMap pretty as
-    , pretty s
-    , pretty b
+  pretty (Process as s b e) = vsep
+    [ foldMap pretty as <> pretty s
+    , indent 2 $ pretty b
     , pretty e
     ]
 
@@ -319,7 +314,7 @@ data ProcessBody = ProcessBody [AssignStmt] (Maybe Switch) [AssignStmt] [Sync]
   deriving (Eq, Read, Show)
 
 instance Pretty ProcessBody where
-  pretty (ProcessBody as sM bs ss) = hsep
+  pretty (ProcessBody as sM bs ss) = vsep
     [ foldMap pretty as
     , maybe mempty pretty sM
     , foldMap pretty bs
@@ -391,7 +386,10 @@ data Sync = Sync SyncStmt [UpdateStmt]
   deriving (Eq, Read, Show)
 
 instance Pretty Sync where
-  pretty (Sync s us) = pretty s <> foldMap pretty us
+  pretty (Sync s us) = vsep
+    [ pretty s
+    , indent 2 $ foldMap pretty us
+    ]
 
 data SyncStmt = SyncStmt SyncType SigSpec
               | SyncStmtGlobal
