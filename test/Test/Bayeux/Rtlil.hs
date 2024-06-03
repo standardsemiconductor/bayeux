@@ -5,23 +5,24 @@ module Test.Bayeux.Rtlil
   ) where
 
 import Bayeux.Rtlil
+import Data.String
 import Data.Text (Text)
+import qualified Data.Text as T
 import Prettyprinter
 import Prettyprinter.Render.Text
+import System.FilePath
 import Test.Tasty
+import Test.Tasty.Golden
 
 tests :: [TestTree]
-tests = []
---  [ testGroup "Golden" prettyTests
---  ]
-{-
-prettyTests :: [TestTree]
-prettyTests =
-  [ tc rtlilLed
+tests =
+  [ goldenVsString "pretty-led" (curDir </> "pretty-led" <.> "golden") $ return $
+      fromString $ T.unpack $ render $ pretty rtlilLed
   ]
-  where
-    tc = undefined
--}
+
+curDir :: FilePath
+curDir = "test" </> "Test" </> "Bayeux" </> "Rtlil"
+
 rtlilLed :: File
 rtlilLed = File Nothing
   [ Module

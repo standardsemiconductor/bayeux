@@ -45,10 +45,12 @@ test-suite test
     other-modules:    Test.Bayeux.Rtlil
     build-depends:    base
                     , bayeux
+                    , filepath
                     , hedgehog
                     , megaparsec
                     , prettyprinter
                     , tasty
+                    , tasty-golden
                     , tasty-hedgehog
                     , tasty-hunit
                     , text

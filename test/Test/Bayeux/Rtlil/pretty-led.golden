@@ -1,0 +1,70 @@
+
+module \top
+
+  wire input 1 \clk
+
+  wire output 2 \LED_R
+
+  wire output 3 \LED_G
+
+  wire output 4 \LED_B
+
+  wire width 26 \counter
+
+  wire width 32 \counter_plus_one
+
+  cell $add $increment
+
+    parameter \A_SIGNED 0
+    parameter \A_WIDTH 26
+    parameter \B_SIGNED 0
+    parameter \B_WIDTH 32
+    parameter \Y_WIDTH 32
+    connect \A \counter
+    connect \B 1
+    connect \Y \counter_plus_one
+
+  end
+
+  cell $not $not$1
+
+    parameter \A_SIGNED 0
+    parameter \A_WIDTH 1
+    parameter \Y_WIDTH 1
+    connect \A \counter [23]
+    connect \Y \LED_R
+
+  end
+
+  cell $not $not$2
+
+    parameter \A_SIGNED 0
+    parameter \A_WIDTH 1
+    parameter \Y_WIDTH 1
+    connect \A \counter [24]
+    connect \Y \LED_G
+
+  end
+
+  cell $not $not$3
+
+    parameter \A_SIGNED 0
+    parameter \A_WIDTH 1
+    parameter \Y_WIDTH 1
+    connect \A \counter [25]
+    connect \Y \LED_B
+
+  end
+
+  process $run
+
+    
+
+
+    sync posedge \clk
+
+      update \counter \counter_plus_one [25:0]
+
+  end
+
+end
