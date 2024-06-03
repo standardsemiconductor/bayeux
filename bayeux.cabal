@@ -42,6 +42,7 @@ test-suite test
     type:             exitcode-stdio-1.0
     hs-source-dirs:   test
     main-is:          Main.hs
+    other-modules:    Test.Bayeux.Rtlil
     build-depends:    base
                     , bayeux
                     , hedgehog
