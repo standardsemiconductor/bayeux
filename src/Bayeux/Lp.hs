@@ -109,7 +109,7 @@ parens :: Parser a -> Parser a
 parens = between (symbol "(") (symbol ")")
 
 term :: Parser (Lp Text)
-term = parens parse <|> fromString `fmap` (L.lexeme sc (some alphaNumChar))
+term = parens parse <|> fromString `fmap` L.lexeme sc (some alphaNumChar)
 
 table :: [[Operator Parser (Lp Text)]]
 table = [ [ prefix "~" Bar ]

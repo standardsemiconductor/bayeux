@@ -25,7 +25,7 @@ tests =
       fromString $ T.unpack $ render $ pretty rtlilLed
   , testCase "synth-led" $ withTempFile $ \f -> do
       TIO.writeFile f $ render $ pretty rtlilLed
-      let c = "yosys -p \"synth_ice40\" -f rtlil " <> f
+      let c = "yosys -q -p \"synth_ice40\" -f rtlil " <> f
       (ExitSuccess @=?) =<< waitForProcess =<< spawnCommand c
   ]
 
