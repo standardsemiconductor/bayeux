@@ -67,5 +67,31 @@ jobs:
     - name: document
       run: cabal haddock
 
+    - name: checkout icestorm
+      uses: actions/checkout@v4
+      with:
+        repository: YosysHQ/icestorm
+        path: icestorm
+
+    - name: install icestorm
+      working-directory: icestorm
+      run: |
+        make
+        sudo make install
+
+    - name: checkout yosys
+      uses: actions/checkout@v4
+      with:
+        repository: YosysHQ/yosys
+        ref: main
+        path: yosys
+        submodules: true
+
+    - name: install yosys
+      working-directory: yosys
+      run: |
+        make -j$(nproc)
+        sudo make install
+
     - name: test
       run: cabal run test
