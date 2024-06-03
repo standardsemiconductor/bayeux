@@ -9,6 +9,7 @@ import qualified Data.Text as T
 import Hedgehog
 import qualified Hedgehog.Gen   as Gen
 import qualified Hedgehog.Range as Range
+import qualified Test.Bayeux.Rtlil
 import Test.Tasty
 import Test.Tasty.Hedgehog
 import Test.Tasty.HUnit
@@ -19,6 +20,7 @@ main = defaultMain $ testGroup "Bayeux"
   [ testGroup "R. Smullyan \"First-order Logic\"" $ mkTestCase <$> smullyan
   , testGroup "Parse" parseTests
   , testGroup "Hedgehog" hedgehogTests
+  , testGroup "Test.Bayeux.Rtlil" Test.Bayeux.Rtlil.tests
   ]
 
 mkTestCase :: (Lp Text, Bool, String) -> TestTree
