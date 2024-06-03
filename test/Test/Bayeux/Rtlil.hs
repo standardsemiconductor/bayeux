@@ -8,16 +8,25 @@ import Bayeux.Rtlil
 import Data.String
 import Data.Text (Text)
 import qualified Data.Text as T
+import qualified Data.Text.IO as TIO
 import Prettyprinter
 import Prettyprinter.Render.Text
+import System.Exit
 import System.FilePath
+import System.IO.Extra
+import System.Process
 import Test.Tasty
+import Test.Tasty.HUnit
 import Test.Tasty.Golden
 
 tests :: [TestTree]
 tests =
   [ goldenVsString "pretty-led" (curDir </> "pretty-led" <.> "golden") $ return $
       fromString $ T.unpack $ render $ pretty rtlilLed
+  , testCase "synth-led" $ withTempFile $ \f -> do
+      TIO.writeFile f $ render $ pretty rtlilLed
+      let c = "yosys -p \"synth_ice40\" -f rtlil " <> f
+      (ExitSuccess @=?) =<< waitForProcess =<< spawnCommand c
   ]
 
 curDir :: FilePath

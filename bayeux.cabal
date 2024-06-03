@@ -37,7 +37,7 @@ executable bx
     default-language: Haskell2010
 
 test-suite test
-    ghc-options:      -Wall
+    ghc-options:      -Wall -threaded
     default-language: Haskell2010
     type:             exitcode-stdio-1.0
     hs-source-dirs:   test
@@ -45,10 +45,12 @@ test-suite test
     other-modules:    Test.Bayeux.Rtlil
     build-depends:    base
                     , bayeux
+                    , extra
                     , filepath
                     , hedgehog
                     , megaparsec
                     , prettyprinter
+                    , process
                     , tasty
                     , tasty-golden
                     , tasty-hedgehog
