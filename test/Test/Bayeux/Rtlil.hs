@@ -27,6 +27,8 @@ tests =
       TIO.writeFile f $ render $ pretty rtlilLed
       let c = "yosys -q -p \"synth_ice40\" -f rtlil " <> f
       (ExitSuccess @=?) =<< waitForProcess =<< spawnCommand c
+  , goldenVsString "pretty-sbRgbaDrv" (curDir </> "pretty-sbRgbaDrv" <.> "golden") $ return $
+      fromString $ T.unpack $ render $ pretty sbRgbaDrv
   ]
 
 curDir :: FilePath

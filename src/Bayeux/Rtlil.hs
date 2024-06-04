@@ -41,6 +41,7 @@ module Bayeux.Rtlil
   , CellType(..)
   , CellBodyStmt(..)
   , CellEndStmt(..)
+  , sbRgbaDrv
   , -- ** Processes
     Process(..)
   , ProcStmt(..)
@@ -159,7 +160,7 @@ instance Pretty Constant where
   pretty = \case
     ConstantValue   v -> pretty v
     ConstantInteger i -> pretty i
-    ConstantString  t -> pretty t
+    ConstantString  t -> dquotes $ pretty t
 
 data ModuleEndStmt = ModuleEndStmt
   deriving (Eq, Read, Show)
@@ -293,6 +294,25 @@ data CellEndStmt = CellEndStmt
 
 instance Pretty CellEndStmt where
   pretty _ = "end" <> hardline
+
+sbRgbaDrv :: Cell
+sbRgbaDrv = Cell
+  [AttrStmt (Ident "\\module_not_derived") $ ConstantInteger 1]
+  (CellStmt (CellType $ Ident "\\SB_RGBA_DRV") (CellId $ Ident "\\RGBA_DRIVER"))
+  [ CellParameter Nothing (Ident "\\CURRENT_MODE") $ ConstantString "0b1"
+  , CellParameter Nothing (Ident "\\RGB0_CURRENT") $ ConstantString "0b111111"
+  , CellParameter Nothing (Ident "\\RGB1_CURRENT") $ ConstantString "0b111111"
+  , CellParameter Nothing (Ident "\\RGB2_CURRENT") $ ConstantString "0b111111"
+  , CellConnect (Ident "\\CURREN") $ SigSpecConstant $ ConstantValue $ Value 1 [B1]
+  , CellConnect (Ident "\\RGB0") $ SigSpecWireId $ WireId $ Ident "\\red"
+  , CellConnect (Ident "\\RGB0PWM") $ SigSpecWireId $ WireId $ Ident "\\pwm_r"
+  , CellConnect (Ident "\\RGB1") $ SigSpecWireId $ WireId $ Ident "\\green"
+  , CellConnect (Ident "\\RGB1PWM") $ SigSpecWireId $ WireId $ Ident "\\pwm_g"
+  , CellConnect (Ident "\\RGB2") $ SigSpecWireId $ WireId $ Ident "\\blue"
+  , CellConnect (Ident "\\RGB2PWM") $ SigSpecWireId $ WireId $ Ident "\\pwm_b"
+  , CellConnect (Ident "\\RGBLEDEN") $ SigSpecConstant $ ConstantValue $ Value 1 [B1]
+  ]
+  CellEndStmt
 
 data Process = Process [AttrStmt] ProcStmt ProcessBody ProcEndStmt
   deriving (Eq, Read, Show)
