@@ -12,6 +12,7 @@ module Bayeux.Rtlil
   , -- * File
     File(..)
   , top
+  , fiatLux
   , -- ** Autoindex statements
     AutoIdxStmt(..)
   , -- ** Modules
@@ -113,7 +114,17 @@ instance Pretty File where
                              Nothing -> ms'
 
 top :: [ModuleBody] -> File
-top body = File (Just 0) [Module [] "top" body ModuleEndStmt]
+top body = File (Just 0) [Module [] "\\top" body ModuleEndStmt]
+
+fiatLux :: File
+fiatLux = top $
+  [ ModuleBodyWire $ Wire [] $ WireStmt [WireOptionOutput 1] "\\red"
+  , ModuleBodyWire $ Wire [] $ WireStmt [WireOptionOutput 2] "\\green"
+  , ModuleBodyWire $ Wire [] $ WireStmt [WireOptionOutput 3] "\\blue"
+  ] <> initial "\\pwm_r" True
+    <> initial "\\pwm_g" False
+    <> initial "\\pwm_b" False
+    <> [ModuleBodyCell sbRgbaDrv]
 
 newtype AutoIdxStmt = AutoIdxStmt Integer
   deriving (Eq, Num, Read, Show)
@@ -155,9 +166,13 @@ instance Pretty ModuleBody where
     ModuleBodyProcess   p -> pretty p
     ModuleBodyConnStmt  c -> pretty c
 
-initial :: FiniteBits o => Text -> o -> [ModuleBody]
+initial
+  :: FiniteBits output
+  => Text         -- ^ output identifier
+  -> output
+  -> [ModuleBody]
 initial outputIdent output =
-  [ ModuleBodyWire $ Wire [] $ WireStmt [WireOptionOutput 1] $ WireId $ Ident outputIdent
+  [ ModuleBodyWire $ Wire [] $ WireStmt [WireOptionWidth 1] $ WireId $ Ident outputIdent
   , ModuleBodyConnStmt $ ConnStmt
       (SigSpecWireId $ WireId $ Ident outputIdent)
       (SigSpecConstant value)
