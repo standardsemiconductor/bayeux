@@ -24,11 +24,12 @@ tests =
   [ testGroup "pretty"
       [ prettyTest "led"       rtlilLed
       , prettyTest "sbRgbaDrv" sbRgbaDrv
+      , prettyTest "fiatLux"   fiatLux
       ]
-  , testCase "synth-led" $ withTempFile $ \f -> do
-      TIO.writeFile f $ render $ pretty rtlilLed
-      let c = "yosys -q -p \"synth_ice40\" -f rtlil " <> f
-      (ExitSuccess @=?) =<< waitForProcess =<< spawnCommand c
+  , testGroup "synth"
+      [ synthTest "led"     rtlilLed
+      , synthTest "fiatLux" fiatLux
+      ]
   ]
 
 prettyTest :: Pretty a => TestName -> a -> TestTree
@@ -36,6 +37,12 @@ prettyTest n = goldenVsString n (curDir </> n' <.> "golden")
                  . return . fromString . T.unpack . render . pretty
   where
     n' = "pretty-" <> n
+
+synthTest :: TestName -> File -> TestTree
+synthTest n rtl = testCase n $ withTempFile $ \t -> do
+  TIO.writeFile t $ render $ pretty rtl
+  let c = "yosys -q -p \"synth_ice40\" -f rtlil " <> t
+  (ExitSuccess @=?) =<< waitForProcess =<< spawnCommand c
 
 curDir :: FilePath
 curDir = "test" </> "Test" </> "Bayeux" </> "Rtlil"
