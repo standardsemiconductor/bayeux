@@ -8,14 +8,17 @@ module Bayeux.Rtlil
     Ident(..)
   , Value(..)
   , BinaryDigit(..)
+  , binaryDigits
   , -- * File
     File(..)
+  , top
   , -- ** Autoindex statements
     AutoIdxStmt(..)
   , -- ** Modules
     Module(..)
   , ModuleStmt(..)
   , ModuleBody(..)
+  , initial
   , ParamStmt(..)
   , Constant(..)
   , ModuleEndStmt(..)
@@ -65,6 +68,8 @@ module Bayeux.Rtlil
   , UpdateStmt(..)
   ) where
 
+import Data.Bits
+import Data.Bool
 import Data.String
 import Data.Text (Text)
 import Prettyprinter
@@ -95,6 +100,9 @@ instance Pretty BinaryDigit where
     M  -> "m"
     D  -> "-"
 
+binaryDigits :: FiniteBits b => b -> [BinaryDigit]
+binaryDigits b = bool B0 B1 . testBit b <$> reverse [0..finiteBitSize b - 1]
+
 data File = File (Maybe AutoIdxStmt) [Module]
   deriving (Eq, Read, Show)
 
@@ -103,6 +111,9 @@ instance Pretty File where
                         in vsep $ case iM of
                              Just i  -> pretty i : ms'
                              Nothing -> ms'
+
+top :: [ModuleBody] -> File
+top body = File (Just 0) [Module [] "top" body ModuleEndStmt]
 
 newtype AutoIdxStmt = AutoIdxStmt Integer
   deriving (Eq, Num, Read, Show)
@@ -132,6 +143,7 @@ data ModuleBody = ModuleBodyParamStmt ParamStmt
                 | ModuleBodyMemory Memory
                 | ModuleBodyCell Cell
                 | ModuleBodyProcess Process
+                | ModuleBodyConnStmt ConnStmt
   deriving (Eq, Read, Show)
 
 instance Pretty ModuleBody where
@@ -141,6 +153,19 @@ instance Pretty ModuleBody where
     ModuleBodyMemory    m -> pretty m
     ModuleBodyCell      c -> pretty c
     ModuleBodyProcess   p -> pretty p
+    ModuleBodyConnStmt  c -> pretty c
+
+initial :: FiniteBits o => Text -> o -> [ModuleBody]
+initial outputIdent output =
+  [ ModuleBodyWire $ Wire [] $ WireStmt [WireOptionOutput 1] $ WireId $ Ident outputIdent
+  , ModuleBodyConnStmt $ ConnStmt
+      (SigSpecWireId $ WireId $ Ident outputIdent)
+      (SigSpecConstant value)
+  ]
+  where
+    value = let size = fromIntegral $ finiteBitSize output
+                bs   = binaryDigits output
+            in ConstantValue $ Value size bs
 
 data ParamStmt = ParamStmt Ident (Maybe Constant)
   deriving (Eq, Read, Show)
