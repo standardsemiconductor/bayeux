@@ -40,6 +40,7 @@ module Bayeux.Rtlil
   , MemoryOption(..)
   , -- ** Cells
     Cell(..)
+  , add
   , CellStmt(..)
   , CellId(..)
   , CellType(..)
@@ -168,7 +169,7 @@ instance Pretty ModuleBody where
 
 initial
   :: FiniteBits output
-  => Text         -- ^ output identifier
+  => Text -- ^ output identifier
   -> output
   -> [ModuleBody]
 initial outputIdent output =
@@ -300,6 +301,35 @@ instance Pretty Cell where
     , indent 2 $ foldMap pretty bs
     , pretty e
     ]
+
+add
+  :: CellId
+  -> Bool    -- ^ \\A_SIGNED
+  -> Integer -- ^ \\A_WIDTH
+  -> Bool    -- ^ \\B_SIGNED
+  -> Integer -- ^ \\B_WIDTH
+  -> Integer -- ^ \\Y_WIDTH
+  -> SigSpec -- ^ A
+  -> SigSpec -- ^ B
+  -> WireId  -- ^ Y
+  -> Cell
+add n aSigned aWidth bSigned bWidth yWidth a b y = Cell
+  []
+  (CellStmt "$add" n)
+  [ CellParameter Nothing "\\A_SIGNED" $ ConstantInteger $ fromBool aSigned
+  , CellParameter Nothing "\\A_WIDTH"  $ ConstantInteger aWidth
+  , CellParameter Nothing "\\B_SIGNED" $ ConstantInteger $ fromBool bSigned
+  , CellParameter Nothing "\\B_WIDTH"  $ ConstantInteger bWidth
+  , CellParameter Nothing "\\Y_WIDTH"  $ ConstantInteger yWidth
+  , CellConnect "\\A" a
+  , CellConnect "\\B" b
+  , CellConnect "\\Y" $ SigSpecWireId y
+  ]
+  CellEndStmt
+  where
+    fromBool :: Bool -> Integer
+    fromBool True  = 1
+    fromBool False = 0
 
 data CellStmt = CellStmt CellType CellId
   deriving (Eq, Read, Show)
