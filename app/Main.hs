@@ -14,7 +14,16 @@ opts = info (parseCli <**> helper) $ mconcat
   ]
 
 parseCli :: Parser Cli
-parseCli = Cli <$> parseInput <*> parseTableauxOutput
+parseCli = (CliDemo <$> parseDemo) <|> (CliProve <$> parseProve)
+
+parseDemo :: Parser Demo
+parseDemo = FiatLux <$ (switch . mconcat)
+  [ long "FiatLux"
+  , help "FiatLux demo"
+  ]
+
+parseProve :: Parser Prove
+parseProve = Prove <$> parseInput <*> parseTableauxOutput
 
 parseInput :: Parser Input
 parseInput = parseFileInput <|> parseStdInput

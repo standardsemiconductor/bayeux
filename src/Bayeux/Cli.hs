@@ -1,9 +1,18 @@
 module Bayeux.Cli
   ( Cli(..)
+  , Demo(..)
+  , Prove(..)
   , Input(..)
   ) where
 
-data Cli = Cli
+data Cli = CliDemo Demo
+         | CliProve Prove
+  deriving (Eq, Read, Show)
+
+data Demo = FiatLux
+  deriving (Eq, Read, Show)
+
+data Prove = Prove
   { input    :: Input
   , tableaux :: Bool
   }

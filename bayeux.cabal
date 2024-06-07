@@ -15,6 +15,7 @@ library
     ghc-options:      -Wall
     exposed-modules:  Bayeux
                     , Bayeux.Cli
+                    , Bayeux.Flow
                     , Bayeux.Lp
                     , Bayeux.RgbCounter
                     , Bayeux.Rtlil
@@ -25,6 +26,7 @@ library
                     , mtl
                     , parser-combinators
                     , prettyprinter
+                    , shake
                     , text
     hs-source-dirs:   src
     default-language: Haskell2010
