@@ -26,6 +26,7 @@ tests =
       , prettyTest "sbRgbaDrv" sbRgbaDrv
       , prettyTest "fiatLux"   fiatLux
       , prettyTest "add"     $ addC "\\adder" False 32 False 32 33 (SigSpecWireId "\\a") (SigSpecWireId "\\b") "\\y"
+      , prettyTest "counter" $ counter 8 "\\old" "\\new"
       ]
   , testGroup "synth"
       [ synthTest "led"     rtlilLed

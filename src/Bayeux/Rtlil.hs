@@ -19,10 +19,11 @@ module Bayeux.Rtlil
     Module(..)
   , ModuleStmt(..)
   , ModuleBody(..)
-  , initial
   , ParamStmt(..)
   , Constant(..)
   , ModuleEndStmt(..)
+  , initial
+  , counter
   , -- ** Attribute statements
     AttrStmt(..)
   , -- ** Signal specifications
@@ -45,8 +46,10 @@ module Bayeux.Rtlil
   , CellType(..)
   , CellBodyStmt(..)
   , CellEndStmt(..)
-  , -- *** Binary operators
-    andC
+  , -- *** Binary cells
+    binaryCell
+  , shiftCell
+  , andC
   , orC
   , xorC
   , xnorC
@@ -193,21 +196,6 @@ instance Pretty ModuleBody where
     ModuleBodyProcess   p -> pretty p
     ModuleBodyConnStmt  c -> pretty c
 
-initial
-  :: FiniteBits output
-  => Text -- ^ output identifier
-  -> output
-  -> [ModuleBody]
-initial outputIdent output =
-  [ ModuleBodyWire $ Wire [] $ WireStmt [WireOptionWidth 1] $ WireId $ Ident outputIdent
-  , ModuleBodyConnStmt $ ConnStmt
-      (SigSpecWireId $ WireId $ Ident outputIdent)
-      (SigSpecConstant value)
-  ]
-  where
-    value = let size = fromIntegral $ finiteBitSize output
-                bs   = binaryDigits output
-            in ConstantValue $ Value size bs
 
 data ParamStmt = ParamStmt Ident (Maybe Constant)
   deriving (Eq, Read, Show)
@@ -235,6 +223,58 @@ data ModuleEndStmt = ModuleEndStmt
 
 instance Pretty ModuleEndStmt where
   pretty _ = "end" <> hardline
+
+initial
+  :: FiniteBits output
+  => Text -- ^ output identifier
+  -> output
+  -> [ModuleBody]
+initial outputIdent output =
+  [ ModuleBodyWire $ Wire [] $ WireStmt [WireOptionWidth 1] $ WireId $ Ident outputIdent
+  , ModuleBodyConnStmt $ ConnStmt
+      (SigSpecWireId $ WireId $ Ident outputIdent)
+      (SigSpecConstant value)
+  ]
+  where
+    value = let size = fromIntegral $ finiteBitSize output
+                bs   = binaryDigits output
+            in ConstantValue $ Value size bs
+
+counter
+  :: Integer -- ^ width
+  -> Ident   -- ^ old
+  -> Ident   -- ^ new
+  -> [ModuleBody]
+counter w old new =
+  [ ModuleBodyWire $ Wire [] $ WireStmt [WireOptionWidth w] $ WireId old
+  , ModuleBodyWire $ Wire [] $ WireStmt [WireOptionWidth w] $ WireId new
+  , ModuleBodyCell $ addC
+      (CellId old)
+      False
+      w
+      False
+      w
+      w
+      (SigSpecWireId $ WireId old)
+      (SigSpecConstant $ ConstantInteger 1)
+      (WireId new)
+  , ModuleBodyProcess $ Process
+      []
+      "\\procStmt"
+      (ProcessBody
+         []
+         Nothing
+         []
+         [Sync
+            (SyncStmt Posedge (SigSpecWireId "\\clk"))
+            [UpdateStmt
+               (DestSigSpec $ SigSpecWireId $ WireId old)
+               (SrcSigSpec  $ SigSpecWireId $ WireId new)
+            ]
+         ]
+      )
+      ProcEndStmt
+  ]
 
 data AttrStmt = AttrStmt Ident Constant
   deriving (Eq, Read, Show)
