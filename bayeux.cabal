@@ -16,11 +16,13 @@ library
     exposed-modules:  Bayeux
                     , Bayeux.Cli
                     , Bayeux.Lp
+                    , Bayeux.RgbCounter
                     , Bayeux.Rtlil
                     , Bayeux.Tableaux
     build-depends:    base
                     , containers
                     , megaparsec
+                    , mtl
                     , parser-combinators
                     , prettyprinter
                     , text
@@ -54,6 +56,7 @@ test-suite test
     hs-source-dirs:   test
     main-is:          Main.hs
     other-modules:    Test.Bayeux.Lp
+                    , Test.Bayeux.RgbCounter
                     , Test.Bayeux.Rtlil
     build-depends:    base
                     , bayeux

@@ -75,7 +75,8 @@ module Bayeux.Rtlil
   , modC
   , divFloorC
   , modFloorC
-  , sbRgbaDrv
+  , -- *** Primitive cells
+    sbRgbaDrv
   , -- ** Processes
     Process(..)
   , ProcStmt(..)
@@ -106,7 +107,7 @@ import Data.Text (Text)
 import Prettyprinter
 
 newtype Ident = Ident Text
-  deriving (Eq, IsString, Pretty, Read, Show)
+  deriving (Eq, IsString, Pretty, Read, Semigroup, Monoid, Show)
 
 data Value = Value Integer [BinaryDigit]
   deriving (Eq, Read, Show)
@@ -246,7 +247,7 @@ counter
   -> Ident   -- ^ new
   -> [ModuleBody]
 counter w old new =
-  [ ModuleBodyWire $ Wire [] $ WireStmt [WireOptionWidth w] $ WireId old
+  [ ModuleBodyWire $ Wire [] $ WireStmt [WireOptionWidth w] $ WireId $ "\\" <> old
   , ModuleBodyWire $ Wire [] $ WireStmt [WireOptionWidth w] $ WireId new
   , ModuleBodyCell $ addC
       (CellId old)
@@ -255,12 +256,12 @@ counter w old new =
       False
       w
       w
-      (SigSpecWireId $ WireId old)
+      (SigSpecWireId $ WireId $ "\\" <> old)
       (SigSpecConstant $ ConstantInteger 1)
       (WireId new)
   , ModuleBodyProcess $ Process
       []
-      "\\procStmt"
+      "$procStmt"
       (ProcessBody
          []
          Nothing
@@ -268,7 +269,7 @@ counter w old new =
          [Sync
             (SyncStmt Posedge (SigSpecWireId "\\clk"))
             [UpdateStmt
-               (DestSigSpec $ SigSpecWireId $ WireId old)
+               (DestSigSpec $ SigSpecWireId $ WireId $ "\\" <> old)
                (SrcSigSpec  $ SigSpecWireId $ WireId new)
             ]
          ]

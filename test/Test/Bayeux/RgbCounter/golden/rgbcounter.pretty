@@ -1,0 +1,71 @@
+autoidx 0
+
+module \top
+
+  wire input 1 \clk
+
+  wire width 32 \$my_counter
+
+  wire width 32 \unused
+
+  cell $add $my_counter
+
+    parameter \A_SIGNED 0
+    parameter \A_WIDTH 32
+    parameter \B_SIGNED 0
+    parameter \B_WIDTH 32
+    parameter \Y_WIDTH 32
+    connect \A \$my_counter
+    connect \B 1
+    connect \Y \unused
+
+  end
+
+  process $procStmt
+
+    
+
+
+    sync posedge \clk
+
+      update \$my_counter \unused
+
+  end
+
+  wire width 1 \pwm_r
+
+  connect \pwm_r \$my_counter [24]
+
+  wire width 1 \pwm_g
+
+  connect \pwm_g \$my_counter [23]
+
+  wire width 1 \pwm_b
+
+  connect \pwm_b \$my_counter [22]
+
+  wire output 2 \red
+
+  wire output 3 \green
+
+  wire output 4 \blue
+
+  attribute \module_not_derived 1
+  cell \SB_RGBA_DRV \RGBA_DRIVER
+
+    parameter \CURRENT_MODE "0b1"
+    parameter \RGB0_CURRENT "0b111111"
+    parameter \RGB1_CURRENT "0b111111"
+    parameter \RGB2_CURRENT "0b111111"
+    connect \CURREN 1'1
+    connect \RGB0 \red
+    connect \RGB0PWM \pwm_r
+    connect \RGB1 \green
+    connect \RGB1PWM \pwm_g
+    connect \RGB2 \blue
+    connect \RGB2PWM \pwm_b
+    connect \RGBLEDEN 1'1
+
+  end
+
+end

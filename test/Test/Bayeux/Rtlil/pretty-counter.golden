@@ -1,4 +1,4 @@
-[ wire width 8 \old
+[ wire width 8 \\old
 
 , wire width 8 \new
 
@@ -9,20 +9,20 @@
   parameter \B_SIGNED 0
   parameter \B_WIDTH 8
   parameter \Y_WIDTH 8
-  connect \A \old
+  connect \A \\old
   connect \B 1
   connect \Y \new
 
 end
 
-, process \procStmt
+, process $procStmt
 
   
 
 
   sync posedge \clk
 
-    update \old \new
+    update \\old \new
 
 end
  ]
