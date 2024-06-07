@@ -40,12 +40,38 @@ module Bayeux.Rtlil
   , MemoryOption(..)
   , -- ** Cells
     Cell(..)
-  , add
   , CellStmt(..)
   , CellId(..)
   , CellType(..)
   , CellBodyStmt(..)
   , CellEndStmt(..)
+  , -- *** Binary operators
+    andC
+  , orC
+  , xorC
+  , xnorC
+  , shlC
+  , shrC
+  , sshlC
+  , sshrC
+  , logicAndC
+  , logicOrC
+  , eqxC
+  , nexC
+  , powC
+  , ltC
+  , leC
+  , eqC
+  , neC
+  , geC
+  , gtC
+  , addC
+  , subC
+  , mulC
+  , divC
+  , modC
+  , divFloorC
+  , modFloorC
   , sbRgbaDrv
   , -- ** Processes
     Process(..)
@@ -302,34 +328,6 @@ instance Pretty Cell where
     , pretty e
     ]
 
-add
-  :: CellId
-  -> Bool    -- ^ \\A_SIGNED
-  -> Integer -- ^ \\A_WIDTH
-  -> Bool    -- ^ \\B_SIGNED
-  -> Integer -- ^ \\B_WIDTH
-  -> Integer -- ^ \\Y_WIDTH
-  -> SigSpec -- ^ A
-  -> SigSpec -- ^ B
-  -> WireId  -- ^ Y
-  -> Cell
-add n aSigned aWidth bSigned bWidth yWidth a b y = Cell
-  []
-  (CellStmt "$add" n)
-  [ CellParameter Nothing "\\A_SIGNED" $ ConstantInteger $ fromBool aSigned
-  , CellParameter Nothing "\\A_WIDTH"  $ ConstantInteger aWidth
-  , CellParameter Nothing "\\B_SIGNED" $ ConstantInteger $ fromBool bSigned
-  , CellParameter Nothing "\\B_WIDTH"  $ ConstantInteger bWidth
-  , CellParameter Nothing "\\Y_WIDTH"  $ ConstantInteger yWidth
-  , CellConnect "\\A" a
-  , CellConnect "\\B" b
-  , CellConnect "\\Y" $ SigSpecWireId y
-  ]
-  CellEndStmt
-  where
-    fromBool :: Bool -> Integer
-    fromBool True  = 1
-    fromBool False = 0
 
 data CellStmt = CellStmt CellType CellId
   deriving (Eq, Read, Show)
@@ -365,6 +363,98 @@ data CellEndStmt = CellEndStmt
 
 instance Pretty CellEndStmt where
   pretty _ = "end" <> hardline
+
+binaryCell
+  :: CellStmt
+  -> Bool    -- ^ \\A_SIGNED
+  -> Integer -- ^ \\A_WIDTH
+  -> Bool    -- ^ \\B_SIGNED
+  -> Integer -- ^ \\B_WIDTH
+  -> Integer -- ^ \\Y_WIDTH
+  -> SigSpec -- ^ A
+  -> SigSpec -- ^ B
+  -> WireId  -- ^ Y
+  -> Cell
+binaryCell cellStmt aSigned aWidth bSigned bWidth yWidth a b y = Cell
+  []
+  cellStmt
+  [ CellParameter Nothing "\\A_SIGNED" $ ConstantInteger $ fromBool aSigned
+  , CellParameter Nothing "\\A_WIDTH"  $ ConstantInteger aWidth
+  , CellParameter Nothing "\\B_SIGNED" $ ConstantInteger $ fromBool bSigned
+  , CellParameter Nothing "\\B_WIDTH"  $ ConstantInteger bWidth
+  , CellParameter Nothing "\\Y_WIDTH"  $ ConstantInteger yWidth
+  , CellConnect "\\A" a
+  , CellConnect "\\B" b
+  , CellConnect "\\Y" $ SigSpecWireId y
+  ]
+  CellEndStmt
+  where
+    fromBool :: Bool -> Integer
+    fromBool True  = 1
+    fromBool False = 0
+
+shiftCell
+  :: CellStmt
+  -> Bool
+  -> Integer
+  -> Integer
+  -> Integer
+  -> SigSpec
+  -> SigSpec
+  -> WireId
+  -> Cell
+shiftCell cellStmt aSigned aWidth = binaryCell cellStmt aSigned aWidth False
+
+-- binary cells
+andC, orC, xorC, xnorC, logicAndC, logicOrC, eqxC, nexC, powC, ltC, leC, eqC, neC, geC, gtC, addC, subC, mulC, divC, modC, divFloorC, modFloorC
+  :: CellId
+  -> Bool
+  -> Integer
+  -> Bool
+  -> Integer
+  -> Integer
+  -> SigSpec
+  -> SigSpec
+  -> WireId
+  -> Cell
+
+shlC, shrC, sshlC, sshrC
+  :: CellId
+  -> Bool
+  -> Integer
+  -> Integer
+  -> Integer
+  -> SigSpec
+  -> SigSpec
+  -> WireId
+  -> Cell
+
+andC      = binaryCell . CellStmt "$and"
+orC       = binaryCell . CellStmt "$or"
+xorC      = binaryCell . CellStmt "$xor"
+xnorC     = binaryCell . CellStmt "$xnor"
+shlC      = shiftCell  . CellStmt "$shl"
+shrC      = shiftCell  . CellStmt "$shr"
+sshlC     = shiftCell  . CellStmt "$sshl"
+sshrC     = shiftCell  . CellStmt "$sshr"
+logicAndC = binaryCell . CellStmt "$logic_and"
+logicOrC  = binaryCell . CellStmt "$logic_or"
+eqxC      = binaryCell . CellStmt "$eqx"
+nexC      = binaryCell . CellStmt "$nex"
+powC      = binaryCell . CellStmt "$pow"
+ltC       = binaryCell . CellStmt "$lt"
+leC       = binaryCell . CellStmt "$le"
+eqC       = binaryCell . CellStmt "$eq"
+neC       = binaryCell . CellStmt "$ne"
+geC       = binaryCell . CellStmt "$ge"
+gtC       = binaryCell . CellStmt "$gt"
+addC      = binaryCell . CellStmt "$add"
+subC      = binaryCell . CellStmt "$sub"
+mulC      = binaryCell . CellStmt "$mul"
+divC      = binaryCell . CellStmt "$div"
+modC      = binaryCell . CellStmt "$mod"
+divFloorC = binaryCell . CellStmt "$divfloor"
+modFloorC = binaryCell . CellStmt "$modfloor"
 
 sbRgbaDrv :: Cell
 sbRgbaDrv = Cell
