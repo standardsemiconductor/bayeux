@@ -2,7 +2,6 @@ module Test.Bayeux.RgbCounter
   ( tests
   ) where
 
-import Test.Tasty
 import Bayeux.RgbCounter
 import Bayeux.Rtlil
 import Data.String

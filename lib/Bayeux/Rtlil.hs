@@ -46,6 +46,17 @@ module Bayeux.Rtlil
   , CellType(..)
   , CellBodyStmt(..)
   , CellEndStmt(..)
+  , -- *** Unary cells
+    unaryCell
+  , notC
+  , posC
+  , negC
+  , reduceAndC
+  , reduceOrC
+  , reduceXorC
+  , reduceXnorC
+  , reduceBoolC
+  , logicNotC
   , -- *** Binary cells
     binaryCell
   , shiftCell
@@ -405,6 +416,45 @@ data CellEndStmt = CellEndStmt
 instance Pretty CellEndStmt where
   pretty _ = "end" <> hardline
 
+unaryCell
+  :: CellStmt
+  -> Bool    -- ^ \\A_SIGNED
+  -> Integer -- ^ \\A_WIDTH
+  -> Integer -- ^ \\Y_WIDTH
+  -> SigSpec -- ^ A
+  -> WireId  -- ^ Y
+  -> Cell
+unaryCell cellStmt aSigned aWidth yWidth a y = Cell
+  []
+  cellStmt
+  [ CellParameter Nothing "\\A_SIGNED" $ ConstantInteger $ fromBool aSigned
+  , CellParameter Nothing "\\A_WIDTH" $ ConstantInteger aWidth
+  , CellParameter Nothing "\\Y_WIDTH" $ ConstantInteger yWidth
+  , CellConnect "\\A" a
+  , CellConnect "\\Y" $ SigSpecWireId y
+  ]
+  CellEndStmt
+
+-- unary cells
+notC, posC, negC, reduceAndC, reduceOrC, reduceXorC, reduceXnorC, reduceBoolC, logicNotC
+  :: CellId
+  -> Bool
+  -> Integer
+  -> Integer
+  -> SigSpec
+  -> WireId
+  -> Cell
+
+notC        = unaryCell . CellStmt "$not"
+posC        = unaryCell . CellStmt "$pos"
+negC        = unaryCell . CellStmt "$neg"
+reduceAndC  = unaryCell . CellStmt "$reduce_and"
+reduceOrC   = unaryCell . CellStmt "$reduce_or"
+reduceXorC  = unaryCell . CellStmt "$reduce_xor"
+reduceXnorC = unaryCell . CellStmt "$reduce_xnor"
+reduceBoolC = unaryCell . CellStmt "$reduce_bool"
+logicNotC   = unaryCell . CellStmt "$logic_not"
+
 binaryCell
   :: CellStmt
   -> Bool    -- ^ \\A_SIGNED
@@ -429,10 +479,10 @@ binaryCell cellStmt aSigned aWidth bSigned bWidth yWidth a b y = Cell
   , CellConnect "\\Y" $ SigSpecWireId y
   ]
   CellEndStmt
-  where
-    fromBool :: Bool -> Integer
-    fromBool True  = 1
-    fromBool False = 0
+
+fromBool :: Bool -> Integer
+fromBool True  = 1
+fromBool False = 0
 
 shiftCell
   :: CellStmt
