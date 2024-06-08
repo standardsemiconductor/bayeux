@@ -12,9 +12,9 @@ import Control.Monad.Writer
 class Monad m => MonadRgb m where
   ctr :: m SigSpec
   at  :: SigSpec -> Integer -> m SigSpec
-  rgb :: SigSpec -> SigSpec -> SigSpec -> m (SigSpec, SigSpec, SigSpec)
+  rgb :: SigSpec -> SigSpec -> SigSpec -> m ()
 
-prog :: MonadRgb m => m (SigSpec, SigSpec, SigSpec)
+prog :: MonadRgb m => m ()
 prog = do
   c <- ctr
   r <- c `at` 24
@@ -45,13 +45,9 @@ instance MonadRgb Rgb where
     tell [ ModuleBodyWire $ Wire [] $ WireStmt [WireOptionOutput 2] "\\red"
          , ModuleBodyWire $ Wire [] $ WireStmt [WireOptionOutput 3] "\\green"
          , ModuleBodyWire $ Wire [] $ WireStmt [WireOptionOutput 4] "\\blue"
-         , ModuleBodyCell sbRgbaDrv
+         , ModuleBodyCell $ sbRgbaDrv r g b
          ]
-    return ( SigSpecWireId "\\red"
-           , SigSpecWireId "\\green"
-           , SigSpecWireId "\\blue"
-           )
 
-compile :: Rgb (SigSpec, SigSpec, SigSpec) -> File
+compile :: Rgb a -> File
 compile = top . execWriter . unRgb
 
