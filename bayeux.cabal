@@ -26,7 +26,7 @@ library
                     , parser-combinators
                     , prettyprinter
                     , text
-    hs-source-dirs:   src
+    hs-source-dirs:   lib
     default-language: Haskell2010
 
 executable bx
