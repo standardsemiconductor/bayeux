@@ -38,10 +38,8 @@ tests =
   ]
 
 prettyTest :: Pretty a => TestName -> a -> TestTree
-prettyTest n = goldenVsString n (curDir </> n' <.> "golden")
+prettyTest n = goldenVsString n (curDir </> n <.> "pretty")
                  . return . fromString . T.unpack . render . pretty
-  where
-    n' = "pretty-" <> n
 
 synthTest :: TestName -> File -> TestTree
 synthTest n rtl = testCase n $ withTempFile $ \t -> do
@@ -50,7 +48,7 @@ synthTest n rtl = testCase n $ withTempFile $ \t -> do
   (ExitSuccess @=?) =<< waitForProcess =<< spawnCommand c
 
 curDir :: FilePath
-curDir = "test" </> "Test" </> "Bayeux" </> "Rtlil"
+curDir = "test" </> "Test" </> "Bayeux" </> "Rtlil" </> "golden"
 
 rtlilLed :: File
 rtlilLed = File Nothing
