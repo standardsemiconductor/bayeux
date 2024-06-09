@@ -151,7 +151,7 @@ data File = File (Maybe AutoIdxStmt) [Module]
 
 instance Pretty File where
   pretty (File iM ms) = let ms' = pretty <$> ms
-                        in vsep $ case iM of
+                        in vl $ case iM of
                              Just i  -> pretty i : ms'
                              Nothing -> ms'
 
@@ -182,10 +182,10 @@ data Module = Module [AttrStmt] ModuleStmt [ModuleBody] ModuleEndStmt
   deriving (Eq, Read, Show)
 
 instance Pretty Module where
-  pretty (Module as m bs e) = vsep
-    [ vsep $ pretty <$> as
+  pretty (Module as m bs e) = vl
+    [ vl $ pretty <$> as
     , pretty m
-    , indent 2 $ vsep $ pretty <$> bs
+    , indent 2 $ vl $ pretty <$> bs
     , pretty e
     ]
 
@@ -193,7 +193,7 @@ newtype ModuleStmt = ModuleStmt Ident
   deriving (Eq, IsString, Read, Show)
 
 instance Pretty ModuleStmt where
-  pretty (ModuleStmt i) = "module" <+> pretty i <> hardline
+  pretty (ModuleStmt i) = "module" <+> pretty i
 
 data ModuleBody = ModuleBodyParamStmt ParamStmt
                 | ModuleBodyWire Wire
@@ -220,7 +220,6 @@ instance Pretty ParamStmt where
   pretty (ParamStmt i cM) = mconcat
     [ "parameter" <+> pretty i
     , maybe mempty (surround " " " " . pretty) cM
-    , hardline
     ]
 
 data Constant = ConstantValue Value
@@ -296,7 +295,7 @@ data AttrStmt = AttrStmt Ident Constant
   deriving (Eq, Read, Show)
 
 instance Pretty AttrStmt where
-  pretty (AttrStmt i c) = "attribute" <+> pretty i <+> pretty c <> hardline
+  pretty (AttrStmt i c) = "attribute" <+> pretty i <+> pretty c
 
 data SigSpec = SigSpecConstant Constant
              | SigSpecWireId   WireId
@@ -315,7 +314,7 @@ data ConnStmt = ConnStmt SigSpec SigSpec
   deriving (Eq, Read, Show)
 
 instance Pretty ConnStmt where
-  pretty (ConnStmt x y) = "connect" <+> pretty x <+> pretty y <> hardline
+  pretty (ConnStmt x y) = "connect" <+> pretty x <+> pretty y
 
 data Wire = Wire [AttrStmt] WireStmt
   deriving (Eq, Read, Show)
@@ -327,7 +326,7 @@ data WireStmt = WireStmt [WireOption] WireId
   deriving (Eq, Read, Show)
 
 instance Pretty WireStmt where
-  pretty (WireStmt os i) = "wire" <+> hsep (pretty <$> os) <+> pretty i <> hardline
+  pretty (WireStmt os i) = "wire" <+> hsep (pretty <$> os) <+> pretty i
 
 newtype WireId = WireId Ident
   deriving (Eq, IsString, Pretty, Read, Show)
@@ -378,18 +377,21 @@ data Cell = Cell [AttrStmt] CellStmt [CellBodyStmt] CellEndStmt
   deriving (Eq, Read, Show)
 
 instance Pretty Cell where
-  pretty (Cell as s bs e) = vsep
-    [ foldMap pretty as <> pretty s
-    , indent 2 $ foldMap pretty bs
+  pretty (Cell as s bs e) = vl
+    [ vl $ pretty <$> as
+    , pretty s
+    , indent 2 $ vl $ pretty <$> bs
     , pretty e
     ]
 
+vl :: [Doc ann] -> Doc ann
+vl = concatWith $ \x y -> x <> hardline <> y
 
 data CellStmt = CellStmt CellType CellId
   deriving (Eq, Read, Show)
 
 instance Pretty CellStmt where
-  pretty (CellStmt t i) = "cell" <+> pretty t <+> pretty i <> hardline
+  pretty (CellStmt t i) = "cell" <+> pretty t <+> pretty i
 
 newtype CellId = CellId Ident
   deriving (Eq, IsString, Pretty, Read, Show)
@@ -410,9 +412,9 @@ data CellBodyStmt = CellParameter (Maybe ParamType) Ident Constant
 
 instance Pretty CellBodyStmt where
   pretty = \case
-    CellParameter Nothing i c -> "parameter" <+> pretty i <+> pretty c <> hardline
-    CellParameter (Just p) i c -> "parameter" <+> pretty p <+> pretty i <+> pretty c <> hardline
-    CellConnect i s -> "connect" <+> pretty i <+> pretty s <> hardline
+    CellParameter Nothing i c -> "parameter" <+> pretty i <+> pretty c
+    CellParameter (Just p) i c -> "parameter" <+> pretty p <+> pretty i <+> pretty c
+    CellConnect i s -> "connect" <+> pretty i <+> pretty s
 
 data CellEndStmt = CellEndStmt
   deriving (Eq, Read, Show)
@@ -578,8 +580,9 @@ data Process = Process [AttrStmt] ProcStmt ProcessBody ProcEndStmt
   deriving (Eq, Read, Show)
 
 instance Pretty Process where
-  pretty (Process as s b e) = vsep
-    [ foldMap pretty as <> pretty s
+  pretty (Process as s b e) = vl
+    [ vl $ pretty <$> as
+    , pretty s
     , indent 2 $ pretty b
     , pretty e
     ]
@@ -588,24 +591,24 @@ newtype ProcStmt = ProcStmt Ident
   deriving (Eq, IsString, Read, Show)
 
 instance Pretty ProcStmt where
-  pretty (ProcStmt i) = "process" <+> pretty i <> hardline
+  pretty (ProcStmt i) = "process" <+> pretty i
 
 data ProcessBody = ProcessBody [AssignStmt] (Maybe Switch) [AssignStmt] [Sync]
   deriving (Eq, Read, Show)
 
 instance Pretty ProcessBody where
-  pretty (ProcessBody as sM bs ss) = vsep
-    [ foldMap pretty as
+  pretty (ProcessBody as sM bs ss) = vl
+    [ vl $ pretty <$> as
     , maybe mempty pretty sM
-    , foldMap pretty bs
-    , foldMap pretty ss
+    , vl $ pretty <$> bs
+    , vl $ pretty <$> ss
     ]
 
 data AssignStmt = AssignStmt DestSigSpec SrcSigSpec
   deriving (Eq, Read, Show)
 
 instance Pretty AssignStmt where
-  pretty (AssignStmt d s) = "assign" <+> pretty d <+> pretty s <> hardline
+  pretty (AssignStmt d s) = "assign" <+> pretty d <+> pretty s
 
 newtype DestSigSpec = DestSigSpec SigSpec
   deriving (Eq, Pretty, Read, Show)
@@ -623,13 +626,17 @@ data Switch = Switch SwitchStmt [Case] SwitchEndStmt
   deriving (Eq, Read, Show)
 
 instance Pretty Switch where
-  pretty (Switch s cs e) = pretty s <> foldMap pretty cs <> pretty e
+  pretty (Switch s cs e) = vl
+    [ pretty s
+    , indent 2 $ vl $ pretty <$> cs
+    , pretty e
+    ]
 
 data SwitchStmt = SwitchStmt [AttrStmt] SigSpec
   deriving (Eq, Read, Show)
 
 instance Pretty SwitchStmt where
-  pretty (SwitchStmt as s) = foldMap pretty as <> "switch" <+> pretty s <> hardline
+  pretty (SwitchStmt as s) = foldMap pretty as <> "switch" <+> pretty s
 
 data Case = Case [AttrStmt] CaseStmt CaseBody
   deriving (Eq, Read, Show)
@@ -641,8 +648,8 @@ newtype CaseStmt = CaseStmt (Maybe Compare)
   deriving (Eq, Read, Show)
 
 instance Pretty CaseStmt where
-  pretty (CaseStmt Nothing)  = "case" <> hardline
-  pretty (CaseStmt (Just c)) = "case" <+> pretty c <> hardline
+  pretty (CaseStmt Nothing)  = "case"
+  pretty (CaseStmt (Just c)) = "case" <+> pretty c
 
 data Compare = Compare SigSpec [SigSpec]
   deriving (Eq, Read, Show)
@@ -654,7 +661,7 @@ newtype CaseBody = CaseBody [Either Switch AssignStmt]
   deriving (Eq, Read, Show)
 
 instance Pretty CaseBody where
-  pretty (CaseBody es) = vsep $ either pretty pretty <$> es
+  pretty (CaseBody es) = vl $ either pretty pretty <$> es
 
 data SwitchEndStmt = SwitchEndStmt
   deriving (Eq, Read, Show)
@@ -666,9 +673,9 @@ data Sync = Sync SyncStmt [UpdateStmt]
   deriving (Eq, Read, Show)
 
 instance Pretty Sync where
-  pretty (Sync s us) = vsep
+  pretty (Sync s us) = vl
     [ pretty s
-    , indent 2 $ foldMap pretty us
+    , indent 2 $ vl $ pretty <$> us
     ]
 
 data SyncStmt = SyncStmt SyncType SigSpec
@@ -678,11 +685,11 @@ data SyncStmt = SyncStmt SyncType SigSpec
   deriving (Eq, Read, Show)
 
 instance Pretty SyncStmt where
-  pretty = \case
-    SyncStmt t s   -> "sync" <+> pretty t <+> pretty s <> hardline
-    SyncStmtGlobal -> "sync" <+> "global" <> hardline
-    SyncStmtInit   -> "sync" <+> "init"   <> hardline
-    SyncStmtAlways -> "sync" <+> "always" <> hardline
+  pretty = ("sync" <+>) . \case
+    SyncStmt t s   -> pretty t <+> pretty s
+    SyncStmtGlobal -> "global"
+    SyncStmtInit   -> "init"
+    SyncStmtAlways -> "always"
 
 data SyncType = Low
               | High
@@ -703,4 +710,4 @@ data UpdateStmt = UpdateStmt DestSigSpec SrcSigSpec
   deriving (Eq, Read, Show)
 
 instance Pretty UpdateStmt where
-  pretty (UpdateStmt d s) = "update" <+> pretty d <+> pretty s <> hardline
+  pretty (UpdateStmt d s) = "update" <+> pretty d <+> pretty s

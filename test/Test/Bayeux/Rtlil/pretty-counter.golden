@@ -1,9 +1,7 @@
 [ wire width 8 \\old
-
 , wire width 8 \new
-
-, cell $add \old
-
+, 
+cell $add \old
   parameter \A_SIGNED 0
   parameter \A_WIDTH 8
   parameter \B_SIGNED 0
@@ -12,17 +10,14 @@
   connect \A \\old
   connect \B 1
   connect \Y \new
-
 end
 
-, process $procStmt
-
+, 
+process $procStmt
   
 
 
   sync posedge \clk
-
     update \\old \new
-
 end
  ]
