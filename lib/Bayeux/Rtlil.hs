@@ -258,40 +258,44 @@ initial outputIdent output =
             in ConstantValue $ Value size bs
 
 counter
-  :: Integer -- ^ width
-  -> Ident   -- ^ old
-  -> Ident   -- ^ new
+  :: Integer  -- ^ width
+  -> WireId   -- ^ old
+  -> WireId   -- ^ new
+  -> CellId   -- ^ add
+  -> ProcStmt -- ^ update
   -> [ModuleBody]
-counter w old new =
-  [ ModuleBodyWire $ Wire [] $ WireStmt [WireOptionWidth w] $ WireId $ "\\" <> old
-  , ModuleBodyWire $ Wire [] $ WireStmt [WireOptionWidth w] $ WireId new
+counter w old new addId procStmt =
+  [ ModuleBodyWire $ Wire [] $ WireStmt [WireOptionWidth w] old -- $ WireId $ "\\" <> old
+  , ModuleBodyWire $ Wire [] $ WireStmt [WireOptionWidth w] new -- $ WireId new
   , ModuleBodyCell $ addC
-      (CellId old)
+      addId
       False
       w
       False
       w
       w
-      (SigSpecWireId $ WireId $ "\\" <> old)
+      (SigSpecWireId old)
       (SigSpecConstant $ ConstantInteger 1)
-      (WireId new)
-  , ModuleBodyProcess $ Process
-      []
-      "$procStmt"
-      (ProcessBody
-         []
-         Nothing
-         []
-         [Sync
-            (SyncStmt Posedge (SigSpecWireId "\\clk"))
-            [UpdateStmt
-               (DestSigSpec $ SigSpecWireId $ WireId $ "\\" <> old)
-               (SrcSigSpec  $ SigSpecWireId $ WireId new)
-            ]
-         ]
-      )
-      ProcEndStmt
+      new
+  , ModuleBodyProcess $ updateP procStmt
+      (DestSigSpec $ SigSpecWireId old)
+      (SrcSigSpec  $ SigSpecWireId new)
   ]
+
+updateP :: ProcStmt -> DestSigSpec -> SrcSigSpec -> Process
+updateP procStmt destSig srcSig = Process
+  []
+  procStmt
+  (ProcessBody
+    []
+    Nothing
+    []
+    [Sync
+       (SyncStmt Posedge (SigSpecWireId "\\clk"))
+       [UpdateStmt destSig srcSig]
+    ]
+  )
+  ProcEndStmt
 
 data AttrStmt = AttrStmt Ident Constant
   deriving (Eq, Read, Show)
@@ -555,13 +559,14 @@ modC      = binaryCell . CellStmt "$mod"
 divFloorC = binaryCell . CellStmt "$divfloor"
 modFloorC = binaryCell . CellStmt "$modfloor"
 
+-- | Y = S ? B : A
 muxC
   :: CellId
-  -> Integer -- ^ \WIDTH
-  -> SigSpec -- ^ \A
-  -> SigSpec -- ^ \B
-  -> SigSpec -- ^ \S
-  -> WireId
+  -> Integer -- ^ WIDTH
+  -> SigSpec -- ^ A
+  -> SigSpec -- ^ B
+  -> SigSpec -- ^ S
+  -> WireId  -- ^ Y
   -> Cell
 muxC cellId w a b s y = Cell
   []

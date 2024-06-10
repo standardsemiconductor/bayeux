@@ -29,7 +29,7 @@ tests =
           (SigSpecWireId "\\pwm_b")
       , prettyTest "fiatLux"   fiatLux
       , prettyTest "add"     $ addC "\\adder" False 32 False 32 33 (SigSpecWireId "\\a") (SigSpecWireId "\\b") "\\y"
-      , prettyTest "counter" $ counter 8 "\\old" "\\new"
+      , prettyTest "counter" $ counter 8 "\\old" "\\new" "$old" "$procStmt"
       ]
   , testGroup "synth"
       [ synthTest "led"     rtlilLed

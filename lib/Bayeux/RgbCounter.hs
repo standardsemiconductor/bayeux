@@ -27,7 +27,7 @@ newtype Rgb a = Rgb{ unRgb :: Writer [ModuleBody] a }
 
 instance MonadRgb Rgb where
   ctr = do
-    tell $ [ModuleBodyWire $ Wire [] $ WireStmt [WireOptionInput 1] "\\clk"] <> counter 32 "$my_counter" "\\unused"
+    tell $ [ModuleBodyWire $ Wire [] $ WireStmt [WireOptionInput 1] "\\clk"] <> counter 32 "\\$my_counter" "\\unused" "$my_counter" "$procStmt"
     return $ SigSpecWireId "\\$my_counter"
 
   at sigSpec ix = do
