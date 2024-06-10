@@ -86,6 +86,8 @@ module Bayeux.Rtlil
   , modC
   , divFloorC
   , modFloorC
+  , -- *** Multiplexers
+    muxC
   , -- *** Primitive cells
     sbRgbaDrv
   , -- ** Processes
@@ -552,6 +554,25 @@ divC      = binaryCell . CellStmt "$div"
 modC      = binaryCell . CellStmt "$mod"
 divFloorC = binaryCell . CellStmt "$divfloor"
 modFloorC = binaryCell . CellStmt "$modfloor"
+
+muxC
+  :: CellId
+  -> Integer -- ^ \WIDTH
+  -> SigSpec -- ^ \A
+  -> SigSpec -- ^ \B
+  -> SigSpec -- ^ \S
+  -> WireId
+  -> Cell
+muxC cellId w a b s y = Cell
+  []
+  (CellStmt "$mux" cellId)
+  [ CellParameter Nothing "\\WIDTH" $ ConstantInteger w
+  , CellConnect "\\A" a
+  , CellConnect "\\B" b
+  , CellConnect "\\S" s
+  , CellConnect "\\Y" $ SigSpecWireId y
+  ]
+  CellEndStmt
 
 sbRgbaDrv
   :: SigSpec -- ^ red   pwm input
