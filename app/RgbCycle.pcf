@@ -1,0 +1,5 @@
+set_io clk 35 # iot_46b_g0 12Mhz Xtal
+
+set_io blue  41 # rgb2 blue
+set_io green 40 # rgb1 green
+set_io red   39 # rgb0 red

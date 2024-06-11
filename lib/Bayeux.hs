@@ -5,6 +5,7 @@ module Bayeux (app) where
 import Bayeux.Cli
 import Bayeux.Flow
 import Bayeux.Lp
+import Bayeux.RgbCounter
 import Bayeux.Rtlil
 import Bayeux.Tableaux
 import Control.Monad
@@ -16,7 +17,10 @@ import Text.Megaparsec hiding (parse)
 
 app :: Cli -> IO ()
 app = \case
-  CliDemo (FiatLux stage) -> flow stage "FiatLux" "app/FiatLux/FiatLux.pcf" fiatLux
+  CliDemo demo iceprog -> case demo of
+    FiatLux    -> flow iceprog "FiatLux" "app/FiatLux/FiatLux.pcf" fiatLux
+    RgbCounter -> flow iceprog "RgbCounter" "app/RgbCounter.pcf" rgbCounter
+    RgbCycle   -> flow iceprog "RgbCycle" "app/RgbCycle.pcf" rgbCycle
   CliProve cli -> do
     lp <- fromJust <$> case input cli of
       FileInput f -> parseMaybe (parse <* eof) <$> TIO.readFile f
@@ -24,3 +28,9 @@ app = \case
     let t = unfold $ S.singleton $ Bar lp
     when (tableaux cli) $ putStrLn $ renderTableaux $ T.unpack . render <$> t
     print $ close [] t
+
+rgbCounter :: File
+rgbCounter = compile prog
+
+rgbCycle :: File
+rgbCycle = cycleCompile cycleProg

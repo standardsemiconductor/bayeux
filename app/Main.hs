@@ -14,12 +14,16 @@ opts = info (parseCli <**> helper) $ mconcat
   ]
 
 parseCli :: Parser Cli
-parseCli = (CliDemo <$> parseDemo) <|> (CliProve <$> parseProve)
+parseCli = (CliDemo <$> parseDemo <*> parseProg) <|> (CliProve <$> parseProve)
+
+parseProg :: Parser Bool
+parseProg = switch $ long "prog" <> short 'p' <> help "Program VELDT FPGA"
 
 parseDemo :: Parser Demo
-parseDemo = FiatLux <$ (switch . mconcat)
-  [ long "FiatLux"
-  , help "FiatLux demo"
+parseDemo = asum
+  [ flag' FiatLux $ long "FiatLux" <> help "FiatLux demo"
+  , flag' RgbCounter $ long "RgbCounter" <> help "RgbCounter demo"
+  , flag' RgbCycle $ long "RgbCycle" <> help "RgbCycle demo"
   ]
 
 parseProve :: Parser Prove

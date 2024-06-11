@@ -10,10 +10,12 @@ import qualified Data.Text.IO as TIO
 import Prettyprinter
 import Prettyprinter.Render.Text
 
-flow :: Stage -> String -> FilePath -> File -> IO ()
-flow stage name pcfFile designFile = shakeArgsWith shakeOptions{ shakeFiles = "_build" </> name } [] $ \flagValues argValues -> pure $ Just $ do
+flow :: Bool -> String -> FilePath -> File -> IO ()
+flow prog name pcfFile designFile = shake shakeOptions{ shakeFiles = "_build" </> name } $ do
 
-  want ["_build" </> name </> "pack.bin"]
+  want $ if prog
+    then ["prog"]
+    else ["_build" </> name </> "pack.bin"]
 
   phony "clean" $ do
     putInfo "Cleaning files in _build"

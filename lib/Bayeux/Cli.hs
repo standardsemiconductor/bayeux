@@ -5,11 +5,13 @@ module Bayeux.Cli
   , Input(..)
   ) where
 
-data Cli = CliDemo Demo
+data Cli = CliDemo Demo Bool
          | CliProve Prove
   deriving (Eq, Read, Show)
 
 data Demo = FiatLux
+          | RgbCounter
+          | RgbCycle
   deriving (Eq, Read, Show)
 
 data Prove = Prove
