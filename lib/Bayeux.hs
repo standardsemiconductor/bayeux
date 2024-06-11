@@ -18,7 +18,7 @@ import Text.Megaparsec hiding (parse)
 app :: Cli -> IO ()
 app = \case
   CliDemo demo iceprog -> case demo of
-    FiatLux    -> flow iceprog "FiatLux" "app/FiatLux/FiatLux.pcf" fiatLux
+    FiatLux    -> flow iceprog "FiatLux" "app/FiatLux.pcf" fiatLux
     RgbCounter -> flow iceprog "RgbCounter" "app/RgbCounter.pcf" rgbCounter
     RgbCycle   -> flow iceprog "RgbCycle" "app/RgbCycle.pcf" rgbCycle
   CliProve cli -> do
