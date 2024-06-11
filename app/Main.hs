@@ -2,6 +2,7 @@ module Main where
 
 import Bayeux
 import Bayeux.Cli
+import Data.Foldable
 import Options.Applicative
 
 main :: IO ()
@@ -14,7 +15,20 @@ opts = info (parseCli <**> helper) $ mconcat
   ]
 
 parseCli :: Parser Cli
-parseCli = Cli <$> parseInput <*> parseTableauxOutput
+parseCli = (CliDemo <$> parseDemo <*> parseProg) <|> (CliProve <$> parseProve)
+
+parseProg :: Parser Bool
+parseProg = switch $ long "prog" <> short 'p' <> help "Program VELDT FPGA"
+
+parseDemo :: Parser Demo
+parseDemo = asum
+  [ flag' FiatLux $ long "FiatLux" <> help "FiatLux demo"
+  , flag' RgbCounter $ long "RgbCounter" <> help "RgbCounter demo"
+  , flag' RgbCycle $ long "RgbCycle" <> help "RgbCycle demo"
+  ]
+
+parseProve :: Parser Prove
+parseProve = Prove <$> parseInput <*> parseTableauxOutput
 
 parseInput :: Parser Input
 parseInput = parseFileInput <|> parseStdInput
