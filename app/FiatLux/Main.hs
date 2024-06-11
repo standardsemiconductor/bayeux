@@ -1,6 +1,5 @@
 module Main where
 
-import Bayeux.RgbCounter
 import Bayeux.Rtlil
 import Development.Shake
 import Data.Text (Text)
