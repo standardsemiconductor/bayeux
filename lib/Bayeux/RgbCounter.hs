@@ -62,9 +62,9 @@ class MonadProcess m where
 
   -- | If S == 1 then B else A
   mux       :: SigSpec   -- ^ S
-	    -> SigSpec   -- ^ A
+            -> SigSpec   -- ^ A
             -> SigSpec   -- ^ B
-	    -> m SigSpec -- ^ Y
+            -> m SigSpec -- ^ Y
 
 cycleProg :: MonadProcess m => MonadRgb m => m ()
 cycleProg = do
