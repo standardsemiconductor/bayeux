@@ -2,6 +2,7 @@ module Main where
 
 import Bayeux
 import Bayeux.Cli
+import Data.Foldable
 import Options.Applicative
 
 main :: IO ()
