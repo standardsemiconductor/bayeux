@@ -29,7 +29,7 @@ main = shakeArgs shakeOptions{ shakeFiles = "_build" } $ do
   -- compile
   "_build/FiatLux.rtlil" %> \out -> do
     putInfo "compile FiatLux"
-    liftIO $ TIO.writeFile out $ render $ pretty $ cycleCompile cycleProg fiatLux
+    liftIO $ TIO.writeFile out $ render $ pretty fiatLux
 
   -- yosys synthesis
   "_build/FiatLux.json" %> \out -> do
