@@ -23,10 +23,13 @@ tests :: [TestTree]
 tests =
   [ testGroup "pretty"
       [ prettyTest "led"       rtlilLed
-      , prettyTest "sbRgbaDrv" sbRgbaDrv
+      , prettyTest "sbRgbaDrv" $ sbRgbaDrv
+          (SigSpecWireId "\\pwm_r")
+          (SigSpecWireId "\\pwm_g")
+          (SigSpecWireId "\\pwm_b")
       , prettyTest "fiatLux"   fiatLux
       , prettyTest "add"     $ addC "\\adder" False 32 False 32 33 (SigSpecWireId "\\a") (SigSpecWireId "\\b") "\\y"
-      , prettyTest "counter" $ counter 8 "\\old" "\\new"
+      , prettyTest "counter" $ counter 8 "\\old" "\\new" "$old" "$procStmt"
       ]
   , testGroup "synth"
       [ synthTest "led"     rtlilLed
@@ -35,10 +38,8 @@ tests =
   ]
 
 prettyTest :: Pretty a => TestName -> a -> TestTree
-prettyTest n = goldenVsString n (curDir </> n' <.> "golden")
+prettyTest n = goldenVsString n (curDir </> n <.> "pretty")
                  . return . fromString . T.unpack . render . pretty
-  where
-    n' = "pretty-" <> n
 
 synthTest :: TestName -> File -> TestTree
 synthTest n rtl = testCase n $ withTempFile $ \t -> do
@@ -47,7 +48,7 @@ synthTest n rtl = testCase n $ withTempFile $ \t -> do
   (ExitSuccess @=?) =<< waitForProcess =<< spawnCommand c
 
 curDir :: FilePath
-curDir = "test" </> "Test" </> "Bayeux" </> "Rtlil"
+curDir = "test" </> "Test" </> "Bayeux" </> "Rtlil" </> "golden"
 
 rtlilLed :: File
 rtlilLed = File Nothing
@@ -60,58 +61,19 @@ rtlilLed = File Nothing
       , ModuleBodyWire $ Wire [] $ WireStmt [WireOptionOutput 4] "\\LED_B"
       , ModuleBodyWire $ Wire [] $ WireStmt [WireOptionWidth 26] "\\counter"
       , ModuleBodyWire $ Wire [] $ WireStmt [WireOptionWidth 32] "\\counter_plus_one"
-      , ModuleBodyCell $ Cell
-          []
-          (CellStmt "$add" "$increment")
-          [ CellParameter Nothing "\\A_SIGNED" $ ConstantInteger 0
-          , CellParameter Nothing "\\A_WIDTH"  $ ConstantInteger 26
-          , CellParameter Nothing "\\B_SIGNED" $ ConstantInteger 0
-          , CellParameter Nothing "\\B_WIDTH"  $ ConstantInteger 32
-          , CellParameter Nothing "\\Y_WIDTH"  $ ConstantInteger 32
-          , CellConnect "\\A" $ SigSpecWireId "\\counter"
-          , CellConnect "\\B" $ SigSpecConstant $ ConstantInteger 1
-          , CellConnect "\\Y" $ SigSpecWireId "\\counter_plus_one"
-          ]
-          CellEndStmt
-      , ModuleBodyCell $ Cell
-          []
-          (CellStmt "$not" "$not$1")
-          [ CellParameter Nothing "\\A_SIGNED" $ ConstantInteger 0
-          , CellParameter Nothing "\\A_WIDTH"  $ ConstantInteger 1
-          , CellParameter Nothing "\\Y_WIDTH"  $ ConstantInteger 1
-          , CellConnect "\\A" $ SigSpecSlice
-              (SigSpecWireId "\\counter")
-              23
-              Nothing
-          , CellConnect "\\Y" $ SigSpecWireId "\\LED_R"
-          ]
-          CellEndStmt
-      , ModuleBodyCell $ Cell
-          []
-          (CellStmt "$not" "$not$2")
-          [ CellParameter Nothing "\\A_SIGNED" $ ConstantInteger 0
-          , CellParameter Nothing "\\A_WIDTH"  $ ConstantInteger 1
-          , CellParameter Nothing "\\Y_WIDTH"  $ ConstantInteger 1
-          , CellConnect "\\A" $ SigSpecSlice
-              (SigSpecWireId "\\counter")
-              24
-              Nothing
-          , CellConnect "\\Y" $ SigSpecWireId "\\LED_G"
-          ]
-          CellEndStmt
-      , ModuleBodyCell $ Cell
-          []
-          (CellStmt "$not" "$not$3")
-          [ CellParameter Nothing "\\A_SIGNED" $ ConstantInteger 0
-          , CellParameter Nothing "\\A_WIDTH"  $ ConstantInteger 1
-          , CellParameter Nothing "\\Y_WIDTH"  $ ConstantInteger 1
-          , CellConnect "\\A" $ SigSpecSlice
-              (SigSpecWireId "\\counter")
-              25
-              Nothing
-          , CellConnect "\\Y" $ SigSpecWireId "\\LED_B"
-          ]
-          CellEndStmt
+      , ModuleBodyCell $ addC "$increment" False 26 False 32 32
+          (SigSpecWireId "\\counter")
+          (SigSpecConstant $ ConstantInteger 1)
+          "\\counter_plus_one"
+      , ModuleBodyCell $ notC "$not$1" False 1 1
+          (SigSpecSlice (SigSpecWireId "\\counter") 23 Nothing)
+          "\\LED_R"
+      , ModuleBodyCell $ notC "$not$2" False 1 1
+          (SigSpecSlice (SigSpecWireId "\\counter") 24 Nothing)
+          "\\LED_G"
+      , ModuleBodyCell $ notC "$not$3" False 1 1
+          (SigSpecSlice (SigSpecWireId "\\counter") 25 Nothing)
+          "\\LED_B"
       , ModuleBodyProcess $ Process
           []
           "$run"

@@ -2,7 +2,6 @@ module Test.Bayeux.RgbCounter
   ( tests
   ) where
 
-import Test.Tasty
 import Bayeux.RgbCounter
 import Bayeux.Rtlil
 import Data.String
@@ -24,9 +23,11 @@ tests :: [TestTree]
 tests =
   [ testGroup "pretty"
       [ prettyTest "rgbcounter" $ compile prog
+      , prettyTest "rgbcycle"   $ cycleCompile cycleProg
       ]
   , testGroup "synth"
       [ synthTest "rgbcounter" $ compile prog
+      , synthTest "rgbcycle"   $ cycleCompile cycleProg
       ]
   ]
 

@@ -46,6 +46,17 @@ module Bayeux.Rtlil
   , CellType(..)
   , CellBodyStmt(..)
   , CellEndStmt(..)
+  , -- *** Unary cells
+    unaryCell
+  , notC
+  , posC
+  , negC
+  , reduceAndC
+  , reduceOrC
+  , reduceXorC
+  , reduceXnorC
+  , reduceBoolC
+  , logicNotC
   , -- *** Binary cells
     binaryCell
   , shiftCell
@@ -75,6 +86,8 @@ module Bayeux.Rtlil
   , modC
   , divFloorC
   , modFloorC
+  , -- *** Multiplexers
+    muxC
   , -- *** Primitive cells
     sbRgbaDrv
   , -- ** Processes
@@ -85,6 +98,7 @@ module Bayeux.Rtlil
   , DestSigSpec(..)
   , SrcSigSpec(..)
   , ProcEndStmt(..)
+  , updateP
   , -- ** Switches
     Switch(..)
   , SwitchStmt(..)
@@ -140,7 +154,7 @@ data File = File (Maybe AutoIdxStmt) [Module]
 
 instance Pretty File where
   pretty (File iM ms) = let ms' = pretty <$> ms
-                        in vsep $ case iM of
+                        in vl $ case iM of
                              Just i  -> pretty i : ms'
                              Nothing -> ms'
 
@@ -155,7 +169,11 @@ fiatLux = top $
   ] <> initial "\\pwm_r" True
     <> initial "\\pwm_g" False
     <> initial "\\pwm_b" False
-    <> [ModuleBodyCell sbRgbaDrv]
+    <> [ModuleBodyCell $ sbRgbaDrv
+          (SigSpecWireId "\\pwm_r")
+          (SigSpecWireId "\\pwm_g")
+          (SigSpecWireId "\\pwm_b")
+       ]
 
 newtype AutoIdxStmt = AutoIdxStmt Integer
   deriving (Eq, Num, Read, Show)
@@ -167,10 +185,10 @@ data Module = Module [AttrStmt] ModuleStmt [ModuleBody] ModuleEndStmt
   deriving (Eq, Read, Show)
 
 instance Pretty Module where
-  pretty (Module as m bs e) = vsep
-    [ vsep $ pretty <$> as
+  pretty (Module as m bs e) = vl
+    [ vl $ pretty <$> as
     , pretty m
-    , indent 2 $ vsep $ pretty <$> bs
+    , indent 2 $ vl $ pretty <$> bs
     , pretty e
     ]
 
@@ -178,7 +196,7 @@ newtype ModuleStmt = ModuleStmt Ident
   deriving (Eq, IsString, Read, Show)
 
 instance Pretty ModuleStmt where
-  pretty (ModuleStmt i) = "module" <+> pretty i <> hardline
+  pretty (ModuleStmt i) = "module" <+> pretty i
 
 data ModuleBody = ModuleBodyParamStmt ParamStmt
                 | ModuleBodyWire Wire
@@ -205,7 +223,6 @@ instance Pretty ParamStmt where
   pretty (ParamStmt i cM) = mconcat
     [ "parameter" <+> pretty i
     , maybe mempty (surround " " " " . pretty) cM
-    , hardline
     ]
 
 data Constant = ConstantValue Value
@@ -242,46 +259,35 @@ initial outputIdent output =
             in ConstantValue $ Value size bs
 
 counter
-  :: Integer -- ^ width
-  -> Ident   -- ^ old
-  -> Ident   -- ^ new
+  :: Integer  -- ^ width
+  -> WireId   -- ^ old
+  -> WireId   -- ^ new
+  -> CellId   -- ^ add
+  -> ProcStmt -- ^ update
   -> [ModuleBody]
-counter w old new =
-  [ ModuleBodyWire $ Wire [] $ WireStmt [WireOptionWidth w] $ WireId $ "\\" <> old
-  , ModuleBodyWire $ Wire [] $ WireStmt [WireOptionWidth w] $ WireId new
+counter w old new addId procStmt =
+  [ ModuleBodyWire $ Wire [] $ WireStmt [WireOptionWidth w] old -- $ WireId $ "\\" <> old
+  , ModuleBodyWire $ Wire [] $ WireStmt [WireOptionWidth w] new -- $ WireId new
   , ModuleBodyCell $ addC
-      (CellId old)
+      addId
       False
       w
       False
       w
       w
-      (SigSpecWireId $ WireId $ "\\" <> old)
+      (SigSpecWireId old)
       (SigSpecConstant $ ConstantInteger 1)
-      (WireId new)
-  , ModuleBodyProcess $ Process
-      []
-      "$procStmt"
-      (ProcessBody
-         []
-         Nothing
-         []
-         [Sync
-            (SyncStmt Posedge (SigSpecWireId "\\clk"))
-            [UpdateStmt
-               (DestSigSpec $ SigSpecWireId $ WireId $ "\\" <> old)
-               (SrcSigSpec  $ SigSpecWireId $ WireId new)
-            ]
-         ]
-      )
-      ProcEndStmt
+      new
+  , ModuleBodyProcess $ updateP procStmt
+      (DestSigSpec $ SigSpecWireId old)
+      (SrcSigSpec  $ SigSpecWireId new)
   ]
 
 data AttrStmt = AttrStmt Ident Constant
   deriving (Eq, Read, Show)
 
 instance Pretty AttrStmt where
-  pretty (AttrStmt i c) = "attribute" <+> pretty i <+> pretty c <> hardline
+  pretty (AttrStmt i c) = "attribute" <+> pretty i <+> pretty c
 
 data SigSpec = SigSpecConstant Constant
              | SigSpecWireId   WireId
@@ -300,7 +306,7 @@ data ConnStmt = ConnStmt SigSpec SigSpec
   deriving (Eq, Read, Show)
 
 instance Pretty ConnStmt where
-  pretty (ConnStmt x y) = "connect" <+> pretty x <+> pretty y <> hardline
+  pretty (ConnStmt x y) = "connect" <+> pretty x <+> pretty y
 
 data Wire = Wire [AttrStmt] WireStmt
   deriving (Eq, Read, Show)
@@ -312,7 +318,7 @@ data WireStmt = WireStmt [WireOption] WireId
   deriving (Eq, Read, Show)
 
 instance Pretty WireStmt where
-  pretty (WireStmt os i) = "wire" <+> hsep (pretty <$> os) <+> pretty i <> hardline
+  pretty (WireStmt os i) = "wire" <+> hsep (pretty <$> os) <+> pretty i
 
 newtype WireId = WireId Ident
   deriving (Eq, IsString, Pretty, Read, Show)
@@ -363,18 +369,21 @@ data Cell = Cell [AttrStmt] CellStmt [CellBodyStmt] CellEndStmt
   deriving (Eq, Read, Show)
 
 instance Pretty Cell where
-  pretty (Cell as s bs e) = vsep
-    [ foldMap pretty as <> pretty s
-    , indent 2 $ foldMap pretty bs
+  pretty (Cell as s bs e) = vl
+    [ vl $ pretty <$> as
+    , pretty s
+    , indent 2 $ vl $ pretty <$> bs
     , pretty e
     ]
 
+vl :: [Doc ann] -> Doc ann
+vl = concatWith $ \x y -> x <> hardline <> y
 
 data CellStmt = CellStmt CellType CellId
   deriving (Eq, Read, Show)
 
 instance Pretty CellStmt where
-  pretty (CellStmt t i) = "cell" <+> pretty t <+> pretty i <> hardline
+  pretty (CellStmt t i) = "cell" <+> pretty t <+> pretty i
 
 newtype CellId = CellId Ident
   deriving (Eq, IsString, Pretty, Read, Show)
@@ -395,15 +404,54 @@ data CellBodyStmt = CellParameter (Maybe ParamType) Ident Constant
 
 instance Pretty CellBodyStmt where
   pretty = \case
-    CellParameter Nothing i c -> "parameter" <+> pretty i <+> pretty c <> hardline
-    CellParameter (Just p) i c -> "parameter" <+> pretty p <+> pretty i <+> pretty c <> hardline
-    CellConnect i s -> "connect" <+> pretty i <+> pretty s <> hardline
+    CellParameter Nothing i c -> "parameter" <+> pretty i <+> pretty c
+    CellParameter (Just p) i c -> "parameter" <+> pretty p <+> pretty i <+> pretty c
+    CellConnect i s -> "connect" <+> pretty i <+> pretty s
 
 data CellEndStmt = CellEndStmt
   deriving (Eq, Read, Show)
 
 instance Pretty CellEndStmt where
   pretty _ = "end" <> hardline
+
+unaryCell
+  :: CellStmt
+  -> Bool    -- ^ \\A_SIGNED
+  -> Integer -- ^ \\A_WIDTH
+  -> Integer -- ^ \\Y_WIDTH
+  -> SigSpec -- ^ A
+  -> WireId  -- ^ Y
+  -> Cell
+unaryCell cellStmt aSigned aWidth yWidth a y = Cell
+  []
+  cellStmt
+  [ CellParameter Nothing "\\A_SIGNED" $ ConstantInteger $ fromBool aSigned
+  , CellParameter Nothing "\\A_WIDTH" $ ConstantInteger aWidth
+  , CellParameter Nothing "\\Y_WIDTH" $ ConstantInteger yWidth
+  , CellConnect "\\A" a
+  , CellConnect "\\Y" $ SigSpecWireId y
+  ]
+  CellEndStmt
+
+-- unary cells
+notC, posC, negC, reduceAndC, reduceOrC, reduceXorC, reduceXnorC, reduceBoolC, logicNotC
+  :: CellId
+  -> Bool
+  -> Integer
+  -> Integer
+  -> SigSpec
+  -> WireId
+  -> Cell
+
+notC        = unaryCell . CellStmt "$not"
+posC        = unaryCell . CellStmt "$pos"
+negC        = unaryCell . CellStmt "$neg"
+reduceAndC  = unaryCell . CellStmt "$reduce_and"
+reduceOrC   = unaryCell . CellStmt "$reduce_or"
+reduceXorC  = unaryCell . CellStmt "$reduce_xor"
+reduceXnorC = unaryCell . CellStmt "$reduce_xnor"
+reduceBoolC = unaryCell . CellStmt "$reduce_bool"
+logicNotC   = unaryCell . CellStmt "$logic_not"
 
 binaryCell
   :: CellStmt
@@ -429,10 +477,10 @@ binaryCell cellStmt aSigned aWidth bSigned bWidth yWidth a b y = Cell
   , CellConnect "\\Y" $ SigSpecWireId y
   ]
   CellEndStmt
-  where
-    fromBool :: Bool -> Integer
-    fromBool True  = 1
-    fromBool False = 0
+
+fromBool :: Bool -> Integer
+fromBool True  = 1
+fromBool False = 0
 
 shiftCell
   :: CellStmt
@@ -497,8 +545,32 @@ modC      = binaryCell . CellStmt "$mod"
 divFloorC = binaryCell . CellStmt "$divfloor"
 modFloorC = binaryCell . CellStmt "$modfloor"
 
-sbRgbaDrv :: Cell
-sbRgbaDrv = Cell
+-- | Y = S ? B : A
+muxC
+  :: CellId
+  -> Integer -- ^ WIDTH
+  -> SigSpec -- ^ A
+  -> SigSpec -- ^ B
+  -> SigSpec -- ^ S
+  -> WireId  -- ^ Y
+  -> Cell
+muxC cellId w a b s y = Cell
+  []
+  (CellStmt "$mux" cellId)
+  [ CellParameter Nothing "\\WIDTH" $ ConstantInteger w
+  , CellConnect "\\A" a
+  , CellConnect "\\B" b
+  , CellConnect "\\S" s
+  , CellConnect "\\Y" $ SigSpecWireId y
+  ]
+  CellEndStmt
+
+sbRgbaDrv
+  :: SigSpec -- ^ red   pwm input
+  -> SigSpec -- ^ green pwm input
+  -> SigSpec -- ^ blue  pwm input
+  -> Cell
+sbRgbaDrv pwmR pwmG pwmB = Cell
   [AttrStmt "\\module_not_derived" $ ConstantInteger 1]
   (CellStmt "\\SB_RGBA_DRV" "\\RGBA_DRIVER")
   [ CellParameter Nothing "\\CURRENT_MODE" $ ConstantString "0b1"
@@ -507,11 +579,11 @@ sbRgbaDrv = Cell
   , CellParameter Nothing "\\RGB2_CURRENT" $ ConstantString "0b111111"
   , CellConnect "\\CURREN" $ SigSpecConstant $ ConstantValue $ Value 1 [B1]
   , CellConnect "\\RGB0" $ SigSpecWireId "\\red"
-  , CellConnect "\\RGB0PWM" $ SigSpecWireId "\\pwm_r"
+  , CellConnect "\\RGB0PWM" pwmR
   , CellConnect "\\RGB1" $ SigSpecWireId "\\green"
-  , CellConnect "\\RGB1PWM" $ SigSpecWireId "\\pwm_g"
+  , CellConnect "\\RGB1PWM" pwmG
   , CellConnect "\\RGB2" $ SigSpecWireId "\\blue"
-  , CellConnect "\\RGB2PWM" $ SigSpecWireId "\\pwm_b"
+  , CellConnect "\\RGB2PWM" pwmB
   , CellConnect "\\RGBLEDEN" $ SigSpecConstant $ ConstantValue $ Value 1 [B1]
   ]
   CellEndStmt
@@ -520,8 +592,9 @@ data Process = Process [AttrStmt] ProcStmt ProcessBody ProcEndStmt
   deriving (Eq, Read, Show)
 
 instance Pretty Process where
-  pretty (Process as s b e) = vsep
-    [ foldMap pretty as <> pretty s
+  pretty (Process as s b e) = vl
+    [ vl $ pretty <$> as
+    , pretty s
     , indent 2 $ pretty b
     , pretty e
     ]
@@ -530,24 +603,24 @@ newtype ProcStmt = ProcStmt Ident
   deriving (Eq, IsString, Read, Show)
 
 instance Pretty ProcStmt where
-  pretty (ProcStmt i) = "process" <+> pretty i <> hardline
+  pretty (ProcStmt i) = "process" <+> pretty i
 
 data ProcessBody = ProcessBody [AssignStmt] (Maybe Switch) [AssignStmt] [Sync]
   deriving (Eq, Read, Show)
 
 instance Pretty ProcessBody where
-  pretty (ProcessBody as sM bs ss) = vsep
-    [ foldMap pretty as
+  pretty (ProcessBody as sM bs ss) = vl
+    [ vl $ pretty <$> as
     , maybe mempty pretty sM
-    , foldMap pretty bs
-    , foldMap pretty ss
+    , vl $ pretty <$> bs
+    , vl $ pretty <$> ss
     ]
 
 data AssignStmt = AssignStmt DestSigSpec SrcSigSpec
   deriving (Eq, Read, Show)
 
 instance Pretty AssignStmt where
-  pretty (AssignStmt d s) = "assign" <+> pretty d <+> pretty s <> hardline
+  pretty (AssignStmt d s) = "assign" <+> pretty d <+> pretty s
 
 newtype DestSigSpec = DestSigSpec SigSpec
   deriving (Eq, Pretty, Read, Show)
@@ -561,17 +634,36 @@ data ProcEndStmt = ProcEndStmt
 instance Pretty ProcEndStmt where
   pretty _ = "end" <> hardline
 
+updateP :: ProcStmt -> DestSigSpec -> SrcSigSpec -> Process
+updateP procStmt destSig srcSig = Process
+  []
+  procStmt
+  (ProcessBody
+    []
+    Nothing
+    []
+    [Sync
+       (SyncStmt Posedge (SigSpecWireId "\\clk"))
+       [UpdateStmt destSig srcSig]
+    ]
+  )
+  ProcEndStmt
+
 data Switch = Switch SwitchStmt [Case] SwitchEndStmt
   deriving (Eq, Read, Show)
 
 instance Pretty Switch where
-  pretty (Switch s cs e) = pretty s <> foldMap pretty cs <> pretty e
+  pretty (Switch s cs e) = vl
+    [ pretty s
+    , indent 2 $ vl $ pretty <$> cs
+    , pretty e
+    ]
 
 data SwitchStmt = SwitchStmt [AttrStmt] SigSpec
   deriving (Eq, Read, Show)
 
 instance Pretty SwitchStmt where
-  pretty (SwitchStmt as s) = foldMap pretty as <> "switch" <+> pretty s <> hardline
+  pretty (SwitchStmt as s) = foldMap pretty as <> "switch" <+> pretty s
 
 data Case = Case [AttrStmt] CaseStmt CaseBody
   deriving (Eq, Read, Show)
@@ -583,8 +675,8 @@ newtype CaseStmt = CaseStmt (Maybe Compare)
   deriving (Eq, Read, Show)
 
 instance Pretty CaseStmt where
-  pretty (CaseStmt Nothing)  = "case" <> hardline
-  pretty (CaseStmt (Just c)) = "case" <+> pretty c <> hardline
+  pretty (CaseStmt Nothing)  = "case"
+  pretty (CaseStmt (Just c)) = "case" <+> pretty c
 
 data Compare = Compare SigSpec [SigSpec]
   deriving (Eq, Read, Show)
@@ -596,7 +688,7 @@ newtype CaseBody = CaseBody [Either Switch AssignStmt]
   deriving (Eq, Read, Show)
 
 instance Pretty CaseBody where
-  pretty (CaseBody es) = vsep $ either pretty pretty <$> es
+  pretty (CaseBody es) = vl $ either pretty pretty <$> es
 
 data SwitchEndStmt = SwitchEndStmt
   deriving (Eq, Read, Show)
@@ -608,9 +700,9 @@ data Sync = Sync SyncStmt [UpdateStmt]
   deriving (Eq, Read, Show)
 
 instance Pretty Sync where
-  pretty (Sync s us) = vsep
+  pretty (Sync s us) = vl
     [ pretty s
-    , indent 2 $ foldMap pretty us
+    , indent 2 $ vl $ pretty <$> us
     ]
 
 data SyncStmt = SyncStmt SyncType SigSpec
@@ -620,11 +712,11 @@ data SyncStmt = SyncStmt SyncType SigSpec
   deriving (Eq, Read, Show)
 
 instance Pretty SyncStmt where
-  pretty = \case
-    SyncStmt t s   -> "sync" <+> pretty t <+> pretty s <> hardline
-    SyncStmtGlobal -> "sync" <+> "global" <> hardline
-    SyncStmtInit   -> "sync" <+> "init"   <> hardline
-    SyncStmtAlways -> "sync" <+> "always" <> hardline
+  pretty = ("sync" <+>) . \case
+    SyncStmt t s   -> pretty t <+> pretty s
+    SyncStmtGlobal -> "global"
+    SyncStmtInit   -> "init"
+    SyncStmtAlways -> "always"
 
 data SyncType = Low
               | High
@@ -645,4 +737,4 @@ data UpdateStmt = UpdateStmt DestSigSpec SrcSigSpec
   deriving (Eq, Read, Show)
 
 instance Pretty UpdateStmt where
-  pretty (UpdateStmt d s) = "update" <+> pretty d <+> pretty s <> hardline
+  pretty (UpdateStmt d s) = "update" <+> pretty d <+> pretty s

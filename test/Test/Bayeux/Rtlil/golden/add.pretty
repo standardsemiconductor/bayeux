@@ -1,5 +1,5 @@
-cell $add \adder
 
+cell $add \adder
   parameter \A_SIGNED 0
   parameter \A_WIDTH 32
   parameter \B_SIGNED 0
@@ -8,5 +8,4 @@ cell $add \adder
   connect \A \a
   connect \B \b
   connect \Y \y
-
 end
