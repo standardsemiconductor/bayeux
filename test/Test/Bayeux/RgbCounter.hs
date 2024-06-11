@@ -23,9 +23,11 @@ tests :: [TestTree]
 tests =
   [ testGroup "pretty"
       [ prettyTest "rgbcounter" $ compile prog
+      , prettyTest "rgbcycle"   $ cycleCompile cycleProg
       ]
   , testGroup "synth"
       [ synthTest "rgbcounter" $ compile prog
+      , synthTest "rgbcycle"   $ cycleCompile cycleProg
       ]
   ]
 

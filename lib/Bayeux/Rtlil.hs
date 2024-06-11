@@ -98,6 +98,7 @@ module Bayeux.Rtlil
   , DestSigSpec(..)
   , SrcSigSpec(..)
   , ProcEndStmt(..)
+  , updateP
   , -- ** Switches
     Switch(..)
   , SwitchStmt(..)
@@ -281,21 +282,6 @@ counter w old new addId procStmt =
       (DestSigSpec $ SigSpecWireId old)
       (SrcSigSpec  $ SigSpecWireId new)
   ]
-
-updateP :: ProcStmt -> DestSigSpec -> SrcSigSpec -> Process
-updateP procStmt destSig srcSig = Process
-  []
-  procStmt
-  (ProcessBody
-    []
-    Nothing
-    []
-    [Sync
-       (SyncStmt Posedge (SigSpecWireId "\\clk"))
-       [UpdateStmt destSig srcSig]
-    ]
-  )
-  ProcEndStmt
 
 data AttrStmt = AttrStmt Ident Constant
   deriving (Eq, Read, Show)
@@ -647,6 +633,21 @@ data ProcEndStmt = ProcEndStmt
 
 instance Pretty ProcEndStmt where
   pretty _ = "end" <> hardline
+
+updateP :: ProcStmt -> DestSigSpec -> SrcSigSpec -> Process
+updateP procStmt destSig srcSig = Process
+  []
+  procStmt
+  (ProcessBody
+    []
+    Nothing
+    []
+    [Sync
+       (SyncStmt Posedge (SigSpecWireId "\\clk"))
+       [UpdateStmt destSig srcSig]
+    ]
+  )
+  ProcEndStmt
 
 data Switch = Switch SwitchStmt [Case] SwitchEndStmt
   deriving (Eq, Read, Show)
