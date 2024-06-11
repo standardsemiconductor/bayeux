@@ -1,5 +1,6 @@
 module Main where
 
+import Bayeux.RgbCounter
 import Bayeux.Rtlil
 import Development.Shake
 import Data.Text (Text)
@@ -28,7 +29,7 @@ main = shakeArgs shakeOptions{ shakeFiles = "_build" } $ do
   -- compile
   "_build/FiatLux.rtlil" %> \out -> do
     putInfo "compile FiatLux"
-    liftIO $ TIO.writeFile out $ render $ pretty fiatLux
+    liftIO $ TIO.writeFile out $ render $ pretty $ cycleCompile cycleProg --compile prog --fiatLux
 
   -- yosys synthesis
   "_build/FiatLux.json" %> \out -> do

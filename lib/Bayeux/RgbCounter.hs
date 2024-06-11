@@ -59,17 +59,25 @@ class MonadProcess m where
   process   :: (SigSpec -> m SigSpec) -> m SigSpec
   increment :: SigSpec -> m SigSpec
   eq        :: SigSpec -> SigSpec -> m SigSpec
-  mux       :: SigSpec -> SigSpec -> SigSpec -> m SigSpec
+
+  -- | If S == 1 then B else A
+  mux       :: SigSpec   -- ^ S
+	    -> SigSpec   -- ^ A
+            -> SigSpec   -- ^ B
+	    -> m SigSpec -- ^ Y
 
 cycleProg :: MonadProcess m => MonadRgb m => m ()
 cycleProg = do
   t <- process $ \timer -> do
     t1Sec <- timer `eq` second
-    mux t1Sec zero =<< increment timer
+    timer' <- increment timer
+    mux t1Sec timer' zero
   tEqZ <- t `eq` zero
   c <- process $ \color -> do
     cEqBlue <- color `eq` two
-    mux tEqZ color =<< mux cEqBlue zero =<< increment color
+    c' <- increment color
+    color' <- mux cEqBlue c' zero
+    mux tEqZ color color'
   pwmR <- c `eq` zero
   pwmG <- c `eq` one
   pwmB <- c `eq` two
@@ -164,4 +172,4 @@ cycleCompile :: Rtl a -> File
 cycleCompile = top . clocked . flip evalState 1 . execWriterT . unRtl
 
 clocked :: [ModuleBody] -> [ModuleBody]
-clocked = (ModuleBodyWire (Wire [] $ WireStmt [WireOptionInput 0] "\\clk") :)
+clocked = (ModuleBodyWire (Wire [] $ WireStmt [WireOptionInput 1] "\\clk") :)

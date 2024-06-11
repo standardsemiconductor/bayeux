@@ -1,7 +1,7 @@
 autoidx 0
 
 module \top
-  wire input 0 \clk
+  wire input 1 \clk
   wire width 32 \ident1
   wire width 1 \ident3
 
@@ -102,8 +102,8 @@ module \top
 
   cell $mux $ident20
     parameter \WIDTH 32
-    connect \A \ident11
-    connect \B \ident17
+    connect \A \ident17
+    connect \B \ident11
     connect \S \ident9
     connect \Y \ident19
   end
