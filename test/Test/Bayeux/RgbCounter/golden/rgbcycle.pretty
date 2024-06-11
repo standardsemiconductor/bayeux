@@ -1,0 +1,178 @@
+autoidx 0
+
+module \top
+  wire input 1 \clk
+  wire width 32 \ident1
+  wire width 1 \ident3
+
+  cell $eq $ident4
+    parameter \A_SIGNED 0
+    parameter \A_WIDTH 32
+    parameter \B_SIGNED 0
+    parameter \B_WIDTH 32
+    parameter \Y_WIDTH 1
+    connect \A \ident1
+    connect \B 12000000
+    connect \Y \ident3
+  end
+
+  wire width 32 \ident5
+
+  cell $add $ident6
+    parameter \A_SIGNED 0
+    parameter \A_WIDTH 32
+    parameter \B_SIGNED 0
+    parameter \B_WIDTH 32
+    parameter \Y_WIDTH 32
+    connect \A \ident1
+    connect \B 1
+    connect \Y \ident5
+  end
+
+  wire width 32 \ident7
+
+  cell $mux $ident8
+    parameter \WIDTH 32
+    connect \A \ident5
+    connect \B 0
+    connect \S \ident3
+    connect \Y \ident7
+  end
+
+
+  process $ident2
+    
+
+
+    sync posedge \clk
+      update \ident1 \ident7
+  end
+
+  wire width 1 \ident9
+
+  cell $eq $ident10
+    parameter \A_SIGNED 0
+    parameter \A_WIDTH 32
+    parameter \B_SIGNED 0
+    parameter \B_WIDTH 32
+    parameter \Y_WIDTH 1
+    connect \A \ident1
+    connect \B 0
+    connect \Y \ident9
+  end
+
+  wire width 32 \ident11
+  wire width 1 \ident13
+
+  cell $eq $ident14
+    parameter \A_SIGNED 0
+    parameter \A_WIDTH 32
+    parameter \B_SIGNED 0
+    parameter \B_WIDTH 32
+    parameter \Y_WIDTH 1
+    connect \A \ident11
+    connect \B 2
+    connect \Y \ident13
+  end
+
+  wire width 32 \ident15
+
+  cell $add $ident16
+    parameter \A_SIGNED 0
+    parameter \A_WIDTH 32
+    parameter \B_SIGNED 0
+    parameter \B_WIDTH 32
+    parameter \Y_WIDTH 32
+    connect \A \ident11
+    connect \B 1
+    connect \Y \ident15
+  end
+
+  wire width 32 \ident17
+
+  cell $mux $ident18
+    parameter \WIDTH 32
+    connect \A \ident15
+    connect \B 0
+    connect \S \ident13
+    connect \Y \ident17
+  end
+
+  wire width 32 \ident19
+
+  cell $mux $ident20
+    parameter \WIDTH 32
+    connect \A \ident11
+    connect \B \ident17
+    connect \S \ident9
+    connect \Y \ident19
+  end
+
+
+  process $ident12
+    
+
+
+    sync posedge \clk
+      update \ident11 \ident19
+  end
+
+  wire width 1 \ident21
+
+  cell $eq $ident22
+    parameter \A_SIGNED 0
+    parameter \A_WIDTH 32
+    parameter \B_SIGNED 0
+    parameter \B_WIDTH 32
+    parameter \Y_WIDTH 1
+    connect \A \ident11
+    connect \B 0
+    connect \Y \ident21
+  end
+
+  wire width 1 \ident23
+
+  cell $eq $ident24
+    parameter \A_SIGNED 0
+    parameter \A_WIDTH 32
+    parameter \B_SIGNED 0
+    parameter \B_WIDTH 32
+    parameter \Y_WIDTH 1
+    connect \A \ident11
+    connect \B 1
+    connect \Y \ident23
+  end
+
+  wire width 1 \ident25
+
+  cell $eq $ident26
+    parameter \A_SIGNED 0
+    parameter \A_WIDTH 32
+    parameter \B_SIGNED 0
+    parameter \B_WIDTH 32
+    parameter \Y_WIDTH 1
+    connect \A \ident11
+    connect \B 2
+    connect \Y \ident25
+  end
+
+  wire output 2 \red
+  wire output 3 \green
+  wire output 4 \blue
+  attribute \module_not_derived 1
+  cell \SB_RGBA_DRV \RGBA_DRIVER
+    parameter \CURRENT_MODE "0b1"
+    parameter \RGB0_CURRENT "0b111111"
+    parameter \RGB1_CURRENT "0b111111"
+    parameter \RGB2_CURRENT "0b111111"
+    connect \CURREN 1'1
+    connect \RGB0 \red
+    connect \RGB0PWM \ident21
+    connect \RGB1 \green
+    connect \RGB1PWM \ident23
+    connect \RGB2 \blue
+    connect \RGB2PWM \ident25
+    connect \RGBLEDEN 1'1
+  end
+
+end
