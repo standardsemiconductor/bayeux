@@ -18,9 +18,9 @@ import Text.Megaparsec hiding (parse)
 app :: Cli -> IO ()
 app = \case
   CliDemo demo iceprog -> case demo of
-    FiatLux    -> flow iceprog "FiatLux" "app/FiatLux.pcf" fiatLux
-    RgbCounter -> flow iceprog "RgbCounter" "app/RgbCounter.pcf" rgbCounter
-    RgbCycle   -> flow iceprog "RgbCycle" "app/RgbCycle.pcf" rgbCycle
+    FiatLux    -> flow iceprog "FiatLux" "exe/FiatLux.pcf" fiatLux
+    RgbCounter -> flow iceprog "RgbCounter" "exe/RgbCounter.pcf" rgbCounter
+    RgbCycle   -> flow iceprog "RgbCycle" "exe/RgbCycle.pcf" rgbCycle
   CliProve cli -> do
     lp <- fromJust <$> case input cli of
       FileInput f -> parseMaybe (parse <* eof) <$> TIO.readFile f
