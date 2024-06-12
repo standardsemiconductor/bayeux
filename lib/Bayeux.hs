@@ -35,4 +35,4 @@ rgbCounter :: File
 rgbCounter = compile prog
 
 rgbCycle :: File
-rgbCycle = cycleCompile cycleProg
+rgbCycle = compile cycleProg

@@ -18,16 +18,15 @@ import Test.Tasty
 import Test.Tasty.HUnit
 import Test.Tasty.Golden
 
-
 tests :: [TestTree]
 tests =
   [ testGroup "pretty"
       [ prettyTest "rgbcounter" $ compile prog
-      , prettyTest "rgbcycle"   $ cycleCompile cycleProg
+      , prettyTest "rgbcycle"   $ compile cycleProg
       ]
   , testGroup "synth"
       [ synthTest "rgbcounter" $ compile prog
-      , synthTest "rgbcycle"   $ cycleCompile cycleProg
+      , synthTest "rgbcycle"   $ compile cycleProg
       ]
   ]
 
