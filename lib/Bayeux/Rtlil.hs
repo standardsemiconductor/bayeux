@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleContexts           #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase                 #-}
 {-# LANGUAGE OverloadedStrings          #-}
@@ -112,8 +113,13 @@ module Bayeux.Rtlil
   , SyncStmt(..)
   , SyncType(..)
   , UpdateStmt(..)
+  , -- * Identifier generation
+    freshCellId
+  , freshProcStmt
+  , freshWireId
   ) where
 
+import Control.Monad.State
 import Data.Bits
 import Data.Bool
 import Data.String
@@ -321,7 +327,7 @@ instance Pretty WireStmt where
   pretty (WireStmt os i) = "wire" <+> hsep (pretty <$> os) <+> pretty i
 
 newtype WireId = WireId Ident
-  deriving (Eq, IsString, Pretty, Read, Show)
+  deriving (Eq, IsString, Monoid, Pretty, Read, Semigroup, Show)
 
 data WireOption = WireOptionWidth  Integer
                 | WireOptionOffset Integer
@@ -386,7 +392,7 @@ instance Pretty CellStmt where
   pretty (CellStmt t i) = "cell" <+> pretty t <+> pretty i
 
 newtype CellId = CellId Ident
-  deriving (Eq, IsString, Pretty, Read, Show)
+  deriving (Eq, IsString, Monoid, Pretty, Read, Semigroup, Show)
 
 newtype CellType = CellType Ident
   deriving (Eq, IsString, Pretty, Read, Show)
@@ -600,7 +606,7 @@ instance Pretty Process where
     ]
 
 newtype ProcStmt = ProcStmt Ident
-  deriving (Eq, IsString, Read, Show)
+  deriving (Eq, IsString, Monoid, Read, Semigroup, Show)
 
 instance Pretty ProcStmt where
   pretty (ProcStmt i) = "process" <+> pretty i
@@ -738,3 +744,18 @@ data UpdateStmt = UpdateStmt DestSigSpec SrcSigSpec
 
 instance Pretty UpdateStmt where
   pretty (UpdateStmt d s) = "update" <+> pretty d <+> pretty s
+
+fresh :: MonadState Integer m => m Integer
+fresh = do
+  i <- get
+  modify (+ 1)
+  return i
+
+freshWireId :: MonadState Integer m => m WireId
+freshWireId = ("\\wire" <>) . fromString . show <$> fresh
+
+freshCellId :: MonadState Integer m => m CellId
+freshCellId = ("$cell" <>) . fromString . show <$> fresh
+
+freshProcStmt :: MonadState Integer m => m ProcStmt
+freshProcStmt = ("$proc" <>) . fromString . show <$> fresh
