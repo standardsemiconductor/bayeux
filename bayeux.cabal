@@ -10,6 +10,7 @@ copyright:          David Cox
 category:           Language
 build-type:         Simple
 extra-doc-files:    CHANGELOG.md
+data-files:         data/**/*.pcf
 
 library
     ghc-options:      -Wall
@@ -20,8 +21,11 @@ library
                     , Bayeux.RgbCounter
                     , Bayeux.Rtlil
                     , Bayeux.Tableaux
+    other-modules:    Paths_bayeux
+    autogen-modules:  Paths_bayeux
     build-depends:    base
                     , containers
+                    , filepath
                     , megaparsec
                     , mtl
                     , parser-combinators

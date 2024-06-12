@@ -10,8 +10,8 @@ import qualified Data.Text.IO as TIO
 import Prettyprinter
 import Prettyprinter.Render.Text
 
-flow :: Bool -> String -> FilePath -> File -> IO ()
-flow prog name pcfFile designFile = shake shakeOptions{ shakeFiles = "_build" </> name } $ do
+flow :: Bool -> String -> File -> FilePath -> IO ()
+flow prog name designFile pcfFile = shake shakeOptions{ shakeFiles = "_build" </> name } $ do
 
   want $ if prog
     then ["prog"]
