@@ -35,6 +35,7 @@ module Bayeux.Rtlil
     Wire(..)
   , WireStmt(..)
   , WireId(..)
+  , freshWireId
   , WireOption(..)
   , -- ** Memories
     Memory(..)
@@ -44,6 +45,7 @@ module Bayeux.Rtlil
     Cell(..)
   , CellStmt(..)
   , CellId(..)
+  , freshCellId
   , CellType(..)
   , CellBodyStmt(..)
   , CellEndStmt(..)
@@ -94,6 +96,7 @@ module Bayeux.Rtlil
   , -- ** Processes
     Process(..)
   , ProcStmt(..)
+  , freshProcStmt
   , ProcessBody(..)
   , AssignStmt(..)
   , DestSigSpec(..)
@@ -113,10 +116,6 @@ module Bayeux.Rtlil
   , SyncStmt(..)
   , SyncType(..)
   , UpdateStmt(..)
-  , -- * Identifier generation
-    freshCellId
-  , freshProcStmt
-  , freshWireId
   ) where
 
 import Control.Monad.State
@@ -329,6 +328,9 @@ instance Pretty WireStmt where
 newtype WireId = WireId Ident
   deriving (Eq, IsString, Monoid, Pretty, Read, Semigroup, Show)
 
+freshWireId :: MonadState Integer m => m WireId
+freshWireId = ("\\wire" <>) . fromString . show <$> fresh
+
 data WireOption = WireOptionWidth  Integer
                 | WireOptionOffset Integer
                 | WireOptionInput  Integer
@@ -393,6 +395,9 @@ instance Pretty CellStmt where
 
 newtype CellId = CellId Ident
   deriving (Eq, IsString, Monoid, Pretty, Read, Semigroup, Show)
+
+freshCellId :: MonadState Integer m => m CellId
+freshCellId = ("$cell" <>) . fromString . show <$> fresh
 
 newtype CellType = CellType Ident
   deriving (Eq, IsString, Pretty, Read, Show)
@@ -611,6 +616,9 @@ newtype ProcStmt = ProcStmt Ident
 instance Pretty ProcStmt where
   pretty (ProcStmt i) = "process" <+> pretty i
 
+freshProcStmt :: MonadState Integer m => m ProcStmt
+freshProcStmt = ("$proc" <>) . fromString . show <$> fresh
+
 data ProcessBody = ProcessBody [AssignStmt] (Maybe Switch) [AssignStmt] [Sync]
   deriving (Eq, Read, Show)
 
@@ -750,12 +758,3 @@ fresh = do
   i <- get
   modify (+ 1)
   return i
-
-freshWireId :: MonadState Integer m => m WireId
-freshWireId = ("\\wire" <>) . fromString . show <$> fresh
-
-freshCellId :: MonadState Integer m => m CellId
-freshCellId = ("$cell" <>) . fromString . show <$> fresh
-
-freshProcStmt :: MonadState Integer m => m ProcStmt
-freshProcStmt = ("$proc" <>) . fromString . show <$> fresh
