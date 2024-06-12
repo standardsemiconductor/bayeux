@@ -3,7 +3,7 @@
 
 module Bayeux.RgbCounter
   ( prog
-  , compile
+--  , compile
   , cycleProg
   , cycleCompile
   ) where
@@ -24,7 +24,7 @@ prog = do
   g <- c `at` 23
   b <- c `at` 22
   rgb r g b
-
+{-
 newtype Rgb a = Rgb{ unRgb :: Writer [ModuleBody] a }
   deriving (Functor, Applicative, Monad, MonadWriter [ModuleBody])
 
@@ -50,9 +50,9 @@ instance MonadRgb Rgb where
          , ModuleBodyWire $ Wire [] $ WireStmt [WireOptionOutput 4] "\\blue"
          , ModuleBodyCell $ sbRgbaDrv r g b
          ]
-
-compile :: Rgb a -> File
-compile = top . execWriter . unRgb
+-}
+--compile :: Rgb a -> File
+--compile = top . execWriter . unRgb
 
 class MonadProcess m where
   process   :: (SigSpec -> m SigSpec) -> m SigSpec
@@ -96,7 +96,7 @@ newtype Rtl a = Rtl{ unRtl :: WriterT [ModuleBody] (State Integer) a }
 
 instance MonadRgb Rtl where
   ctr = do
-    tell $ [ModuleBodyWire $ Wire [] $ WireStmt [WireOptionInput 1] "\\clk"] <> counter 32 "\\$my_counter" "\\unused" "$my_counter" "$procStmt"
+    tell $ {-[ModuleBodyWire $ Wire [] $ WireStmt [WireOptionInput 1] "\\clk"] <>-} counter 32 "\\$my_counter" "\\unused" "$my_counter" "$procStmt"
     return $ SigSpecWireId "\\$my_counter"
 
   at sigSpec ix = do
