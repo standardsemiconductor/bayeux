@@ -11,7 +11,6 @@ module Bayeux.RgbCounter
 import Bayeux.Rtlil
 import Control.Monad.State
 import Control.Monad.Writer
-import Data.String
 
 class Monad m => MonadRgb m where
   ctr :: m SigSpec
@@ -120,12 +119,8 @@ instance MonadRgb Rtl where
 
 instance MonadProcess Rtl where
   process f = do
-    i <- get
-    modify (+ 1)
-    let old = fromString $ "\\ident" <> show i
-    j <- get
-    modify (+ 1)
-    let procStmt = fromString $ "$ident" <> show j
+    old <- freshWireId
+    procStmt <- freshProcStmt
     tell [ModuleBodyWire $ Wire [] $ WireStmt [WireOptionWidth 32] old]
     srcSig <- f $ SigSpecWireId old
     tell [ModuleBodyProcess $ updateP procStmt
@@ -135,34 +130,24 @@ instance MonadProcess Rtl where
     return $ SigSpecWireId old
  
   increment a = do
-    i <- get
-    modify (+ 1)
-    let y = fromString $ "\\ident" <> show i
-    j <- get
-    modify (+ 1)
-    let cId = fromString $ "$ident" <> show j
+    y <- freshWireId
+    cId <- freshCellId
     tell [ ModuleBodyWire $ Wire [] $ WireStmt [WireOptionWidth 32] y
          , ModuleBodyCell $ addC cId False 32 False 32 32 a (SigSpecConstant $ ConstantInteger 1) y
          ]
     return $ SigSpecWireId y
+
   eq a b = do
-    i <- get
-    modify (+ 1)
-    let y = fromString $ "\\ident" <> show i
-    j <- get
-    modify (+ 1)
-    let cId = fromString $ "$ident" <> show j
+    y <- freshWireId
+    cId <- freshCellId
     tell [ ModuleBodyWire $ Wire [] $ WireStmt [WireOptionWidth 1] y
          , ModuleBodyCell $ eqC cId False 32 False 32 1 a b y
          ]
     return $ SigSpecWireId y
+
   mux s a b = do
-    i <- get
-    modify (+ 1)
-    let y = fromString $ "\\ident" <> show i
-    j <- get
-    modify (+ 1)
-    let cId = fromString $ "$ident" <> show j
+    y <- freshWireId
+    cId <- freshCellId
     tell [ ModuleBodyWire $ Wire [] $ WireStmt [WireOptionWidth 32] y
          , ModuleBodyCell $ muxC cId 32 a b s y
          ]
