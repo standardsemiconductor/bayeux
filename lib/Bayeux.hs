@@ -32,7 +32,7 @@ app = \case
     print $ close [] t
 
 rgbCounter :: File
-rgbCounter = cycleCompile prog
+rgbCounter = compile prog
 
 rgbCycle :: File
-rgbCycle = cycleCompile cycleProg
+rgbCycle = compile cycleProg

@@ -3,13 +3,10 @@
 
 module Bayeux.RgbCounter
   ( prog
---  , compile
   , cycleProg
-  , cycleCompile
   ) where
 
 import Bayeux.Rtlil
-import Control.Monad.State
 import Control.Monad.Writer
 
 class Monad m => MonadRgb m where
@@ -24,35 +21,6 @@ prog = do
   g <- c `at` 23
   b <- c `at` 22
   rgb r g b
-{-
-newtype Rgb a = Rgb{ unRgb :: Writer [ModuleBody] a }
-  deriving (Functor, Applicative, Monad, MonadWriter [ModuleBody])
-
-instance MonadRgb Rgb where
-  ctr = do
-    tell $ [ModuleBodyWire $ Wire [] $ WireStmt [WireOptionInput 1] "\\clk"] <> counter 32 "\\$my_counter" "\\unused" "$my_counter" "$procStmt"
-    return $ SigSpecWireId "\\$my_counter"
-
-  at sigSpec ix = do
-    tell
-      [ ModuleBodyWire $ Wire [] $ WireStmt [WireOptionWidth 1] n
-      , ModuleBodyConnStmt $ ConnStmt (SigSpecWireId n) (SigSpecSlice sigSpec ix Nothing)
-      ]
-    return $ SigSpecWireId n
-    where
-      n | ix == 24  = "\\pwm_r"
-        | ix == 23  = "\\pwm_g"
-        | otherwise = "\\pwm_b"
-
-  rgb r g b = do
-    tell [ ModuleBodyWire $ Wire [] $ WireStmt [WireOptionOutput 2] "\\red"
-         , ModuleBodyWire $ Wire [] $ WireStmt [WireOptionOutput 3] "\\green"
-         , ModuleBodyWire $ Wire [] $ WireStmt [WireOptionOutput 4] "\\blue"
-         , ModuleBodyCell $ sbRgbaDrv r g b
-         ]
--}
---compile :: Rgb a -> File
---compile = top . execWriter . unRgb
 
 class MonadProcess m where
   process   :: (SigSpec -> m SigSpec) -> m SigSpec
@@ -88,15 +56,9 @@ cycleProg = do
     two    = constSig 2
     second = constSig 12000000
 
-newtype Rtl a = Rtl{ unRtl :: WriterT [ModuleBody] (State Integer) a }
-  deriving ( Functor, Applicative, Monad
-           , MonadWriter [ModuleBody]
-           , MonadState Integer
-           )
-
 instance MonadRgb Rtl where
   ctr = do
-    tell $ {-[ModuleBodyWire $ Wire [] $ WireStmt [WireOptionInput 1] "\\clk"] <>-} counter 32 "\\$my_counter" "\\unused" "$my_counter" "$procStmt"
+    tell $ counter 32 "\\$my_counter" "\\unused" "$my_counter" "$procStmt"
     return $ SigSpecWireId "\\$my_counter"
 
   at sigSpec ix = do
@@ -152,9 +114,3 @@ instance MonadProcess Rtl where
          , ModuleBodyCell $ muxC cId 32 a b s y
          ]
     return $ SigSpecWireId y
-
-cycleCompile :: Rtl a -> File
-cycleCompile = top . clocked . flip evalState 1 . execWriterT . unRtl
-
-clocked :: [ModuleBody] -> [ModuleBody]
-clocked = (ModuleBodyWire (Wire [] $ WireStmt [WireOptionInput 1] "\\clk") :)

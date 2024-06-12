@@ -116,9 +116,13 @@ module Bayeux.Rtlil
   , SyncStmt(..)
   , SyncType(..)
   , UpdateStmt(..)
+  , -- * Compile
+    Rtl(..)
+  , compile
   ) where
 
 import Control.Monad.State
+import Control.Monad.Writer
 import Data.Bits
 import Data.Bool
 import Data.String
@@ -758,3 +762,15 @@ fresh = do
   i <- get
   modify (+ 1)
   return i
+
+newtype Rtl a = Rtl{ unRtl :: WriterT [ModuleBody] (State Integer) a }
+  deriving ( Functor, Applicative, Monad
+           , MonadWriter [ModuleBody]
+           , MonadState Integer
+           )
+
+compile :: Rtl a -> File
+compile = top . clocked . flip evalState 1 . execWriterT . unRtl
+
+clocked :: [ModuleBody] -> [ModuleBody]
+clocked = (ModuleBodyWire (Wire [] $ WireStmt [WireOptionInput 1] "\\clk") :)
