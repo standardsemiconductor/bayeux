@@ -116,8 +116,9 @@ module Bayeux.Rtlil
   , SyncStmt(..)
   , SyncType(..)
   , UpdateStmt(..)
-  , -- * Compile
-    Rtl(..)
+  , -- * Monad
+    MonadRtl(..)
+  , Rtl(..)
   , compile
   ) where
 
@@ -332,7 +333,7 @@ instance Pretty WireStmt where
 newtype WireId = WireId Ident
   deriving (Eq, IsString, Monoid, Pretty, Read, Semigroup, Show)
 
-freshWireId :: MonadState Integer m => m WireId
+freshWireId :: Functor m => MonadRtl m => m WireId
 freshWireId = ("\\wire" <>) . fromString . show <$> fresh
 
 data WireOption = WireOptionWidth  Integer
@@ -400,7 +401,7 @@ instance Pretty CellStmt where
 newtype CellId = CellId Ident
   deriving (Eq, IsString, Monoid, Pretty, Read, Semigroup, Show)
 
-freshCellId :: MonadState Integer m => m CellId
+freshCellId :: Functor m => MonadRtl m => m CellId
 freshCellId = ("$cell" <>) . fromString . show <$> fresh
 
 newtype CellType = CellType Ident
@@ -620,7 +621,7 @@ newtype ProcStmt = ProcStmt Ident
 instance Pretty ProcStmt where
   pretty (ProcStmt i) = "process" <+> pretty i
 
-freshProcStmt :: MonadState Integer m => m ProcStmt
+freshProcStmt :: Functor m => MonadRtl m => m ProcStmt
 freshProcStmt = ("$proc" <>) . fromString . show <$> fresh
 
 data ProcessBody = ProcessBody [AssignStmt] (Maybe Switch) [AssignStmt] [Sync]
@@ -757,17 +758,57 @@ data UpdateStmt = UpdateStmt DestSigSpec SrcSigSpec
 instance Pretty UpdateStmt where
   pretty (UpdateStmt d s) = "update" <+> pretty d <+> pretty s
 
-fresh :: MonadState Integer m => m Integer
-fresh = do
-  i <- get
-  modify (+ 1)
-  return i
+class MonadRtl m where
+  fresh   :: m Integer
+  process :: Integer -- ^ width
+          -> (SigSpec -> m SigSpec)
+          -> m SigSpec
+  at :: SigSpec -> Integer -> m SigSpec
+
+  -- | If S == 1 then B else A
+  mux :: Integer   -- ^ width
+      -> SigSpec   -- ^ S
+      -> SigSpec   -- ^ A
+      -> SigSpec   -- ^ B
+      -> m SigSpec -- ^ Y
+--  unary :: SigSpec -> m SigSpec
+--  binary :: Cell -> SigSpec -> SigSpec -> m SigSpec
 
 newtype Rtl a = Rtl{ unRtl :: WriterT [ModuleBody] (State Integer) a }
   deriving ( Functor, Applicative, Monad
            , MonadWriter [ModuleBody]
            , MonadState Integer
            )
+
+instance MonadRtl Rtl where
+  fresh = state $ \i -> (i, i + 1)
+
+  process w f = do
+    old <- freshWireId
+    procStmt <- freshProcStmt
+    tell [ModuleBodyWire $ Wire [] $ WireStmt [WireOptionWidth w] old]
+    srcSig <- f $ SigSpecWireId old
+    tell [ModuleBodyProcess $ updateP procStmt
+                                (DestSigSpec $ SigSpecWireId old)
+                                (SrcSigSpec  $ srcSig)
+         ]
+    return $ SigSpecWireId old
+
+  at sigSpec ix = do
+    y <- freshWireId
+    tell
+      [ ModuleBodyWire $ Wire [] $ WireStmt [WireOptionWidth 1] y
+      , ModuleBodyConnStmt $ ConnStmt (SigSpecWireId y) (SigSpecSlice sigSpec ix Nothing)
+      ]
+    return $ SigSpecWireId y
+  
+  mux w s a b = do
+    y <- freshWireId
+    cId <- freshCellId
+    tell [ ModuleBodyWire $ Wire [] $ WireStmt [WireOptionWidth w] y
+         , ModuleBodyCell $ muxC cId w a b s y
+         ]
+    return $ SigSpecWireId y
 
 compile :: Rtl a -> File
 compile = top . clocked . flip evalState 1 . execWriterT . unRtl
