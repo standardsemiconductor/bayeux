@@ -10,8 +10,12 @@ module Bayeux.Rgb
 import Bayeux.Rtlil
 import Control.Monad.Writer
 
-class Monad m => MonadRgb m where
-  rgb :: SigSpec -> SigSpec -> SigSpec -> m ()
+-- | PWM inputs, width=1
+class MonadRgb m where
+  rgb :: SigSpec -- ^ red
+      -> SigSpec -- ^ green
+      -> SigSpec -- ^ blue
+      -> m ()
 
 instance MonadRgb Rtl where
   rgb r g b = tell
@@ -30,7 +34,7 @@ ctr = process 32 increment
 eq :: MonadRtl m => SigSpec -> SigSpec -> m SigSpec
 eq = binary eqC False 32 False 32 1
 
-prog :: MonadRtl m => MonadRgb m => m ()
+prog :: Monad m => MonadRtl m => MonadRgb m => m ()
 prog = do
   c <- ctr
   r <- c `at` 24
@@ -38,7 +42,7 @@ prog = do
   b <- c `at` 22
   rgb r g b
 
-cycleProg :: MonadRtl m => MonadRgb m => m ()
+cycleProg :: Monad m => MonadRtl m => MonadRgb m => m ()
 cycleProg = do
   t <- process 32 $ \timer -> do
     t1Sec <- timer `eq` second

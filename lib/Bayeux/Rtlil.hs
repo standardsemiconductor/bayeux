@@ -24,7 +24,6 @@ module Bayeux.Rtlil
   , Constant(..)
   , ModuleEndStmt(..)
   , initial
-  , counter
   , -- ** Attribute statements
     AttrStmt(..)
   , -- ** Signal specifications
@@ -118,13 +117,14 @@ module Bayeux.Rtlil
   , UpdateStmt(..)
   , -- * Monad
     MonadRtl(..)
+  , shl, shr, sshl, sshr
   , Rtl(..)
   , compile
   ) where
 
 import Control.Monad.State
 import Control.Monad.Writer
-import Data.Bits
+import Data.Bits hiding (shift)
 import Data.Bool
 import Data.String
 import Data.Text (Text)
@@ -267,31 +267,6 @@ initial outputIdent output =
     value = let size = fromIntegral $ finiteBitSize output
                 bs   = binaryDigits output
             in ConstantValue $ Value size bs
-
-counter
-  :: Integer  -- ^ width
-  -> WireId   -- ^ old
-  -> WireId   -- ^ new
-  -> CellId   -- ^ add
-  -> ProcStmt -- ^ update
-  -> [ModuleBody]
-counter w old new addId procStmt =
-  [ ModuleBodyWire $ Wire [] $ WireStmt [WireOptionWidth w] old -- $ WireId $ "\\" <> old
-  , ModuleBodyWire $ Wire [] $ WireStmt [WireOptionWidth w] new -- $ WireId new
-  , ModuleBodyCell $ addC
-      addId
-      False
-      w
-      False
-      w
-      w
-      (SigSpecWireId old)
-      (SigSpecConstant $ ConstantInteger 1)
-      new
-  , ModuleBodyProcess $ updateP procStmt
-      (DestSigSpec $ SigSpecWireId old)
-      (SrcSigSpec  $ SigSpecWireId new)
-  ]
 
 data AttrStmt = AttrStmt Ident Constant
   deriving (Eq, Read, Show)
@@ -436,7 +411,7 @@ unaryCell
   -> Integer -- ^ \\A_WIDTH
   -> Integer -- ^ \\Y_WIDTH
   -> SigSpec -- ^ A
-  -> WireId  -- ^ Y
+  -> SigSpec -- ^ Y
   -> Cell
 unaryCell cellStmt aSigned aWidth yWidth a y = Cell
   []
@@ -445,7 +420,7 @@ unaryCell cellStmt aSigned aWidth yWidth a y = Cell
   , CellParameter Nothing "\\A_WIDTH" $ ConstantInteger aWidth
   , CellParameter Nothing "\\Y_WIDTH" $ ConstantInteger yWidth
   , CellConnect "\\A" a
-  , CellConnect "\\Y" $ SigSpecWireId y
+  , CellConnect "\\Y" y
   ]
   CellEndStmt
 
@@ -456,7 +431,7 @@ notC, posC, negC, reduceAndC, reduceOrC, reduceXorC, reduceXnorC, reduceBoolC, l
   -> Integer
   -> Integer
   -> SigSpec
-  -> WireId
+  -> SigSpec
   -> Cell
 
 notC        = unaryCell . CellStmt "$not"
@@ -478,7 +453,7 @@ binaryCell
   -> Integer -- ^ \\Y_WIDTH
   -> SigSpec -- ^ A
   -> SigSpec -- ^ B
-  -> WireId  -- ^ Y
+  -> SigSpec -- ^ Y
   -> Cell
 binaryCell cellStmt aSigned aWidth bSigned bWidth yWidth a b y = Cell
   []
@@ -490,7 +465,7 @@ binaryCell cellStmt aSigned aWidth bSigned bWidth yWidth a b y = Cell
   , CellParameter Nothing "\\Y_WIDTH"  $ ConstantInteger yWidth
   , CellConnect "\\A" a
   , CellConnect "\\B" b
-  , CellConnect "\\Y" $ SigSpecWireId y
+  , CellConnect "\\Y" y
   ]
   CellEndStmt
 
@@ -506,7 +481,7 @@ shiftCell
   -> Integer
   -> SigSpec
   -> SigSpec
-  -> WireId
+  -> SigSpec
   -> Cell
 shiftCell cellStmt aSigned aWidth = binaryCell cellStmt aSigned aWidth False
 
@@ -520,7 +495,7 @@ andC, orC, xorC, xnorC, logicAndC, logicOrC, eqxC, nexC, powC, ltC, leC, eqC, ne
   -> Integer
   -> SigSpec
   -> SigSpec
-  -> WireId
+  -> SigSpec
   -> Cell
 
 shlC, shrC, sshlC, sshrC
@@ -531,7 +506,7 @@ shlC, shrC, sshlC, sshrC
   -> Integer
   -> SigSpec
   -> SigSpec
-  -> WireId
+  -> SigSpec
   -> Cell
 
 andC      = binaryCell . CellStmt "$and"
@@ -568,7 +543,7 @@ muxC
   -> SigSpec -- ^ A
   -> SigSpec -- ^ B
   -> SigSpec -- ^ S
-  -> WireId  -- ^ Y
+  -> SigSpec -- ^ Y
   -> Cell
 muxC cellId w a b s y = Cell
   []
@@ -577,7 +552,7 @@ muxC cellId w a b s y = Cell
   , CellConnect "\\A" a
   , CellConnect "\\B" b
   , CellConnect "\\S" s
-  , CellConnect "\\Y" $ SigSpecWireId y
+  , CellConnect "\\Y" y
   ]
   CellEndStmt
 
@@ -759,10 +734,14 @@ instance Pretty UpdateStmt where
   pretty (UpdateStmt d s) = "update" <+> pretty d <+> pretty s
 
 class MonadRtl m where
-  fresh   :: m Integer
+  fresh     :: m Integer
+  freshWire :: Integer -- ^ width
+            -> m SigSpec
+
   process :: Integer -- ^ width
           -> (SigSpec -> m SigSpec)
           -> m SigSpec
+  -- | Output width=1
   at :: SigSpec -> Integer -> m SigSpec
 
   -- | If S == 1 then B else A
@@ -771,26 +750,57 @@ class MonadRtl m where
       -> SigSpec   -- ^ A
       -> SigSpec   -- ^ B
       -> m SigSpec -- ^ Y
---  unary :: SigSpec -> m SigSpec
+
+  unary :: ( CellId
+             -> Bool
+             -> Integer
+             -> Integer
+             -> SigSpec
+             -> SigSpec
+             -> Cell
+           )
+        -> Bool
+        -> Integer
+        -> Integer
+        -> SigSpec
+        -> m SigSpec
   binary :: ( CellId
-              -> Bool    -- ^ \\A_SIGNED
-              -> Integer -- ^ \\A_WIDTH
-              -> Bool    -- ^ \\B_SIGNED
-              -> Integer -- ^ \\B_WIDTH
-              -> Integer -- ^ \\Y_WIDTH
-              -> SigSpec -- ^ A
-              -> SigSpec -- ^ B
-              -> WireId  -- ^ Y
+              -> Bool
+              -> Integer
+              -> Bool
+              -> Integer
+              -> Integer
+              -> SigSpec
+              -> SigSpec
+              -> SigSpec
               -> Cell
             )
-         -> Bool -- ^ a signed
-         -> Integer -- ^ a width
+         -> Bool
+         -> Integer
          -> Bool
          -> Integer
          -> Integer
          -> SigSpec
          -> SigSpec
          -> m SigSpec
+
+  shift :: ( CellId
+             -> Bool
+             -> Integer
+             -> Integer
+             -> Integer
+             -> SigSpec
+             -> SigSpec
+             -> SigSpec
+             -> Cell
+           )
+        -> Bool
+        -> Integer
+        -> Integer
+        -> Integer
+        -> SigSpec
+        -> SigSpec
+        -> m SigSpec
 
 newtype Rtl a = Rtl{ unRtl :: WriterT [ModuleBody] (State Integer) a }
   deriving ( Functor, Applicative, Monad
@@ -800,41 +810,60 @@ newtype Rtl a = Rtl{ unRtl :: WriterT [ModuleBody] (State Integer) a }
 
 instance MonadRtl Rtl where
   fresh = state $ \i -> (i, i + 1)
+  freshWire w = do
+    wId <- freshWireId
+    tell [ModuleBodyWire $ Wire [] $ WireStmt [WireOptionWidth w] wId]
+    return $ SigSpecWireId wId
 
   process w f = do
-    old <- freshWireId
+    old <- freshWire w
     procStmt <- freshProcStmt
-    tell [ModuleBodyWire $ Wire [] $ WireStmt [WireOptionWidth w] old]
-    srcSig <- f $ SigSpecWireId old
-    tell [ModuleBodyProcess $ updateP procStmt
-                                (DestSigSpec $ SigSpecWireId old)
-                                (SrcSigSpec  $ srcSig)
-         ]
-    return $ SigSpecWireId old
+    srcSig <- f old
+    tell [ModuleBodyProcess $ updateP procStmt (DestSigSpec old) (SrcSigSpec srcSig)]
+    return old
 
   at sigSpec ix = do
-    y <- freshWireId
-    tell
-      [ ModuleBodyWire $ Wire [] $ WireStmt [WireOptionWidth 1] y
-      , ModuleBodyConnStmt $ ConnStmt (SigSpecWireId y) (SigSpecSlice sigSpec ix Nothing)
-      ]
-    return $ SigSpecWireId y
+    y <- freshWire 1
+    tell [ModuleBodyConnStmt $ ConnStmt y (SigSpecSlice sigSpec ix Nothing)]
+    return y
   
   mux w s a b = do
-    y <- freshWireId
+    y <- freshWire w
     cId <- freshCellId
-    tell [ ModuleBodyWire $ Wire [] $ WireStmt [WireOptionWidth w] y
-         , ModuleBodyCell $ muxC cId w a b s y
-         ]
-    return $ SigSpecWireId y
+    tell [ModuleBodyCell $ muxC cId w a b s y]
+    return y
+
+  unary cFn aSigned aWidth yWidth a = do
+    y <- freshWire yWidth
+    cId <- freshCellId
+    tell [ModuleBodyCell $ cFn cId aSigned aWidth yWidth a y]
+    return y
 
   binary cFn aSigned aWidth bSigned bWidth yWidth a b = do
-    y <- freshWireId
+    y <- freshWire yWidth
     cId <- freshCellId
-    tell [ ModuleBodyWire $ Wire [] $ WireStmt [WireOptionWidth yWidth] y
-         , ModuleBodyCell $ cFn cId aSigned aWidth bSigned bWidth yWidth a b y
-         ]
-    return $ SigSpecWireId y
+    tell [ModuleBodyCell $ cFn cId aSigned aWidth bSigned bWidth yWidth a b y]
+    return y
+
+  shift cFn aSigned aWidth bWidth yWidth a b = do
+    y <- freshWire yWidth
+    cId <- freshCellId
+    tell [ModuleBodyCell $ cFn cId aSigned aWidth bWidth yWidth a b y]
+    return y
+
+shl, shr, sshl, sshr
+  :: MonadRtl m
+  => Bool
+  -> Integer
+  -> Integer
+  -> Integer
+  -> SigSpec
+  -> SigSpec
+  -> m SigSpec
+shl = shift shlC
+shr = shift shrC
+sshl = shift sshlC
+sshr = shift sshrC
 
 compile :: Rtl a -> File
 compile = top . clocked . flip evalState 1 . execWriterT . unRtl

@@ -28,13 +28,38 @@ tests =
           (SigSpecWireId "\\pwm_g")
           (SigSpecWireId "\\pwm_b")
       , prettyTest "fiatLux"   fiatLux
-      , prettyTest "add"     $ addC "\\adder" False 32 False 32 33 (SigSpecWireId "\\a") (SigSpecWireId "\\b") "\\y"
+      , prettyTest "add"     $ addC "\\adder" False 32 False 32 33 (SigSpecWireId "\\a") (SigSpecWireId "\\b") (SigSpecWireId "\\y")
       , prettyTest "counter" $ counter 8 "\\old" "\\new" "$old" "$procStmt"
       ]
   , testGroup "synth"
       [ synthTest "led"     rtlilLed
       , synthTest "fiatLux" fiatLux
       ]
+  ]
+
+counter
+  :: Integer  -- ^ width
+  -> WireId   -- ^ old
+  -> WireId   -- ^ new
+  -> CellId   -- ^ add
+  -> ProcStmt -- ^ update
+  -> [ModuleBody]
+counter w old new addId procStmt =
+  [ ModuleBodyWire $ Wire [] $ WireStmt [WireOptionWidth w] old -- $ WireId $ "\\" <> old
+  , ModuleBodyWire $ Wire [] $ WireStmt [WireOptionWidth w] new -- $ WireId new
+  , ModuleBodyCell $ addC
+      addId
+      False
+      w
+      False
+      w
+      w
+      (SigSpecWireId old)
+      (SigSpecConstant $ ConstantInteger 1)
+      (SigSpecWireId new)
+  , ModuleBodyProcess $ updateP procStmt
+      (DestSigSpec $ SigSpecWireId old)
+      (SrcSigSpec  $ SigSpecWireId new)
   ]
 
 prettyTest :: Pretty a => TestName -> a -> TestTree
@@ -64,16 +89,16 @@ rtlilLed = File Nothing
       , ModuleBodyCell $ addC "$increment" False 26 False 32 32
           (SigSpecWireId "\\counter")
           (SigSpecConstant $ ConstantInteger 1)
-          "\\counter_plus_one"
+          (SigSpecWireId "\\counter_plus_one")
       , ModuleBodyCell $ notC "$not$1" False 1 1
           (SigSpecSlice (SigSpecWireId "\\counter") 23 Nothing)
-          "\\LED_R"
+          (SigSpecWireId "\\LED_R")
       , ModuleBodyCell $ notC "$not$2" False 1 1
           (SigSpecSlice (SigSpecWireId "\\counter") 24 Nothing)
-          "\\LED_G"
+          (SigSpecWireId "\\LED_G")
       , ModuleBodyCell $ notC "$not$3" False 1 1
           (SigSpecSlice (SigSpecWireId "\\counter") 25 Nothing)
-          "\\LED_B"
+          (SigSpecWireId "\\LED_B")
       , ModuleBodyProcess $ Process
           []
           "$run"
