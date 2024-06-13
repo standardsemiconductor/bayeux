@@ -1,8 +1,8 @@
-module Test.Bayeux.RgbCounter
+module Test.Bayeux.Rgb
   ( tests
   ) where
 
-import Bayeux.RgbCounter
+import Bayeux.Rgb
 import Bayeux.Rtlil
 import Data.String
 import Data.Text (Text)
@@ -41,7 +41,7 @@ synthTest n rtl = testCase n $ withTempFile $ \t -> do
   (ExitSuccess @=?) =<< waitForProcess =<< spawnCommand c
 
 curDir :: FilePath
-curDir = "test" </> "Test" </> "Bayeux" </> "RgbCounter" </> "golden"
+curDir = "test" </> "Test" </> "Bayeux" </> "Rgb" </> "golden"
 
 render :: Doc ann -> Text
 render = renderStrict . layoutSmart defaultLayoutOptions

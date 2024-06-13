@@ -5,7 +5,7 @@ module Bayeux (app) where
 import Bayeux.Cli
 import Bayeux.Flow
 import Bayeux.Lp
-import Bayeux.RgbCounter
+import Bayeux.Rgb
 import Bayeux.Rtlil
 import Bayeux.Tableaux
 import Control.Monad

@@ -1,7 +1,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings          #-}
 
-module Bayeux.RgbCounter
+module Bayeux.Rgb
   ( prog
   , cycleProg
   ) where
@@ -28,10 +28,10 @@ class MonadProcess m where
   eq        :: SigSpec -> SigSpec -> m SigSpec
 
   -- | If S == 1 then B else A
-  mux       :: SigSpec   -- ^ S
-            -> SigSpec   -- ^ A
-            -> SigSpec   -- ^ B
-            -> m SigSpec -- ^ Y
+  mux :: SigSpec   -- ^ S
+      -> SigSpec   -- ^ A
+      -> SigSpec   -- ^ B
+      -> m SigSpec -- ^ Y
 
 cycleProg :: MonadProcess m => MonadRgb m => m ()
 cycleProg = do
