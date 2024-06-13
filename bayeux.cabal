@@ -18,7 +18,7 @@ library
                     , Bayeux.Cli
                     , Bayeux.Flow
                     , Bayeux.Lp
-                    , Bayeux.RgbCounter
+                    , Bayeux.Rgb
                     , Bayeux.Rtlil
                     , Bayeux.Tableaux
     other-modules:    Paths_bayeux
@@ -51,7 +51,7 @@ test-suite test
     hs-source-dirs:   test
     main-is:          Main.hs
     other-modules:    Test.Bayeux.Lp
-                    , Test.Bayeux.RgbCounter
+                    , Test.Bayeux.Rgb
                     , Test.Bayeux.Rtlil
     build-depends:    base
                     , bayeux
