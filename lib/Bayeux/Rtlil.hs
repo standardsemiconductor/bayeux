@@ -772,7 +772,25 @@ class MonadRtl m where
       -> SigSpec   -- ^ B
       -> m SigSpec -- ^ Y
 --  unary :: SigSpec -> m SigSpec
---  binary :: Cell -> SigSpec -> SigSpec -> m SigSpec
+  binary :: ( CellId
+              -> Bool    -- ^ \\A_SIGNED
+              -> Integer -- ^ \\A_WIDTH
+              -> Bool    -- ^ \\B_SIGNED
+              -> Integer -- ^ \\B_WIDTH
+              -> Integer -- ^ \\Y_WIDTH
+              -> SigSpec -- ^ A
+              -> SigSpec -- ^ B
+              -> WireId  -- ^ Y
+              -> Cell
+            )
+         -> Bool -- ^ a signed
+         -> Integer -- ^ a width
+         -> Bool
+         -> Integer
+         -> Integer
+         -> SigSpec
+         -> SigSpec
+         -> m SigSpec
 
 newtype Rtl a = Rtl{ unRtl :: WriterT [ModuleBody] (State Integer) a }
   deriving ( Functor, Applicative, Monad
@@ -807,6 +825,14 @@ instance MonadRtl Rtl where
     cId <- freshCellId
     tell [ ModuleBodyWire $ Wire [] $ WireStmt [WireOptionWidth w] y
          , ModuleBodyCell $ muxC cId w a b s y
+         ]
+    return $ SigSpecWireId y
+
+  binary cFn aSigned aWidth bSigned bWidth yWidth a b = do
+    y <- freshWireId
+    cId <- freshCellId
+    tell [ ModuleBodyWire $ Wire [] $ WireStmt [WireOptionWidth yWidth] y
+         , ModuleBodyCell $ cFn cId aSigned aWidth bSigned bWidth yWidth a b y
          ]
     return $ SigSpecWireId y
 

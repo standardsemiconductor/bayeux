@@ -2,35 +2,35 @@ autoidx 0
 
 module \top
   wire input 1 \clk
-  wire width 32 \$my_counter
-  wire width 32 \unused
+  wire width 32 \wire1
+  wire width 32 \wire3
 
-  cell $add $my_counter
+  cell $add $cell4
     parameter \A_SIGNED 0
     parameter \A_WIDTH 32
     parameter \B_SIGNED 0
     parameter \B_WIDTH 32
     parameter \Y_WIDTH 32
-    connect \A \$my_counter
+    connect \A \wire1
     connect \B 1
-    connect \Y \unused
+    connect \Y \wire3
   end
 
 
-  process $procStmt
+  process $proc2
     
 
 
     sync posedge \clk
-      update \$my_counter \unused
+      update \wire1 \wire3
   end
 
-  wire width 1 \wire1
-  connect \wire1 \$my_counter [24]
-  wire width 1 \wire2
-  connect \wire2 \$my_counter [23]
-  wire width 1 \wire3
-  connect \wire3 \$my_counter [22]
+  wire width 1 \wire5
+  connect \wire5 \wire1 [24]
+  wire width 1 \wire6
+  connect \wire6 \wire1 [23]
+  wire width 1 \wire7
+  connect \wire7 \wire1 [22]
   wire output 2 \red
   wire output 3 \green
   wire output 4 \blue
@@ -42,11 +42,11 @@ module \top
     parameter \RGB2_CURRENT "0b111111"
     connect \CURREN 1'1
     connect \RGB0 \red
-    connect \RGB0PWM \wire1
+    connect \RGB0PWM \wire5
     connect \RGB1 \green
-    connect \RGB1PWM \wire2
+    connect \RGB1PWM \wire6
     connect \RGB2 \blue
-    connect \RGB2PWM \wire3
+    connect \RGB2PWM \wire7
     connect \RGBLEDEN 1'1
   end
 
