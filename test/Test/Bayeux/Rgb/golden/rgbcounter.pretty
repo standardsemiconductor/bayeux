@@ -25,12 +25,12 @@ module \top
       update \$my_counter \unused
   end
 
-  wire width 1 \pwm_r
-  connect \pwm_r \$my_counter [24]
-  wire width 1 \pwm_g
-  connect \pwm_g \$my_counter [23]
-  wire width 1 \pwm_b
-  connect \pwm_b \$my_counter [22]
+  wire width 1 \wire1
+  connect \wire1 \$my_counter [24]
+  wire width 1 \wire2
+  connect \wire2 \$my_counter [23]
+  wire width 1 \wire3
+  connect \wire3 \$my_counter [22]
   wire output 2 \red
   wire output 3 \green
   wire output 4 \blue
@@ -42,11 +42,11 @@ module \top
     parameter \RGB2_CURRENT "0b111111"
     connect \CURREN 1'1
     connect \RGB0 \red
-    connect \RGB0PWM \pwm_r
+    connect \RGB0PWM \wire1
     connect \RGB1 \green
-    connect \RGB1PWM \pwm_g
+    connect \RGB1PWM \wire2
     connect \RGB2 \blue
-    connect \RGB2PWM \pwm_b
+    connect \RGB2PWM \wire3
     connect \RGBLEDEN 1'1
   end
 
