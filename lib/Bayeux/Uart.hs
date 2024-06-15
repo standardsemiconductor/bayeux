@@ -34,7 +34,7 @@ instance MonadUart Rtl where
     isStartFrame <- eq 4 txIx $ zero 4
     isEndFrame   <- eq 4 txIx nine
     buf <- process 8 $ \buf -> do
-      buf' <- mux 8 ctrDone buf =<< shr False 8 1 8 buf one
+      buf' <- flip (mux 8 isStartFrame) buf =<< mux 8 ctrDone buf =<< shr False 8 1 8 buf one
       mux 8 isStart buf' $ value byte
     txOut <- flip (mux 1 isStartFrame) (zero 1) =<< flip (mux 1 isEndFrame) one =<< buf `at` 0
     out "\\tx" =<< mux 1 isStart txOut one
