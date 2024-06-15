@@ -15,7 +15,7 @@ opts = info (parseCli <**> helper) $ mconcat
   ]
 
 parseCli :: Parser Cli
-parseCli = (CliDemo <$> parseDemo <*> parseProg) <|> (CliProve <$> parseProve)
+parseCli = (CliDemo <$> parseDemo <*> parseProg) <|> (CliProve <$> parseProve) <|> parseCliCom
 
 parseProg :: Parser Bool
 parseProg = switch $ long "prog" <> short 'p' <> help "Program VELDT FPGA"
@@ -46,3 +46,6 @@ parseStdInput = flag' StdInput $ long "stdin" <> help "Read from stdin"
 
 parseTableauxOutput :: Parser Bool
 parseTableauxOutput = switch $ long "tableaux" <> short 't' <> help "Display tableaux"
+
+parseCliCom :: Parser Cli
+parseCliCom = flag' CliCom $ long "com" <> help "serial com"

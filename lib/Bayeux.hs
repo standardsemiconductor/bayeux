@@ -8,13 +8,17 @@ import Bayeux.Lp
 import Bayeux.Rgb
 import Bayeux.Rtlil
 import Bayeux.Tableaux
+import Control.Concurrent.Async ( concurrently_ )
 import Control.Monad
 import Data.Maybe
 import qualified Data.Text    as T
 import qualified Data.Text.IO as TIO
 import qualified Data.Set     as S
 import Paths_bayeux
+import System.Environment       ( getArgs )
 import System.FilePath
+import System.Hardware.Serialport
+import System.IO
 import Text.Megaparsec hiding (parse)
 
 app :: Cli -> IO ()
@@ -30,9 +34,23 @@ app = \case
     let t = unfold $ S.singleton $ Bar lp
     when (tableaux cli) $ putStrLn $ renderTableaux $ T.unpack . render <$> t
     print $ close [] t
+  CliCom -> com "/dev/ttyUSB0"
 
 rgbCounter :: File
 rgbCounter = compile prog
 
 rgbCycle :: File
 rgbCycle = compile cycleProg
+
+
+com :: String -> IO ()
+com portPath = hWithSerial portPath serialPortSettings $ \hndl -> do
+  hSetBuffering stdin NoBuffering
+  hSetBuffering stdout NoBuffering
+  concurrently_ (readUart hndl) (writeUart hndl)
+  where
+    readUart  hndl = forever $ putChar =<< hGetChar hndl
+    writeUart hndl = forever $ hPutChar hndl =<< getChar
+
+serialPortSettings :: SerialPortSettings
+serialPortSettings = defaultSerialSettings{ commSpeed = CS19200 }
