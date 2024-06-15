@@ -1,27 +1,24 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Bayeux.Uart
-  ( echo
+  ( MonadUart(..)
   , hello
   ) where
 
 import Bayeux.Rtlil
 import Control.Monad
 import Control.Monad.Writer
-import Data.Char
 import Data.Word
 
 data OptSig = OptSig{ valid :: SigSpec, value :: SigSpec }
   deriving (Eq, Read, Show)
 
 class MonadUart m where
-  receive  :: m OptSig
   transmit :: Word16 -- ^ baud
            -> OptSig
            -> m ()
 
 instance MonadUart Rtl where
-  receive = undefined
   transmit baud byte = void $ process 1 $ \txFsm -> do
     isStart <- eq 1 txFsm $ zero 1
     txCtr <- process 16 $ \txCtr -> do
@@ -63,15 +60,12 @@ out :: WireId -> SigSpec -> Rtl ()
 out wireId sig = do
   i <- fresh
   tell
-    [ ModuleBodyWire $ Wire [] $ WireStmt [WireOptionOutput 1] wireId
+    [ ModuleBodyWire $ Wire [] $ WireStmt [WireOptionOutput i] wireId
     , ModuleBodyConnStmt $ ConnStmt (SigSpecWireId wireId) sig
     ]
 
 conj :: MonadRtl m => SigSpec -> SigSpec -> m SigSpec
 conj = binary andC False 1 False 1 1
-
-echo :: Monad m => MonadUart m => m ()
-echo = transmit 624 =<< receive
 
 hello :: Monad m => MonadUart m => MonadRtl m => m ()
 hello = void $ process 32 $ \timer -> do

@@ -266,7 +266,7 @@ module \top
     connect \Y \wire50
   end
 
-  wire output 1 \tx
+  wire output 52 \tx
   connect \tx \wire50
   wire width 1 \wire53
 
