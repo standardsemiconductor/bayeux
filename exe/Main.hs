@@ -25,6 +25,7 @@ parseDemo = asum
   [ flag' FiatLux $ long "FiatLux" <> help "FiatLux demo"
   , flag' RgbCounter $ long "RgbCounter" <> help "RgbCounter demo"
   , flag' RgbCycle $ long "RgbCycle" <> help "RgbCycle demo"
+  , flag' Hello $ long "Hello" <> help "Hello demo"
   ]
 
 parseProve :: Parser Prove

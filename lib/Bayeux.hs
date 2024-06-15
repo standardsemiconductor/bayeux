@@ -8,6 +8,7 @@ import Bayeux.Lp
 import Bayeux.Rgb
 import Bayeux.Rtlil
 import Bayeux.Tableaux
+import Bayeux.Uart
 import Control.Concurrent.Async ( concurrently_ )
 import Control.Monad
 import Data.Maybe
@@ -15,7 +16,7 @@ import qualified Data.Text    as T
 import qualified Data.Text.IO as TIO
 import qualified Data.Set     as S
 import Paths_bayeux
-import System.Environment       ( getArgs )
+--import System.Environment       ( getArgs )
 import System.FilePath
 import System.Hardware.Serialport
 import System.IO
@@ -27,6 +28,7 @@ app = \case
     FiatLux    -> flow iceprog "FiatLux" fiatLux =<< getDataFileName ("data" </> "FiatLux" <.> "pcf")
     RgbCounter -> flow iceprog "RgbCounter" rgbCounter =<< getDataFileName ("data" </> "RgbCounter" <.> "pcf")
     RgbCycle   -> flow iceprog "RgbCycle" rgbCycle =<< getDataFileName ("data" </> "RgbCycle" <.> "pcf")
+    Hello      -> flow iceprog "Hello" (compile hello) =<< getDataFileName ("data" </> "Hello" <.> "pcf")
   CliProve cli -> do
     lp <- fromJust <$> case input cli of
       FileInput f -> parseMaybe (parse <* eof) <$> TIO.readFile f

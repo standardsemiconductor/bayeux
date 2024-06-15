@@ -13,6 +13,7 @@ data Cli = CliDemo Demo Bool
 data Demo = FiatLux
           | RgbCounter
           | RgbCycle
+          | Hello
   deriving (Eq, Read, Show)
 
 data Prove = Prove
