@@ -21,15 +21,18 @@ library
                     , Bayeux.Rgb
                     , Bayeux.Rtlil
                     , Bayeux.Tableaux
+                    , Bayeux.Uart
     other-modules:    Paths_bayeux
     autogen-modules:  Paths_bayeux
-    build-depends:    base
+    build-depends:    async
+                    , base
                     , containers
                     , filepath
                     , megaparsec
                     , mtl
                     , parser-combinators
                     , prettyprinter
+                    , serialport
                     , shake
                     , text
     hs-source-dirs:   lib
@@ -53,6 +56,7 @@ test-suite test
     other-modules:    Test.Bayeux.Lp
                     , Test.Bayeux.Rgb
                     , Test.Bayeux.Rtlil
+                    , Test.Bayeux.Uart
     build-depends:    base
                     , bayeux
                     , extra

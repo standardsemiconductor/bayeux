@@ -7,11 +7,13 @@ module Bayeux.Cli
 
 data Cli = CliDemo Demo Bool
          | CliProve Prove
+         | CliCom
   deriving (Eq, Read, Show)
 
 data Demo = FiatLux
           | RgbCounter
           | RgbCycle
+          | Hello
   deriving (Eq, Read, Show)
 
 data Prove = Prove

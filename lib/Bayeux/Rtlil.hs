@@ -10,6 +10,7 @@ module Bayeux.Rtlil
   , Value(..)
   , BinaryDigit(..)
   , binaryDigits
+  , binaryValue
   , -- * File
     File(..)
   , top
@@ -158,6 +159,9 @@ instance Pretty BinaryDigit where
 
 binaryDigits :: FiniteBits b => b -> [BinaryDigit]
 binaryDigits b = bool B0 B1 . testBit b <$> reverse [0..finiteBitSize b - 1]
+
+binaryValue :: FiniteBits b => b -> Value
+binaryValue b = Value (fromIntegral $ finiteBitSize b) $ binaryDigits b
 
 data File = File (Maybe AutoIdxStmt) [Module]
   deriving (Eq, Read, Show)

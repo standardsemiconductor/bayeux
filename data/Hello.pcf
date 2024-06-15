@@ -1,0 +1,2 @@
+set_io tx  17 # iob_33b_spi_wi  ice_bowi uart_tx
+set_io clk 35 # iot_46b_g0 12Mhz Xtal
