@@ -6,7 +6,7 @@ import Bayeux.Cli
 import Bayeux.Flow
 import Bayeux.Lp
 import Bayeux.Rgb
-import Bayeux.Rtlil
+import Bayeux.Rtl
 import Bayeux.Tableaux
 import Bayeux.Uart
 import Control.Concurrent.Async

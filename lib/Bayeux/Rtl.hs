@@ -4,7 +4,7 @@
 {-# LANGUAGE OverloadedStrings          #-}
 
 -- | Yosys [RTLIL](https://yosyshq.readthedocs.io/projects/yosys/en/latest/yosys_internals/formats/rtlil_text.html)
-module Bayeux.Rtlil
+module Bayeux.Rtl
   ( -- * Lexical elements
     Ident(..)
   , Value(..)

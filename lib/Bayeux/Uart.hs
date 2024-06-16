@@ -5,7 +5,7 @@ module Bayeux.Uart
   , hello
   ) where
 
-import Bayeux.Rtlil
+import Bayeux.Rtl
 import Control.Monad
 import Control.Monad.Writer
 import Data.Word

@@ -3,7 +3,7 @@ module Test.Bayeux.Rgb
   ) where
 
 import Bayeux.Rgb
-import Bayeux.Rtlil
+import Bayeux.Rtl
 import Data.String
 import Data.Text (Text)
 import qualified Data.Text as T

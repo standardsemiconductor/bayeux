@@ -19,7 +19,7 @@ library
                     , Bayeux.Flow
                     , Bayeux.Lp
                     , Bayeux.Rgb
-                    , Bayeux.Rtlil
+                    , Bayeux.Rtl
                     , Bayeux.Tableaux
                     , Bayeux.Uart
     other-modules:    Paths_bayeux
@@ -55,7 +55,7 @@ test-suite test
     main-is:          Main.hs
     other-modules:    Test.Bayeux.Lp
                     , Test.Bayeux.Rgb
-                    , Test.Bayeux.Rtlil
+                    , Test.Bayeux.Rtl
                     , Test.Bayeux.Uart
     build-depends:    base
                     , bayeux

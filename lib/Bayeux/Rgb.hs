@@ -7,7 +7,7 @@ module Bayeux.Rgb
   , cycleProg
   ) where
 
-import Bayeux.Rtlil
+import Bayeux.Rtl
 import Control.Monad.Writer
 
 -- | PWM inputs, width=1

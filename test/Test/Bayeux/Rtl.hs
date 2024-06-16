@@ -1,10 +1,10 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Test.Bayeux.Rtlil
+module Test.Bayeux.Rtl
   ( tests
   ) where
 
-import Bayeux.Rtlil
+import Bayeux.Rtl
 import Data.String
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -22,7 +22,7 @@ import Test.Tasty.Golden
 tests :: [TestTree]
 tests =
   [ testGroup "pretty"
-      [ prettyTest "led"       rtlilLed
+      [ prettyTest "led"       rtlLed
       , prettyTest "sbRgbaDrv" $ sbRgbaDrv
           (SigSpecWireId "\\pwm_r")
           (SigSpecWireId "\\pwm_g")
@@ -32,7 +32,7 @@ tests =
       , prettyTest "counter" $ counter 8 "\\old" "\\new" "$old" "$procStmt"
       ]
   , testGroup "synth"
-      [ synthTest "led"     rtlilLed
+      [ synthTest "led"     rtlLed
       , synthTest "fiatLux" fiatLux
       ]
   ]
@@ -73,10 +73,10 @@ synthTest n rtl = testCase n $ withTempFile $ \t -> do
   (ExitSuccess @=?) =<< waitForProcess =<< spawnCommand c
 
 curDir :: FilePath
-curDir = "test" </> "Test" </> "Bayeux" </> "Rtlil" </> "golden"
+curDir = "test" </> "Test" </> "Bayeux" </> "Rtl" </> "golden"
 
-rtlilLed :: File
-rtlilLed = File Nothing
+rtlLed :: File
+rtlLed = File Nothing
   [ Module
       []
       "\\top"

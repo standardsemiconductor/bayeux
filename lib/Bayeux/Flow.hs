@@ -2,7 +2,7 @@ module Bayeux.Flow
   ( flow
   ) where
 
-import Bayeux.Rtlil
+import Bayeux.Rtl
 import Development.Shake
 import Development.Shake.FilePath
 import Data.Text (Text)
