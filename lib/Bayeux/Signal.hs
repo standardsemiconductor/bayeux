@@ -8,7 +8,6 @@ import qualified Bayeux.Rtl as Rtl
 import Control.Monad
 import Control.Monad.Except
 import Control.Monad.Writer
-import Data.Bits
 
 data Sig = Sig
   { spec   :: SigSpec
@@ -18,7 +17,7 @@ data Sig = Sig
   deriving (Eq, Read, Show)
 
 class MonadSignal m where
-  val :: FiniteBits a => a -> m Sig
+  val :: Value -> m Sig
 
   process :: Bool -> Integer -> (Sig -> m Sig) -> m Sig
   at :: Sig -> Integer -> m Sig
@@ -69,9 +68,9 @@ class MonadSignal m where
         -> m Sig
 
 instance MonadSignal Rtl where
-  val v = return $ Sig
-    { spec = SigSpecConstant $ ConstantValue $ binaryValue v
-    , size = fromIntegral $ finiteBitSize v
+  val v@(Value s _) = return $ Sig
+    { spec = SigSpecConstant $ ConstantValue v
+    , size = s
     , signed = False
     }
 
