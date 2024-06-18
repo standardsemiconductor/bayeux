@@ -27,7 +27,7 @@ app = \case
     FiatLux    -> flow iceprog "FiatLux" fiatLux =<< getDataFileName ("data" </> "FiatLux" <.> "pcf")
     RgbCounter -> flow iceprog "RgbCounter" rgbCounter =<< getDataFileName ("data" </> "RgbCounter" <.> "pcf")
     RgbCycle   -> flow iceprog "RgbCycle" rgbCycle =<< getDataFileName ("data" </> "RgbCycle" <.> "pcf")
-    Hello      -> flow iceprog "Hello" (compile hello) =<< getDataFileName ("data" </> "Hello" <.> "pcf")
+    Hello      -> flow iceprog "Hello" (handleErr $ compile hello) =<< getDataFileName ("data" </> "Hello" <.> "pcf")
   CliProve cli -> do
     lp <- fromJust <$> case input cli of
       FileInput f -> parseMaybe (parse <* eof) <$> TIO.readFile f
@@ -38,10 +38,13 @@ app = \case
   CliCom -> com "/dev/ttyUSB0"
 
 rgbCounter :: File
-rgbCounter = compile prog
+rgbCounter = handleErr $ compile prog
 
 rgbCycle :: File
-rgbCycle = compile cycleProg
+rgbCycle = handleErr $ compile cycleProg
+
+handleErr :: Either Err File -> File
+handleErr = either (error . show) id
 
 com :: String -> IO ()
 com portPath = hWithSerial portPath serialPortSettings $ \hndl -> do

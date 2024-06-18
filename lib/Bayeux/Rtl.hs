@@ -119,10 +119,12 @@ module Bayeux.Rtl
   , -- * Monad
     MonadRtl(..)
   , shl, shr, sshl, sshr
+  , Err(..)
   , Rtl(..)
   , compile
   ) where
 
+import Control.Monad.Except
 import Control.Monad.State
 import Control.Monad.Writer
 import Data.Bits hiding (shift)
@@ -806,8 +808,13 @@ class MonadRtl m where
         -> SigSpec
         -> m SigSpec
 
-newtype Rtl a = Rtl{ unRtl :: WriterT [ModuleBody] (State Integer) a }
+data Err = SizeMismatch
+         | SignedShift
+  deriving (Eq, Read, Show)
+
+newtype Rtl a = Rtl{ unRtl :: WriterT [ModuleBody] (ExceptT Err (State Integer)) a }
   deriving ( Functor, Applicative, Monad
+           , MonadError Err
            , MonadWriter [ModuleBody]
            , MonadState Integer
            )
@@ -869,8 +876,8 @@ shr = shift shrC
 sshl = shift sshlC
 sshr = shift sshrC
 
-compile :: Rtl a -> File
-compile = top . clocked . flip evalState 1 . execWriterT . unRtl
+compile :: Rtl a -> Either Err File
+compile = fmap (top . clocked) . flip evalState 1 . runExceptT . execWriterT . unRtl
 
 clocked :: [ModuleBody] -> [ModuleBody]
 clocked = (ModuleBodyWire (Wire [] $ WireStmt [WireOptionInput 1] "\\clk") :)
