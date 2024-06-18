@@ -123,9 +123,21 @@ module \top
 
   wire width 1 \wire29
   connect \wire29 \wire27 [0]
-  wire width 4 \wire30
+  wire width 1 \wire30
 
-  cell $add $cell31
+  cell $not $cell31
+    parameter \A_SIGNED 0
+    parameter \A_WIDTH 1
+    parameter \Y_WIDTH 1
+    connect \A \wire24
+    connect \Y \wire30
+  end
+
+  wire width 1 \wire32
+  connect \wire32 \wire30 [0]
+  wire width 4 \wire33
+
+  cell $add $cell34
     parameter \A_SIGNED 0
     parameter \A_WIDTH 4
     parameter \B_SIGNED 0
@@ -133,27 +145,27 @@ module \top
     parameter \Y_WIDTH 4
     connect \A \wire25
     connect \B 4'0001
-    connect \Y \wire30
+    connect \Y \wire33
   end
 
-  wire width 4 \wire32
+  wire width 4 \wire35
 
-  cell $mux $cell33
+  cell $mux $cell36
     parameter \WIDTH 4
-    connect \A \wire30
+    connect \A \wire33
     connect \B 4'0000
     connect \S \wire29
-    connect \Y \wire32
+    connect \Y \wire35
   end
 
-  wire width 4 \wire34
+  wire width 4 \wire37
 
-  cell $mux $cell35
+  cell $mux $cell38
     parameter \WIDTH 4
-    connect \A \wire25
-    connect \B \wire32
-    connect \S \wire24
-    connect \Y \wire34
+    connect \A \wire35
+    connect \B \wire25
+    connect \S \wire32
+    connect \Y \wire37
   end
 
 
@@ -162,24 +174,9 @@ module \top
 
 
     sync posedge \clk
-      update \wire25 \wire34
+      update \wire25 \wire37
   end
 
-  wire width 4 \wire36
-
-  cell $eq $cell37
-    parameter \A_SIGNED 0
-    parameter \A_WIDTH 4
-    parameter \B_SIGNED 0
-    parameter \B_WIDTH 4
-    parameter \Y_WIDTH 4
-    connect \A \wire25
-    connect \B 4'0000
-    connect \Y \wire36
-  end
-
-  wire width 1 \wire38
-  connect \wire38 \wire36 [0]
   wire width 4 \wire39
 
   cell $eq $cell40
@@ -189,132 +186,147 @@ module \top
     parameter \B_WIDTH 4
     parameter \Y_WIDTH 4
     connect \A \wire25
-    connect \B 4'1001
+    connect \B 4'0000
     connect \Y \wire39
   end
 
   wire width 1 \wire41
   connect \wire41 \wire39 [0]
-  wire width 8 \wire42
-  wire width 8 \wire44
+  wire width 4 \wire42
 
-  cell $shr $cell45
+  cell $eq $cell43
+    parameter \A_SIGNED 0
+    parameter \A_WIDTH 4
+    parameter \B_SIGNED 0
+    parameter \B_WIDTH 4
+    parameter \Y_WIDTH 4
+    connect \A \wire25
+    connect \B 4'1001
+    connect \Y \wire42
+  end
+
+  wire width 1 \wire44
+  connect \wire44 \wire42 [0]
+  wire width 8 \wire45
+  wire width 8 \wire47
+
+  cell $shr $cell48
     parameter \A_SIGNED 0
     parameter \A_WIDTH 8
     parameter \B_SIGNED 0
     parameter \B_WIDTH 1
     parameter \Y_WIDTH 8
-    connect \A \wire42
+    connect \A \wire45
     connect \B 1'1
-    connect \Y \wire44
+    connect \Y \wire47
   end
 
-  wire width 8 \wire46
+  wire width 8 \wire49
 
-  cell $mux $cell47
+  cell $mux $cell50
     parameter \WIDTH 8
-    connect \A \wire42
-    connect \B \wire44
+    connect \A \wire45
+    connect \B \wire47
     connect \S \wire24
-    connect \Y \wire46
+    connect \Y \wire49
   end
 
-  wire width 8 \wire48
+  wire width 8 \wire51
 
-  cell $mux $cell49
+  cell $mux $cell52
     parameter \WIDTH 8
-    connect \A \wire46
-    connect \B \wire42
-    connect \S \wire38
-    connect \Y \wire48
+    connect \A \wire49
+    connect \B \wire45
+    connect \S \wire41
+    connect \Y \wire51
   end
 
-  wire width 8 \wire50
+  wire width 8 \wire53
 
-  cell $mux $cell51
+  cell $mux $cell54
     parameter \WIDTH 8
-    connect \A \wire48
+    connect \A \wire51
     connect \B 8'01100001
     connect \S \wire10
-    connect \Y \wire50
+    connect \Y \wire53
   end
 
 
-  process $proc43
+  process $proc46
     
 
 
     sync posedge \clk
-      update \wire42 \wire50
-  end
-
-  wire width 1 \wire52
-  connect \wire52 \wire42 [0]
-  wire width 1 \wire53
-
-  cell $mux $cell54
-    parameter \WIDTH 1
-    connect \A \wire52
-    connect \B 1'1
-    connect \S \wire41
-    connect \Y \wire53
+      update \wire45 \wire53
   end
 
   wire width 1 \wire55
+  connect \wire55 \wire45 [0]
+  wire width 1 \wire56
 
-  cell $mux $cell56
-    parameter \WIDTH 1
-    connect \A \wire53
-    connect \B 1'0
-    connect \S \wire38
-    connect \Y \wire55
-  end
-
-  wire width 1 \wire57
-
-  cell $mux $cell58
+  cell $mux $cell57
     parameter \WIDTH 1
     connect \A \wire55
     connect \B 1'1
-    connect \S \wire10
-    connect \Y \wire57
+    connect \S \wire44
+    connect \Y \wire56
   end
 
-  wire output 59 \tx
-  connect \tx \wire57
+  wire width 1 \wire58
+
+  cell $mux $cell59
+    parameter \WIDTH 1
+    connect \A \wire56
+    connect \B 1'0
+    connect \S \wire41
+    connect \Y \wire58
+  end
+
   wire width 1 \wire60
 
-  cell $and $cell61
+  cell $mux $cell61
+    parameter \WIDTH 1
+    connect \A \wire58
+    connect \B 1'1
+    connect \S \wire10
+    connect \Y \wire60
+  end
+
+  wire output 62 \tx
+  connect \tx \wire60
+  wire width 1 \wire63
+
+  cell $and $cell64
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \B_SIGNED 0
     parameter \B_WIDTH 1
     parameter \Y_WIDTH 1
     connect \A \wire24
-    connect \B \wire41
-    connect \Y \wire60
+    connect \B \wire44
+    connect \Y \wire63
   end
 
-  wire width 1 \wire62
+  wire width 1 \wire65
 
-  cell $not $cell63
+  cell $not $cell66
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \Y_WIDTH 1
-    connect \A \wire60
-    connect \Y \wire62
+    connect \A \wire63
+    connect \Y \wire65
   end
 
-  wire width 1 \wire64
-  connect \wire64 \wire62 [0]
-  wire width 1 \wire65
+  wire width 1 \wire67
+  connect \wire67 \wire65 [0]
+  wire width 1 \wire68
 
-  cell $mux $cell66
+  cell $mux $cell69
     parameter \WIDTH 1
-    connect \A \wire64
+    connect \A \wire67
     connect \B \wire5
     connect \S \wire10
-    connect \Y \wire65
+    connect \Y \wire68
   end
 
 
@@ -323,12 +335,12 @@ module \top
 
 
     sync posedge \clk
-      update \wire6 \wire65
+      update \wire6 \wire68
   end
 
-  wire width 32 \wire67
+  wire width 32 \wire70
 
-  cell $add $cell68
+  cell $add $cell71
     parameter \A_SIGNED 0
     parameter \A_WIDTH 32
     parameter \B_SIGNED 0
@@ -336,17 +348,17 @@ module \top
     parameter \Y_WIDTH 32
     connect \A \wire1
     connect \B 32'00000000000000000000000000000001
-    connect \Y \wire67
+    connect \Y \wire70
   end
 
-  wire width 32 \wire69
+  wire width 32 \wire72
 
-  cell $mux $cell70
+  cell $mux $cell73
     parameter \WIDTH 32
-    connect \A \wire67
+    connect \A \wire70
     connect \B 32'00000000000000000000000000000000
     connect \S \wire5
-    connect \Y \wire69
+    connect \Y \wire72
   end
 
 
@@ -355,7 +367,7 @@ module \top
 
 
     sync posedge \clk
-      update \wire1 \wire69
+      update \wire1 \wire72
   end
 
 end
