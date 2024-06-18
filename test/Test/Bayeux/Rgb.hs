@@ -21,14 +21,17 @@ import Test.Tasty.Golden
 tests :: [TestTree]
 tests =
   [ testGroup "pretty"
-      [ prettyTest "rgbcounter" $ compile prog
-      , prettyTest "rgbcycle"   $ compile cycleProg
+      [ prettyTest "rgbcounter" $ handleErr $ compile prog
+      , prettyTest "rgbcycle"   $ handleErr $ compile cycleProg
       ]
   , testGroup "synth"
-      [ synthTest "rgbcounter" $ compile prog
-      , synthTest "rgbcycle"   $ compile cycleProg
+      [ synthTest "rgbcounter" $ handleErr $ compile prog
+      , synthTest "rgbcycle"   $ handleErr $ compile cycleProg
       ]
   ]
+
+handleErr :: Either Err File -> File
+handleErr = either (error . show) id
 
 prettyTest :: Pretty a => TestName -> a -> TestTree
 prettyTest n = goldenVsString n (curDir </> n <.> "pretty")
