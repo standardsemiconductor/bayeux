@@ -12,7 +12,7 @@ module \top
     parameter \B_WIDTH 32
     parameter \Y_WIDTH 32
     connect \A \wire1
-    connect \B 1
+    connect \B 32'00000000000000000000000000000001
     connect \Y \wire3
   end
 
