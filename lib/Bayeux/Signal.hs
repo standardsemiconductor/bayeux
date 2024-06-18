@@ -19,7 +19,10 @@ data Sig = Sig
 class MonadSignal m where
   val :: Value -> m Sig
 
-  process :: Bool -> Integer -> (Sig -> m Sig) -> m Sig
+  process :: Bool    -- ^ signed
+          -> Integer -- ^ width
+          -> (Sig -> m Sig)
+          -> m Sig
   at :: Sig -> Integer -> m Sig
 
   -- | If S == 1 then B else A
