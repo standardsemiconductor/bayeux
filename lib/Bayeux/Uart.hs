@@ -5,12 +5,14 @@ module Bayeux.Uart
   , hello
   ) where
 
-import Bayeux.Rtl
+import Bayeux.Rtl hiding (at, binary, mux, process, shift, shr, unary)
+import Bayeux.Signal
 import Control.Monad
+import Control.Monad.Except
 import Control.Monad.Writer
 import Data.Word
 
-data OptSig = OptSig{ valid :: SigSpec, value :: SigSpec }
+data OptSig = OptSig{ valid :: Sig, value :: Sig }
   deriving (Eq, Read, Show)
 
 class MonadUart m where
@@ -19,56 +21,72 @@ class MonadUart m where
            -> m ()
 
 instance MonadUart Rtl where
-  transmit baud byte = void $ process 1 $ \txFsm -> do
-    isStart <- eq 1 txFsm $ zero 1
-    txCtr <- process 16 $ \txCtr -> do
-      ctrDone <- eq 16 txCtr $ SigSpecConstant $ ConstantValue $ binaryValue baud
-      flip (mux 16 isStart) (zero 16) =<< flip (mux 16 ctrDone) (zero 16) =<< inc 16 txCtr
-    ctrDone <- eq 16 txCtr $ SigSpecConstant $ ConstantValue $ binaryValue baud
-    txIx <- process 4 $ \txIx -> do
-      isEmpty <- eq 4 txIx nine
-      mux 4 ctrDone txIx =<< flip (mux 4 isEmpty) (zero 4) =<< inc 4 txIx
-    isStartFrame <- eq 4 txIx $ zero 4
-    isEndFrame   <- eq 4 txIx nine
-    buf <- process 8 $ \buf -> do
-      buf' <- flip (mux 8 isStartFrame) buf =<< mux 8 ctrDone buf =<< shr False 8 1 8 buf one
-      mux 8 isStart buf' $ value byte
-    txOut <- flip (mux 1 isStartFrame) (zero 1) =<< flip (mux 1 isEndFrame) one =<< buf `at` 0
-    out "\\tx" =<< mux 1 isStart txOut one
+  transmit baud byte = void $ process False 1 $ \txFsm -> do
+    isStart <- eq txFsm =<< (val . binaryValue) False
+    txCtr <- process False 16 $ \txCtr -> do
+      ctrDone <- eq txCtr =<< (val . binaryValue) baud
+      flip (mux isStart) (zero 16) =<< flip (mux ctrDone) (zero 16) =<< inc txCtr
+    ctrDone <- eq txCtr =<< (val . binaryValue) baud
+    txIx <- process False 4 $ \txIx -> do
+      isEmpty <- eq txIx nine
+      mux ctrDone txIx =<< flip (mux isEmpty) (zero 4) =<< inc txIx
+    isStartFrame <- eq txIx $ zero 4
+    isEndFrame   <- eq txIx nine
+    buf <- process False 8 $ \buf -> do
+      buf' <- flip (mux isStartFrame) buf =<< mux ctrDone buf =<< shr buf one
+      mux isStart buf' $ value byte
+    txOut <- flip (mux isStartFrame) (zero 1) =<< flip (mux isEndFrame) one =<< buf `at` 0
+    out "\\tx" =<< mux isStart txOut one
     txFsm' <- bar =<< ctrDone `conj` isEndFrame
-    mux 1 isStart txFsm' $ valid byte
+    mux isStart txFsm' $ valid byte
 
-eq :: MonadRtl m => Integer -> SigSpec -> SigSpec -> m SigSpec
-eq w = binary eqC False w False w 1
+shr :: MonadSignal m => Sig -> Sig -> m Sig
+shr = shift shrC
 
-zero :: Integer -> SigSpec
-zero w = SigSpecConstant $ ConstantValue $ Value w $ replicate (fromIntegral w) B0
+eq :: Monad m => MonadSignal m => Sig -> Sig -> m Sig
+eq a = flip at 0 <=< binary eqC a
 
-one :: SigSpec
-one = SigSpecConstant $ ConstantValue $ Value 1 [B1]
+zero :: Integer -> Sig
+zero w =
+  Sig{ spec = SigSpecConstant $ ConstantValue $ Value w $ replicate (fromIntegral w) B0
+     , size = w
+     , signed = False
+     }
 
-nine :: SigSpec
-nine = SigSpecConstant $ ConstantValue $ Value 4 [B1, B0, B0, B1]
+one :: Sig
+one =
+  Sig{ spec = SigSpecConstant $ ConstantValue $ Value 1 [B1]
+     , size = 1
+     , signed = False
+     }
 
-inc :: MonadRtl m => Integer -> SigSpec -> m SigSpec
-inc bWidth = binary addC False bWidth False bWidth bWidth (SigSpecConstant $ ConstantValue $ Value bWidth $ replicate (fromIntegral bWidth - 1) B0 <> [B1])
+nine :: Sig
+nine =
+  Sig{ spec = SigSpecConstant $ ConstantValue $ Value 4 [B1, B0, B0, B1]
+     , size = 4
+     , signed = False
+     }
 
-bar :: MonadRtl m => SigSpec -> m SigSpec
-bar = unary notC False 1 1
+inc :: Monad m => MonadSignal m => Sig -> m Sig
+inc a = binary addC a =<< (val . Value (size a)) (replicate (fromIntegral (size a) - 1) B0 <> [B1])
 
-out :: WireId -> SigSpec -> Rtl ()
+bar :: Monad m => MonadSignal m => Sig -> m Sig
+bar = flip at 0 <=< unary notC
+
+out :: WireId -> Sig -> Rtl ()
 out wireId sig = do
+  when (size sig /= 1) $ throwError SizeMismatch
   i <- fresh
   tell
     [ ModuleBodyWire $ Wire [] $ WireStmt [WireOptionOutput i] wireId
-    , ModuleBodyConnStmt $ ConnStmt (SigSpecWireId wireId) sig
+    , ModuleBodyConnStmt $ ConnStmt (SigSpecWireId wireId) $ spec sig
     ]
 
-conj :: MonadRtl m => SigSpec -> SigSpec -> m SigSpec
-conj = binary andC False 1 False 1 1
+conj :: MonadSignal m => Sig -> Sig -> m Sig
+conj = binary andC
 
-hello :: Monad m => MonadUart m => MonadRtl m => m ()
-hello = void $ process 32 $ \timer -> do
-  is5Sec <- eq 32 timer $ SigSpecConstant $ ConstantInteger 60000000
-  transmit 624 $ OptSig is5Sec $ SigSpecConstant $ ConstantValue $ Value 8 [B0, B1, B1, B0, B0, B0, B0, B1]
-  flip (mux 32 is5Sec) (zero 32) =<< inc 32 timer
+hello :: Monad m => MonadUart m => MonadSignal m => m ()
+hello = void $ process False 32 $ \timer -> do
+  is5Sec <- eq timer =<< (val . binaryValue) (60000000 :: Word32)
+  transmit 624 . OptSig is5Sec =<< (val . binaryValue) (0x61 :: Word8)
+  flip (mux is5Sec) (zero 32) =<< inc timer
