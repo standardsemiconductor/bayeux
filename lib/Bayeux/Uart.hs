@@ -49,8 +49,13 @@ instance MonadUart Rtl where
           , notDone      `thenm` buf
           , elsem buf'
           ]
-    txOut <- flip (mux isStartFrame) (zero 1) =<< flip (mux isEndFrame) one =<< buf `at` 0
-    out "\\tx" =<< mux isStart txOut one
+    e <- buf `at` 0
+    out "\\tx" =<< ifm
+      [ isStart      `thenm` one
+      , isStartFrame `thenm` zero 1
+      , isEndFrame   `thenm` one
+      , elsem e
+      ]
     txFsm' <- bar =<< ctrDone `conj` isEndFrame
     mux isStart txFsm' $ valid byte
 
