@@ -10,10 +10,12 @@ import qualified Data.Text.IO as TIO
 import Prettyprinter
 import Prettyprinter.Render.Text
 
-flow :: Bool -> String -> File -> FilePath -> IO ()
-flow prog name designFile pcfFile = shake shakeOptions{ shakeFiles = "_build" </> name } $ do
+flow :: Bool -> Bool -> String -> File -> FilePath -> IO ()
+flow prog clean name designFile pcfFile = shake shakeOptions{ shakeFiles = "_build" </> name } $ do
 
-  want $ if prog
+  want $ if clean
+    then ["clean"]
+    else if prog
     then ["prog"]
     else ["_build" </> name </> "pack.bin"]
 

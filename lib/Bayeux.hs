@@ -23,11 +23,10 @@ import Text.Megaparsec hiding (parse)
 
 app :: Cli -> IO ()
 app = \case
-  CliDemo demo iceprog -> case demo of
-    FiatLux    -> flow iceprog "FiatLux" fiatLux =<< getDataFileName ("data" </> "FiatLux" <.> "pcf")
-    RgbCounter -> flow iceprog "RgbCounter" rgbCounter =<< getDataFileName ("data" </> "RgbCounter" <.> "pcf")
-    RgbCycle   -> flow iceprog "RgbCycle" rgbCycle =<< getDataFileName ("data" </> "RgbCycle" <.> "pcf")
-    Hello      -> flow iceprog "Hello" (handleErr $ compile hello) =<< getDataFileName ("data" </> "Hello" <.> "pcf")
+  CliDemo cmd demo -> case cmd of
+    Prog  -> runDemo True  False demo
+    Synth -> runDemo False False demo
+    Clean -> runDemo False True  demo
   CliProve cli -> do
     lp <- fromJust <$> case input cli of
       FileInput f -> parseMaybe (parse <* eof) <$> TIO.readFile f
@@ -36,6 +35,17 @@ app = \case
     when (tableaux cli) $ putStrLn $ renderTableaux $ T.unpack . render <$> t
     print $ close [] t
   CliCom -> com "/dev/ttyUSB0"
+  where
+    runDemo iceprog clean d = do
+      pcfFile <- getDataFileName $ "data" </> show d <.> "pcf"
+      flow iceprog clean (show d) (getDemo d) pcfFile
+
+getDemo :: Demo -> File
+getDemo = \case
+  FiatLux    -> fiatLux
+  RgbCounter -> rgbCounter
+  RgbCycle   -> rgbCycle
+  Hello      -> handleErr $ compile hello
 
 rgbCounter :: File
 rgbCounter = handleErr $ compile prog

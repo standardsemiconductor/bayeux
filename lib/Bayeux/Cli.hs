@@ -1,11 +1,17 @@
 module Bayeux.Cli
-  ( Cli(..)
+  ( Cmd(..)
+  , Cli(..)
   , Demo(..)
   , Prove(..)
   , Input(..)
   ) where
 
-data Cli = CliDemo Demo Bool
+data Cmd = Prog
+         | Synth
+         | Clean
+  deriving (Eq, Read, Show)
+
+data Cli = CliDemo Cmd Demo
          | CliProve Prove
          | CliCom
   deriving (Eq, Read, Show)

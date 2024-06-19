@@ -16,13 +16,17 @@ opts = info (parseCli <**> helper) $ mconcat
 
 parseCli :: Parser Cli
 parseCli = asum
-  [ CliDemo <$> parseDemo <*> parseProg
+  [ CliDemo  <$> parseCmd <*> parseDemo
   , CliProve <$> parseProve
   , parseCliCom
   ]
 
-parseProg :: Parser Bool
-parseProg = switch $ long "prog" <> short 'p' <> help "Program VELDT FPGA"
+parseCmd :: Parser Cmd
+parseCmd = asum
+  [ flag' Prog  $ long "program"    <> short 'p' <> help "Program VELDT FPGA"
+  , flag' Synth $ long "synthesize" <> short 's' <> help "Synthesize demo"
+  , flag' Clean $ long "clean"      <> short 'c' <> help "Clean demo"
+  ]
 
 parseDemo :: Parser Demo
 parseDemo = asum
