@@ -107,29 +107,29 @@ module \top
 
   wire width 1 \wire24
   connect \wire24 \wire22 [0]
-  wire width 4 \wire25
-  wire width 4 \wire27
+  wire width 1 \wire25
 
-  cell $eq $cell28
+  cell $not $cell26
+    parameter \A_SIGNED 0
+    parameter \A_WIDTH 1
+    parameter \Y_WIDTH 1
+    connect \A \wire24
+    connect \Y \wire25
+  end
+
+  wire width 1 \wire27
+  connect \wire27 \wire25 [0]
+  wire width 4 \wire28
+  wire width 4 \wire30
+
+  cell $eq $cell31
     parameter \A_SIGNED 0
     parameter \A_WIDTH 4
     parameter \B_SIGNED 0
     parameter \B_WIDTH 4
     parameter \Y_WIDTH 4
-    connect \A \wire25
+    connect \A \wire28
     connect \B 4'1001
-    connect \Y \wire27
-  end
-
-  wire width 1 \wire29
-  connect \wire29 \wire27 [0]
-  wire width 1 \wire30
-
-  cell $not $cell31
-    parameter \A_SIGNED 0
-    parameter \A_WIDTH 1
-    parameter \Y_WIDTH 1
-    connect \A \wire24
     connect \Y \wire30
   end
 
@@ -143,7 +143,7 @@ module \top
     parameter \B_SIGNED 0
     parameter \B_WIDTH 4
     parameter \Y_WIDTH 4
-    connect \A \wire25
+    connect \A \wire28
     connect \B 4'0001
     connect \Y \wire33
   end
@@ -154,7 +154,7 @@ module \top
     parameter \WIDTH 4
     connect \A \wire33
     connect \B 4'0000
-    connect \S \wire29
+    connect \S \wire32
     connect \Y \wire35
   end
 
@@ -163,18 +163,18 @@ module \top
   cell $mux $cell38
     parameter \WIDTH 4
     connect \A \wire35
-    connect \B \wire25
-    connect \S \wire32
+    connect \B \wire28
+    connect \S \wire27
     connect \Y \wire37
   end
 
 
-  process $proc26
+  process $proc29
     
 
 
     sync posedge \clk
-      update \wire25 \wire37
+      update \wire28 \wire37
   end
 
   wire width 4 \wire39
@@ -185,7 +185,7 @@ module \top
     parameter \B_SIGNED 0
     parameter \B_WIDTH 4
     parameter \Y_WIDTH 4
-    connect \A \wire25
+    connect \A \wire28
     connect \B 4'0000
     connect \Y \wire39
   end
@@ -200,7 +200,7 @@ module \top
     parameter \B_SIGNED 0
     parameter \B_WIDTH 4
     parameter \Y_WIDTH 4
-    connect \A \wire25
+    connect \A \wire28
     connect \B 4'1001
     connect \Y \wire42
   end
@@ -225,9 +225,9 @@ module \top
 
   cell $mux $cell50
     parameter \WIDTH 8
-    connect \A \wire45
-    connect \B \wire47
-    connect \S \wire24
+    connect \A \wire47
+    connect \B \wire45
+    connect \S \wire27
     connect \Y \wire49
   end
 

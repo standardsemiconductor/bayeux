@@ -44,13 +44,11 @@ instance MonadUart Rtl where
     isEndFrame   <- eq txIx nine
     buf <- process False 8 $ \buf -> do
       buf' <- shr buf one
-      ifm [ isStartFrame `thenm` buf
+      ifm [ isStart      `thenm` value byte
+          , isStartFrame `thenm` buf
           , notDone      `thenm` buf
-          , isStart      `thenm` value byte
           , elsem buf'
           ]
---      buf' <- flip (mux isStartFrame) buf =<< mux ctrDone buf =<< shr buf one
---      mux isStart buf' $ value byte
     txOut <- flip (mux isStartFrame) (zero 1) =<< flip (mux isEndFrame) one =<< buf `at` 0
     out "\\tx" =<< mux isStart txOut one
     txFsm' <- bar =<< ctrDone `conj` isEndFrame
