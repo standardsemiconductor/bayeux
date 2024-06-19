@@ -1,3 +1,4 @@
+{-# LANGUAGE OverloadedLists   #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module Bayeux.Uart
@@ -25,18 +26,36 @@ instance MonadUart Rtl where
     isStart <- eq txFsm =<< (val . binaryValue) False
     txCtr <- process False 16 $ \txCtr -> do
       ctrDone <- eq txCtr =<< (val . binaryValue) baud
-      flip (mux isStart) (zero 16) =<< flip (mux ctrDone) (zero 16) =<< inc txCtr
+      txCtr' <- inc txCtr
+      ifm [ isStart `thenm` zero 16
+          , ctrDone `thenm` zero 16
+          , elsem txCtr'
+          ]
     ctrDone <- eq txCtr =<< (val . binaryValue) baud
+    notDone <- bar ctrDone
     txIx <- process False 4 $ \txIx -> do
       isEmpty <- eq txIx nine
-      mux ctrDone txIx =<< flip (mux isEmpty) (zero 4) =<< inc txIx
+      txIx'   <- inc txIx
+      ifm [ notDone `thenm` txIx
+          , isEmpty `thenm` zero 4
+          , elsem txIx'
+          ]
     isStartFrame <- eq txIx $ zero 4
     isEndFrame   <- eq txIx nine
     buf <- process False 8 $ \buf -> do
-      buf' <- flip (mux isStartFrame) buf =<< mux ctrDone buf =<< shr buf one
-      mux isStart buf' $ value byte
-    txOut <- flip (mux isStartFrame) (zero 1) =<< flip (mux isEndFrame) one =<< buf `at` 0
-    out "\\tx" =<< mux isStart txOut one
+      buf' <- shr buf one
+      ifm [ isStart      `thenm` value byte
+          , isStartFrame `thenm` buf
+          , notDone      `thenm` buf
+          , elsem buf'
+          ]
+    e <- buf `at` 0
+    out "\\tx" =<< ifm
+      [ isStart      `thenm` one
+      , isStartFrame `thenm` zero 1
+      , isEndFrame   `thenm` one
+      , elsem e
+      ]
     txFsm' <- bar =<< ctrDone `conj` isEndFrame
     mux isStart txFsm' $ valid byte
 

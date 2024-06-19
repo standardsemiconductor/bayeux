@@ -1,13 +1,16 @@
 module Bayeux.Signal
   ( Sig(..)
   , MonadSignal(..)
+  , ifm, thenm, elsem
   ) where
 
-import Bayeux.Rtl
+import Bayeux.Rtl hiding (mux)
 import qualified Bayeux.Rtl as Rtl
 import Control.Monad
 import Control.Monad.Except
 import Control.Monad.Writer
+import Data.List.NonEmpty
+import Data.Maybe
 
 data Sig = Sig
   { spec   :: SigSpec
@@ -116,3 +119,19 @@ instance MonadSignal Rtl where
     when (signed b) $ throwError SignedShift
     y <- Rtl.shift cFn (signed a) (size a) (size b) (size a) (spec a) (spec b)
     return Sig{ spec = y, size = size a, signed = signed a }
+
+data Cond = Cond
+  { condition :: Maybe Sig
+  , result    :: Sig
+  }
+
+ifm :: Monad m => MonadSignal m => NonEmpty Cond -> m Sig
+ifm (a :| bs) = case nonEmpty bs of
+  Nothing   -> return $ result a
+  Just rest -> flip (mux (fromJust $ condition a)) (result a) =<< ifm rest
+
+thenm :: Sig -> Sig -> Cond
+thenm s = Cond (Just s)
+
+elsem :: Sig -> Cond
+elsem = Cond Nothing

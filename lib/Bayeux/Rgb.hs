@@ -1,4 +1,5 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE OverloadedLists            #-}
 {-# LANGUAGE OverloadedStrings          #-}
 
 module Bayeux.Rgb
@@ -7,7 +8,7 @@ module Bayeux.Rgb
   , cycleProg
   ) where
 
-import Bayeux.Rtl hiding (at, binary, process, mux)
+import Bayeux.Rtl hiding (at, binary, process, mux, unary)
 import Bayeux.Signal
 import Control.Monad
 import Control.Monad.Except
@@ -42,6 +43,9 @@ ctr = process False 32 increment
 eq :: Monad m => MonadSignal m => Sig -> Sig -> m Sig
 eq a = flip at 0 <=< binary eqC a
 
+bar :: Monad m => MonadSignal m => Sig -> m Sig
+bar = flip at 0 <=< unary notC
+
 prog :: Monad m => MonadSignal m => MonadRgb m => m ()
 prog = do
   c <- ctr
@@ -60,12 +64,14 @@ cycleProg = do
     t1Sec <- timer `eq` second
     timer' <- increment timer
     mux t1Sec timer' zero
-  tEqZ <- t `eq` zero
+  tNEqZ <- bar =<< t `eq` zero
   c <- process False 32 $ \color -> do
     cEqBlue <- color `eq` two
     c' <- increment color
-    color' <- mux cEqBlue c' zero
-    mux tEqZ color color'
+    ifm [ tNEqZ   `thenm` color
+        , cEqBlue `thenm` zero
+        , elsem c'
+        ]
   pwmR <- c `eq` zero
   pwmG <- c `eq` one
   pwmB <- c `eq` two
