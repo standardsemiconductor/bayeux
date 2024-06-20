@@ -93,6 +93,9 @@ instance MonadUart Rtl where
           , gotoRxIdle  `thenm` rxIdle
           , elsem rxFsm
           ]
+    isStop  <- isRxStop  rxFsm
+    v <- isStop `conj` ctrDone
+    return $ OptSig{ valid = undefined, value = buf }
     where
       isRxIdle  = (`eq` zero 2)
       isRxStart = (`eq` one)
