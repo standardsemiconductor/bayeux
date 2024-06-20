@@ -293,6 +293,12 @@ instance Pretty SigSpec where
     SigSpecSlice s x yM -> pretty s <+> brackets (pretty x <> maybe mempty ((":" <>) . pretty) yM)
     SigSpecCat ss       -> braces $ foldMap pretty ss
 
+instance Semigroup SigSpec where
+  SigSpecCat a <> SigSpecCat b = SigSpecCat $ a   <> b
+  SigSpecCat a <> b            = SigSpecCat $ a   <> [b]
+  a <> SigSpecCat b            = SigSpecCat $ [a] <> b
+  a <> b                       = SigSpecCat [a, b]
+
 data ConnStmt = ConnStmt SigSpec SigSpec
   deriving (Eq, Read, Show)
 
