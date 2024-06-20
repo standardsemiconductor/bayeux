@@ -20,6 +20,9 @@ class MonadUart m where
   transmit :: Word16 -- ^ baud
            -> OptSig
            -> m ()
+  receive :: Word16 -- ^ baud
+          -> Sig    -- ^ rx
+          -> m OptSig
 
 instance MonadUart Rtl where
   transmit baud byte = void $ process False 1 $ \txFsm -> do
@@ -58,6 +61,43 @@ instance MonadUart Rtl where
       ]
     txFsm' <- bar =<< ctrDone `conj` isEndFrame
     mux isStart txFsm' $ valid byte
+
+  receive baud rx = do
+    rxLow  <- rx `eq` zero 1
+    rxHigh <- bar rxLow
+    rxFsm  <- process False 2 $ \rxFsm -> do
+      isIdle  <- isRxIdle  rxFsm
+      isStart <- isRxStart rxFsm
+      isRecv  <- isRxRecv  rxFsm
+      isStop  <- isRxStop  rxFsm
+      rxCtr <- process False 16 $ \rxCtr -> do
+        isBaudHalf <- eq rxCtr =<< (val . binaryValue) (baud `shiftR` 1)
+        isBaud     <- eq rxCtr =<< (val . binaryValue) baud
+        isBaudHalfRxStart <- conj isBaudHalf isStart
+        rxCtr' <- inc rxCtr
+        ifm [ isIdle            `thenm` zero 16
+            , isBaudHalfRxStart `thenm` zero 16
+            , isBaud            `thenm` zero 16
+            , elsem rxCtr'
+            ]
+      gotoRxStart <- conj rxLow =<< isRxIdle rxFsm
+      gotoRxRecv  <- conj rxLow =<< conj ctrDone =<< isRxStart rxFsm
+      gotoRxStop  <- conj ctrDone =<< conj full =<< isRxRecv rxFsm
+      gotoRxIdle  <- do
+        fromRxStart <- conj ctrDone =<< conj rxHigh =<< isRxStart rxFsm
+        fromRxStop  <- conj ctrDone =<< isRxStop rxFsm
+        fromRxStart `disj` fromRxStop
+      ifm [ gotoRxStart `thenm` rxStart
+          , gotoRxRecv  `thenm` rxRecv
+          , gotoRxStop  `thenm` rxStop
+          , gotoRxIdle  `thenm` rxIdle
+          , elsem rxFsm
+          ]
+    where
+      isRxIdle  = (`eq` zero 2)
+      isRxStart = (`eq` one)
+      isRxRecv  = (`eq` two)
+      isRxStop  = (`eq` three)
 
 shr :: MonadSignal m => Sig -> Sig -> m Sig
 shr = shift shrC
