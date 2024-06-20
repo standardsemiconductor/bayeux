@@ -6,11 +6,12 @@ module Bayeux.Uart
   , hello
   ) where
 
-import Bayeux.Rtl hiding (at, binary, mux, process, shift, shr, unary)
+import Bayeux.Rtl hiding (at, binary, mux, process, shift, shr, shl, unary)
 import Bayeux.Signal
 import Control.Monad
 import Control.Monad.Except
 import Control.Monad.Writer
+import Data.Bits hiding (shift)
 import Data.Word
 
 data OptSig = OptSig{ valid :: Sig, value :: Sig }
@@ -65,6 +66,73 @@ instance MonadUart Rtl where
   receive baud rx = do
     rxLow  <- rx `eq` zero 1
     rxHigh <- bar rxLow
+    s <- process False 30 $ \s -> do
+      let rxFsm = Sig{ spec = SigSpecSlice (spec s) 1  (Just 0),  size = 2,  signed = False }
+          rxCtr = Sig{ spec = SigSpecSlice (spec s) 17 (Just 2),  size = 16, signed = False }
+          rxIx  = Sig{ spec = SigSpecSlice (spec s) 21 (Just 18), size = 4,  signed = False }
+          rxBuf = Sig{ spec = SigSpecSlice (spec s) 29 (Just 22), size = 8,  signed = False }
+      idle  <- val $ Value 2 [B0, B0]
+      start <- val $ Value 2 [B0, B1]
+      recv  <- val $ Value 2 [B1, B0]
+      stop  <- val $ Value 2 [B1, B1]
+      isIdle  <- rxFsm `eq` idle
+      isStart <- rxFsm `eq` start
+      isRecv  <- rxFsm `eq` recv
+      isStop  <- rxFsm `eq` stop
+      isBaudHalf        <- eq rxCtr =<< (val . binaryValue) (baud `shiftR` 1)
+      isBaudHalfRxStart <- conj isBaudHalf isStart
+      isBaud            <- eq rxCtr =<< (val . binaryValue) baud
+      isBaudRxRecv      <- conj isBaud isRecv
+      ixDone            <- eq rxIx =<< val (Value 4 [B0, B1, B1, B1])
+      gotoRxStart <- conj rxLow isIdle
+      gotoRxRecv  <- conj rxLow isBaudHalfRxStart
+      gotoRxStop  <- conj isBaud =<< conj ixDone isRecv
+      gotoRxIdle  <- do
+        fromRxStart <- conj rxHigh isBaudHalfRxStart
+        fromRxStop  <- conj isBaud isStop
+        fromRxStart `disj` fromRxStop
+      rxFsm' <- ifm
+        [ gotoRxStart `thenm` start
+        , gotoRxRecv  `thenm` recv
+        , gotoRxStop  `thenm` stop
+        , gotoRxIdle  `thenm` idle
+        , elsem rxFsm
+        ]
+      rxCtr1 <- inc rxCtr
+      rxCtr' <- ifm
+        [ isIdle            `thenm` zero 16
+        , isBaudHalfRxStart `thenm` zero 16
+        , isBaud            `thenm` zero 16
+        , elsem rxCtr1
+        ]
+      rxIx1 <- inc rxIx
+      rxIx' <- ifm
+        [ isIdle  `thenm` zero 4
+        , isStart `thenm` zero 4
+        , isStop  `thenm` zero 4
+        , isBaudRxRecv `thenm` rxIx1
+        , elsem rxIx
+        ]
+      one8 <- val $ binaryValue (1 :: Word8)
+      zero8 <- val $ binaryValue (0 :: Word8)
+      rx8 <- ifm
+        [ rx `thenm` one8
+        , elsem zero8
+        ]
+      rxBufRx <- flip shl one =<< disj rxBuf rx8
+      rxBuf' <- ifm
+        [ isBaudRxRecv `thenm` rxBufRx
+        , elsem rxBuf
+        ]
+      return $ Sig{ spec   = foldMap spec [rxBuf', rxIx', rxCtr', rxFsm']
+                  , size   = size s
+                  , signed = False
+                  }
+    return OptSig{ valid = undefined, value = undefined }
+{-
+  receive baud rx = do
+    rxLow  <- rx `eq` zero 1
+    rxHigh <- bar rxLow
     rxFsm  <- process False 2 $ \rxFsm -> do
       isIdle  <- isRxIdle  rxFsm
       isStart <- isRxStart rxFsm
@@ -101,9 +169,12 @@ instance MonadUart Rtl where
       isRxStart = (`eq` one)
       isRxRecv  = (`eq` two)
       isRxStop  = (`eq` three)
-
+-}
 shr :: MonadSignal m => Sig -> Sig -> m Sig
 shr = shift shrC
+
+shl :: MonadSignal m => Sig -> Sig -> m Sig
+shl = shift shlC
 
 eq :: Monad m => MonadSignal m => Sig -> Sig -> m Sig
 eq a = flip at 0 <=< binary eqC a
@@ -146,6 +217,9 @@ out wireId sig = do
 
 conj :: MonadSignal m => Sig -> Sig -> m Sig
 conj = binary andC
+
+disj :: MonadSignal m => Sig -> Sig -> m Sig
+disj = binary orC
 
 hello :: Monad m => MonadUart m => MonadSignal m => m ()
 hello = void $ process False 32 $ \timer -> do
