@@ -299,6 +299,9 @@ instance Semigroup SigSpec where
   a <> SigSpecCat b            = SigSpecCat $ [a] <> b
   a <> b                       = SigSpecCat [a, b]
 
+instance Monoid SigSpec where
+  mempty = SigSpecCat mempty
+
 data ConnStmt = ConnStmt SigSpec SigSpec
   deriving (Eq, Read, Show)
 
