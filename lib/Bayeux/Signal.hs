@@ -21,6 +21,7 @@ data Sig = Sig
 
 class MonadSignal m where
   val :: Value -> m Sig
+  input :: WireId -> m Sig
 
   process :: Bool    -- ^ signed
           -> Integer -- ^ width
@@ -79,6 +80,11 @@ instance MonadSignal Rtl where
     , size = s
     , signed = False
     }
+
+  input wireId = do
+    i <- fresh
+    tell [ModuleBodyWire $ Wire [] $ WireStmt [WireOptionInput i] wireId]
+    return Sig{ spec = SigSpecWireId wireId, size = 1, signed = False }
 
   process s w f = do
     old <- freshWire w
