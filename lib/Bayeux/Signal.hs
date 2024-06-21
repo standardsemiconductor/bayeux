@@ -1,3 +1,6 @@
+{-# LANGUAGE InstanceSigs        #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+
 module Bayeux.Signal
   ( Sig(..)
   , MonadSignal(..)
@@ -16,20 +19,31 @@ import Data.Maybe
 newtype Sig a = Sig{ spec :: SigSpec }
   deriving (Eq, Read, Show)
 
+instance Num a => Num (Sig a)
+
+instance Bits a => Bits (Sig a) where
+  isSigned _ = isSigned (undefined :: a)
+
+instance FiniteBits a => FiniteBits (Sig a) where
+  finiteBitSize _ = finiteBitSize (undefined :: a)
+
 class MonadSignal m where
   val     :: FiniteBits a => a -> m (Sig a)
   input   :: WireId -> m (Sig Bool)
-  process :: (Sig a -> m (Sig a)) -> m (Sig a)
-  at      :: Sig a -> Integer -> m (Sig Bool)
+  process :: FiniteBits a => (Sig a -> m (Sig a)) -> m (Sig a)
+  at      :: FiniteBits a => Sig a -> Integer -> m (Sig Bool)
 --  cat     :: [Sig a] -> m (Sig [a])
 
   -- | If S == 1 then B else A
-  mux :: Sig Bool   -- ^ S
+  mux :: FiniteBits a
+      => Sig Bool   -- ^ S
       -> Sig a     -- ^ A
       -> Sig a     -- ^ B
       -> m (Sig a) -- ^ Y
 
-  unary :: ( CellId
+  unary :: FiniteBits a
+        => FiniteBits b
+        => ( CellId
              -> Bool
              -> Integer
              -> Integer
@@ -39,7 +53,10 @@ class MonadSignal m where
            )
         -> Sig a
         -> m (Sig b)
-  binary :: ( CellId
+  binary :: FiniteBits a
+         => FiniteBits b
+         => FiniteBits c
+         => ( CellId
               -> Bool
               -> Integer
               -> Bool
@@ -54,7 +71,9 @@ class MonadSignal m where
          -> Sig b
          -> m (Sig c)
 
-  shift :: ( CellId
+  shift :: FiniteBits a
+        => FiniteBits b
+        => ( CellId
              -> Bool
              -> Integer
              -> Integer
@@ -76,8 +95,10 @@ instance MonadSignal Rtl where
     tell [ModuleBodyWire $ Wire [] $ WireStmt [WireOptionInput i] wireId]
     return $ Sig $ SigSpecWireId wireId
 
+  process :: forall a. FiniteBits a => (Sig a -> Rtl (Sig a)) -> Rtl (Sig a)
   process f = do
-    old <- freshWire w -- freshSig?
+    let w = fromIntegral $ finiteBitSize (undefined :: a)
+    old <- freshWire w
     let oldSig = Sig old
     procStmt <- freshProcStmt
     srcSig <- f oldSig
@@ -124,7 +145,7 @@ data Cond a = Cond
   , result    :: Sig a
   }
 
-ifm :: Monad m => MonadSignal m => NonEmpty (Cond a) -> m (Sig a)
+ifm :: FiniteBits a => Monad m => MonadSignal m => NonEmpty (Cond a) -> m (Sig a)
 ifm (a :| bs) = case nonEmpty bs of
   Nothing   -> return $ result a
   Just rest -> flip (mux (fromJust $ condition a)) (result a) =<< ifm rest

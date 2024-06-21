@@ -16,34 +16,33 @@ import Data.Word
 
 -- | PWM inputs, width=1
 class MonadRgb m where
-  rgb :: Sig -- ^ red
-      -> Sig -- ^ green
-      -> Sig -- ^ blue
+  rgb :: Sig Bool -- ^ red
+      -> Sig Bool -- ^ green
+      -> Sig Bool -- ^ blue
       -> m ()
 
 instance MonadRgb Rtl where
   rgb r g b = do
-    unless valid $ throwError SizeMismatch
     tell
       [ ModuleBodyWire $ Wire [] $ WireStmt [WireOptionOutput 2] "\\red"
       , ModuleBodyWire $ Wire [] $ WireStmt [WireOptionOutput 3] "\\green"
       , ModuleBodyWire $ Wire [] $ WireStmt [WireOptionOutput 4] "\\blue"
       , ModuleBodyCell $ sbRgbaDrv (spec r) (spec g) (spec b)
       ]
-    where
-      valid = size r == 1 && size g == 1 && size b == 1
 
-increment :: Monad m => MonadSignal m => Sig -> m Sig
-increment a = binary addC a =<< (val . binaryValue) (1 :: Word32)
+increment :: Monad m => MonadSignal m => Sig Word32 -> m (Sig Word32)
+increment a = do
+  suc <- val (1 :: Word32)
+  binary addC a suc
 
-ctr :: Monad m => MonadSignal m => m Sig
-ctr = process False 32 increment
+ctr :: Monad m => MonadSignal m => m (Sig Word32)
+ctr = process increment
 
-eq :: Monad m => MonadSignal m => Sig -> Sig -> m Sig
-eq a = flip at 0 <=< binary eqC a
+eq :: Monad m => MonadSignal m => Sig Word32 -> Sig Word32 -> m (Sig Bool)
+eq a = binary eqC a
 
-bar :: Monad m => MonadSignal m => Sig -> m Sig
-bar = flip at 0 <=< unary notC
+bar :: Monad m => MonadSignal m => Sig Bool -> m (Sig Bool)
+bar = unary notC
 
 prog :: Monad m => MonadSignal m => MonadRgb m => m ()
 prog = do
@@ -55,16 +54,16 @@ prog = do
 
 cycleProg :: Monad m => MonadSignal m => MonadRgb m => m ()
 cycleProg = do
-  zero   <- val $ binaryValue (0 :: Word32)
-  one    <- val $ binaryValue (1 :: Word32)
-  two    <- val $ binaryValue (2 :: Word32)
-  second <- val $ binaryValue (12000000 :: Word32)
-  t <- process False 32 $ \timer -> do
+  zero   <- val 0
+  one    <- val 1
+  two    <- val 2
+  second <- val 12000000
+  t <- process $ \timer -> do
     t1Sec <- timer `eq` second
     timer' <- increment timer
     mux t1Sec timer' zero
   tNEqZ <- bar =<< t `eq` zero
-  c <- process False 32 $ \color -> do
+  c <- process $ \color -> do
     cEqBlue <- color `eq` two
     c' <- increment color
     ifm [ tNEqZ   `thenm` color
