@@ -7,7 +7,7 @@ module Bayeux.Uart
   , echo
   ) where
 
-import Bayeux.Rtl hiding (at, binary, mux, process, shift, shr, shl, unary)
+import Bayeux.Rtl hiding (at, binary, mux, process, shift, shr, unary)
 import Bayeux.Signal
 import Control.Monad
 import Control.Monad.Except

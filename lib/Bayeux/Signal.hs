@@ -100,12 +100,7 @@ instance MonadSignal Rtl where
     when (i >= size s) $ throwError SizeMismatch
     t <- Rtl.at (spec s) i
     return Sig{ spec = t, size = 1, signed = False }
-{-
-  at sigSpec ix = do
-    y <- freshWire 1
-    tell [ModuleBodyConnStmt $ ConnStmt y (SigSpecSlice sigSpec ix Nothing)]
-    return y
--}
+
   cat sigs = do
     let sz = sum $ size <$> sigs
     y <- freshWire sz
