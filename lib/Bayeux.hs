@@ -46,6 +46,7 @@ getDemo = \case
   RgbCounter -> rgbCounter
   RgbCycle   -> rgbCycle
   Hello      -> handleErr $ compile hello
+  Echo       -> handleErr $ compile echo
 
 rgbCounter :: File
 rgbCounter = handleErr $ compile prog

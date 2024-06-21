@@ -34,6 +34,7 @@ parseDemo = asum
   , flag' RgbCounter $ long "RgbCounter" <> help "RgbCounter demo"
   , flag' RgbCycle $ long "RgbCycle" <> help "RgbCycle demo"
   , flag' Hello $ long "Hello" <> help "Hello demo"
+  , flag' Echo $ long "Echo" <> help "Echo demo"
   ]
 
 parseProve :: Parser Prove

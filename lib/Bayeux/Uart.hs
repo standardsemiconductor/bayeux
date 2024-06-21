@@ -110,13 +110,21 @@ instance MonadUart Rtl where
         , isBaudRxRecv `thenm` rxIx1
         , elsem $ rxIx s
         ]
-      one8 <- val $ binaryValue (1 :: Word8)
-      zero8 <- val $ binaryValue (0 :: Word8)
+      one8  <- val $ binaryValue (0x80 :: Word8)
+      zero8 <- val $ binaryValue (0x00 :: Word8)
+      mask  <- val $ binaryValue (0x7F :: Word8)
       rx8 <- ifm
         [ rx `thenm` one8
         , elsem zero8
         ]
-      rxBufRx <- flip shl one =<< disj (rxBuf s) rx8
+      shiftedBuf <- shr (rxBuf s) one
+      maskedBuf <- conj shiftedBuf mask
+      rxBufRx <- disj rx8 maskedBuf
+{-
+      maskedBuf <- conj (rxBuf s) mask
+      rxBufRx  <- disj rx8 maskedBuf
+      rxBufRx' <- shr rxBufRx one
+-}
       rxBuf' <- ifm
         [ isBaudRxRecv `thenm` rxBufRx
         , elsem $ rxBuf s
