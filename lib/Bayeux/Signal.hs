@@ -112,10 +112,9 @@ instance MonadSignal Rtl where
     y <- Rtl.mux (size a) (spec s) (spec a) (spec b)
     return Sig{ spec = y, size = size a, signed = signed a }
     where
-      valid = and
-        [ size s == 1 && signed s == False
-        , size a == size b && signed a == signed b
-        ]
+      valid =
+        size s == 1 && not (signed s)
+         && size a == size b && signed a == signed b
 
   unary cFn a = do
     y <- Rtl.unary cFn (signed a) (size a) (size a) (spec a)
