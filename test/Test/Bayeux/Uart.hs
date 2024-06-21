@@ -22,9 +22,11 @@ tests :: [TestTree]
 tests =
   [ testGroup "pretty"
       [ prettyTest "hello" $ handleErr $ compile hello
+      , prettyTest "echo"  $ handleErr $ compile echo
       ]
   , testGroup "synth"
       [ synthTest "hello" $ handleErr $ compile hello
+      , synthTest "echo"  $ handleErr $ compile echo
       ]
   ]
 

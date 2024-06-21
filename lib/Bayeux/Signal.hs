@@ -21,12 +21,14 @@ data Sig = Sig
 
 class MonadSignal m where
   val :: Value -> m Sig
+  input :: WireId -> m Sig
 
   process :: Bool    -- ^ signed
           -> Integer -- ^ width
           -> (Sig -> m Sig)
           -> m Sig
   at :: Sig -> Integer -> m Sig
+  cat :: [Sig] -> m Sig
 
   -- | If S == 1 then B else A
   mux :: Sig   -- ^ S
@@ -80,6 +82,11 @@ instance MonadSignal Rtl where
     , signed = False
     }
 
+  input wireId = do
+    i <- fresh
+    tell [ModuleBodyWire $ Wire [] $ WireStmt [WireOptionInput i] wireId]
+    return Sig{ spec = SigSpecWireId wireId, size = 1, signed = False }
+
   process s w f = do
     old <- freshWire w
     let oldSig = Sig{ spec = old, size = w, signed = s }
@@ -93,6 +100,12 @@ instance MonadSignal Rtl where
     when (i >= size s) $ throwError SizeMismatch
     t <- Rtl.at (spec s) i
     return Sig{ spec = t, size = 1, signed = False }
+
+  cat sigs = do
+    let sz = sum $ size <$> sigs
+    y <- freshWire sz
+    tell [ModuleBodyConnStmt $ ConnStmt y (SigSpecCat $ spec <$> sigs)]
+    return Sig{ spec = y, size = sz, signed = False}
 
   mux s a b = do
     unless valid $ throwError SizeMismatch

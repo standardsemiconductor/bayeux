@@ -291,7 +291,7 @@ instance Pretty SigSpec where
     SigSpecConstant c   -> pretty c
     SigSpecWireId w     -> pretty w
     SigSpecSlice s x yM -> pretty s <+> brackets (pretty x <> maybe mempty ((":" <>) . pretty) yM)
-    SigSpecCat ss       -> braces $ foldMap pretty ss
+    SigSpecCat ss       -> braces $ " " <> mconcat (punctuate " " $ pretty <$> ss) <> " "
 
 instance Semigroup SigSpec where
   SigSpecCat a <> SigSpecCat b = SigSpecCat $ a   <> b

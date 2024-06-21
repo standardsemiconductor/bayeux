@@ -20,6 +20,7 @@ data Demo = FiatLux
           | RgbCounter
           | RgbCycle
           | Hello
+          | Echo
   deriving (Eq, Read, Show)
 
 data Prove = Prove

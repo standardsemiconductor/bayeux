@@ -4,6 +4,7 @@
 module Bayeux.Uart
   ( MonadUart(..)
   , hello
+  , echo
   ) where
 
 import Bayeux.Rtl hiding (at, binary, mux, process, shift, shr, unary)
@@ -11,6 +12,7 @@ import Bayeux.Signal
 import Control.Monad
 import Control.Monad.Except
 import Control.Monad.Writer
+import Data.Bits hiding (shift)
 import Data.Word
 
 data OptSig = OptSig{ valid :: Sig, value :: Sig }
@@ -20,6 +22,9 @@ class MonadUart m where
   transmit :: Word16 -- ^ baud
            -> OptSig
            -> m ()
+  receive :: Word16 -- ^ baud
+          -> Sig    -- ^ rx
+          -> m OptSig
 
 instance MonadUart Rtl where
   transmit baud byte = void $ process False 1 $ \txFsm -> do
@@ -58,6 +63,77 @@ instance MonadUart Rtl where
       ]
     txFsm' <- bar =<< ctrDone `conj` isEndFrame
     mux isStart txFsm' $ valid byte
+
+  receive baud rx = do
+    rxLow  <- rx `eq` zero 1
+    rxHigh <- bar rxLow
+    idle   <- val $ Value 2 [B0, B0]
+    start  <- val $ Value 2 [B0, B1]
+    recv   <- val $ Value 2 [B1, B0]
+    stop   <- val $ Value 2 [B1, B1]
+    s <- process False 30 $ \s -> do
+      isIdle  <- rxFsm s `eq` idle
+      isStart <- rxFsm s `eq` start
+      isRecv  <- rxFsm s `eq` recv
+      isStop  <- rxFsm s `eq` stop
+      isBaudHalf        <- eq (rxCtr s) =<< (val . binaryValue) (baud `shiftR` 1)
+      isBaudHalfRxStart <- conj isBaudHalf isStart
+      isBaud            <- eq (rxCtr s) =<< (val . binaryValue) baud
+      isBaudRxRecv      <- conj isBaud isRecv
+      ixDone            <- eq (rxIx s) =<< val (Value 4 [B0, B1, B1, B1])
+      gotoRxStart <- conj rxLow isIdle
+      gotoRxRecv  <- conj rxLow isBaudHalfRxStart
+      gotoRxStop  <- conj isBaud =<< conj ixDone isRecv
+      gotoRxIdle  <- do
+        fromRxStart <- conj rxHigh isBaudHalfRxStart
+        fromRxStop  <- conj isBaud isStop
+        fromRxStart `disj` fromRxStop
+      rxFsm' <- ifm
+        [ gotoRxStart `thenm` start
+        , gotoRxRecv  `thenm` recv
+        , gotoRxStop  `thenm` stop
+        , gotoRxIdle  `thenm` idle
+        , elsem $ rxFsm s
+        ]
+      rxCtr1 <- inc $ rxCtr s
+      rxCtr' <- ifm
+        [ isIdle            `thenm` zero 16
+        , isBaudHalfRxStart `thenm` zero 16
+        , isBaud            `thenm` zero 16
+        , elsem rxCtr1
+        ]
+      rxIx1 <- inc $ rxIx s
+      rxIx' <- ifm
+        [ isIdle  `thenm` zero 4
+        , isStart `thenm` zero 4
+        , isStop  `thenm` zero 4
+        , isBaudRxRecv `thenm` rxIx1
+        , elsem $ rxIx s
+        ]
+      one8  <- val $ binaryValue (0x80 :: Word8)
+      zero8 <- val $ binaryValue (0x00 :: Word8)
+      mask  <- val $ binaryValue (0x7F :: Word8)
+      rx8 <- ifm
+        [ rx `thenm` one8
+        , elsem zero8
+        ]
+      shiftedBuf <- shr (rxBuf s) one
+      maskedBuf <- conj shiftedBuf mask
+      rxBufRx <- disj rx8 maskedBuf
+      rxBuf' <- ifm
+        [ isBaudRxRecv `thenm` rxBufRx
+        , elsem $ rxBuf s
+        ]
+      cat [rxBuf', rxIx', rxCtr', rxFsm']
+    isStop  <- rxFsm s `eq` stop
+    isBaud  <- eq (rxCtr s) =<< (val . binaryValue) baud
+    isValid <- isStop `conj` isBaud
+    return OptSig{ valid = isValid, value = rxBuf s }
+    where
+      rxFsm s = Sig{ spec = SigSpecSlice (spec s) 1  (Just 0),  size = 2,  signed = False }
+      rxCtr s = Sig{ spec = SigSpecSlice (spec s) 17 (Just 2),  size = 16, signed = False }
+      rxIx  s = Sig{ spec = SigSpecSlice (spec s) 21 (Just 18), size = 4,  signed = False }
+      rxBuf s = Sig{ spec = SigSpecSlice (spec s) 29 (Just 22), size = 8,  signed = False }
 
 shr :: MonadSignal m => Sig -> Sig -> m Sig
 shr = shift shrC
@@ -104,8 +180,14 @@ out wireId sig = do
 conj :: MonadSignal m => Sig -> Sig -> m Sig
 conj = binary andC
 
+disj :: MonadSignal m => Sig -> Sig -> m Sig
+disj = binary orC
+
 hello :: Monad m => MonadUart m => MonadSignal m => m ()
 hello = void $ process False 32 $ \timer -> do
   is5Sec <- eq timer =<< (val . binaryValue) (60000000 :: Word32)
   transmit 624 . OptSig is5Sec =<< (val . binaryValue) (0x61 :: Word8)
   flip (mux is5Sec) (zero 32) =<< inc timer
+
+echo :: Monad m => MonadUart m => MonadSignal m => m ()
+echo = transmit 624 =<< receive 624 =<< input "\\rx"
