@@ -121,10 +121,11 @@ instance MonadUart Rtl where
         [ isBaudRxRecv `thenm` rxBufRx
         , elsem $ rxBuf s
         ]
-      return $ Sig{ spec   = mconcat $ map spec [rxBuf', rxIx', rxCtr', rxFsm']
-                  , size   = size s
-                  , signed = False
-                  }
+      cat [rxBuf', rxIx', rxCtr', rxFsm']
+--      return $ Sig{ spec   = mconcat $ map spec [rxBuf', rxIx', rxCtr', rxFsm']
+--                  , size   = size s
+--                  , signed = False
+--                  }
     isStop  <- rxFsm s `eq` stop
     isBaud  <- eq (rxCtr s) =<< (val . binaryValue) baud
     isValid <- isStop `conj` isBaud
