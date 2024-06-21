@@ -120,20 +120,11 @@ instance MonadUart Rtl where
       shiftedBuf <- shr (rxBuf s) one
       maskedBuf <- conj shiftedBuf mask
       rxBufRx <- disj rx8 maskedBuf
-{-
-      maskedBuf <- conj (rxBuf s) mask
-      rxBufRx  <- disj rx8 maskedBuf
-      rxBufRx' <- shr rxBufRx one
--}
       rxBuf' <- ifm
         [ isBaudRxRecv `thenm` rxBufRx
         , elsem $ rxBuf s
         ]
       cat [rxBuf', rxIx', rxCtr', rxFsm']
---      return $ Sig{ spec   = mconcat $ map spec [rxBuf', rxIx', rxCtr', rxFsm']
---                  , size   = size s
---                  , signed = False
---                  }
     isStop  <- rxFsm s `eq` stop
     isBaud  <- eq (rxCtr s) =<< (val . binaryValue) baud
     isValid <- isStop `conj` isBaud
@@ -146,9 +137,6 @@ instance MonadUart Rtl where
 
 shr :: MonadSignal m => Sig -> Sig -> m Sig
 shr = shift shrC
-
-shl :: MonadSignal m => Sig -> Sig -> m Sig
-shl = shift shlC
 
 eq :: Monad m => MonadSignal m => Sig -> Sig -> m Sig
 eq a = flip at 0 <=< binary eqC a
