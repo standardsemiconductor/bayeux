@@ -33,8 +33,8 @@ instance MonadUart Rtl where
     txCtr <- process $ \txCtr -> do
       ctrDone <- eq txCtr =<< val baud
       txCtr' <- inc txCtr
-      ifm [ isStart `thenm` "8'00000000"
-          , ctrDone `thenm` "8'00000000"
+      ifm [ isStart `thenm` "16'0000000000000000"
+          , ctrDone `thenm` "16'0000000000000000"
           , elsem txCtr'
           ]
     ctrDone <- eq txCtr =<< val baud
@@ -49,7 +49,7 @@ instance MonadUart Rtl where
     isStartFrame <- eq txIx zero
     isEndFrame   <- eq txIx nine
     buf <- process $ \buf -> do
-      buf' <- shr buf one
+      buf' <- shr buf
       ifm [ isStart      `thenm` value byte
           , isStartFrame `thenm` buf
           , notDone      `thenm` buf
@@ -116,37 +116,41 @@ instance MonadUart Rtl where
         [ rx `thenm` "8'10000000" --0x80
         , elsem "8'00000000"
         ]
-      shiftedBuf <- shr (rxBuf s) one
+      shiftedBuf <- shr $ rxBuf s
       maskedBuf <- bitwiseAnd shiftedBuf "8'01111111" --0x7F
       rxBufRx <- bitwiseOr rx8 maskedBuf
       rxBuf' <- ifm
         [ isBaudRxRecv `thenm` rxBufRx
         , elsem $ rxBuf s
         ]
-      return Sig{ spec = spec rxBuf' <> spec rxIx' <> spec rxCtr' <> spec rxFsm' }
+      return Sig{ spec = pad <> spec rxBuf' <> spec rxIx' <> spec rxCtr' <> spec rxFsm' }
     isStop  <- rxFsm s `eq` stop
     isBaud  <- eq (rxCtr s) =<< val baud
     isValid <- isStop `conj` isBaud
     return OptSig{ valid = isValid, value = rxBuf s }
     where
+      pad = "24'000000000000000000000000"
       idle  = "8'00000000"
       start = "8'00000001"
       recv  = "8'00000010"
       stop  = "8'00000011"
       rxFsm :: Sig Word64 -> Sig Word8
-      rxFsm s = Sig{ spec = SigSpecSlice (spec s) 1  (Just 0) }
+      rxFsm s = Sig{ spec = SigSpecSlice (spec s) 7  (Just 0) }
       rxCtr :: Sig Word64 -> Sig Word16
-      rxCtr s = Sig{ spec = SigSpecSlice (spec s) 17 (Just 2) }
+      rxCtr s = Sig{ spec = SigSpecSlice (spec s) 23 (Just 8) }
       rxIx :: Sig Word64 -> Sig Word8
-      rxIx  s = Sig{ spec = SigSpecSlice (spec s) 21 (Just 18) }
+      rxIx  s = Sig{ spec = SigSpecSlice (spec s) 31 (Just 24) }
       rxBuf :: Sig Word64 -> Sig Word8
-      rxBuf s = Sig{ spec = SigSpecSlice (spec s) 29 (Just 22) }
+      rxBuf s = Sig{ spec = SigSpecSlice (spec s) 39 (Just 32) }
 
-shr :: FiniteBits a => FiniteBits b => MonadSignal m => Sig a -> Sig b -> m (Sig a)
-shr = shift shrC
+shr :: FiniteBits a => MonadSignal m => Sig a -> m (Sig a)
+shr a = shift shrC a one
 
 eq :: FiniteBits a => Monad m => MonadSignal m => Sig a -> Sig a -> m (Sig Bool)
-eq a = binary eqC a
+eq a = flip at 0 <=< eq' a
+  where
+    eq' :: FiniteBits a => MonadSignal m => Sig a -> Sig a -> m (Sig a)
+    eq' = binary eqC
 
 zero :: forall a. FiniteBits a => Sig a
 zero = Sig{ spec = SigSpecConstant $ ConstantValue $ Value (fromIntegral w) $ replicate w B0 }
@@ -163,7 +167,10 @@ inc :: FiniteBits a => Monad m => MonadSignal m => Sig a -> m (Sig a)
 inc a = binary addC a =<< val True
 
 bar :: Monad m => MonadSignal m => Sig Bool -> m (Sig Bool)
-bar = unary notC
+bar = flip at 0 <=< not'
+  where
+    not' :: MonadSignal m => Sig Bool -> m (Sig Bool)
+    not' = unary notC -- TODO not right, should have dedicated cells.
 
 out :: WireId -> Sig Bool -> Rtl ()
 out wireId sig = do
