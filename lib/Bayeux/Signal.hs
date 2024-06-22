@@ -33,6 +33,7 @@ instance FiniteBits a => FiniteBits (Sig a) where
 
 class MonadSignal m where
   input   :: WireId -> m (Sig Bool)
+  output  :: WireId -> Sig Bool -> m ()
   process :: FiniteBits a => (Sig a -> m (Sig a)) -> m (Sig a)
   at      :: FiniteBits a => Sig a -> Integer -> m (Sig Bool)
 --  cat     :: [Sig a] -> m (Sig [a])
@@ -95,6 +96,13 @@ instance MonadSignal Rtl where
     i <- fresh
     tell [ModuleBodyWire $ Wire [] $ WireStmt [WireOptionInput i] wireId]
     return $ Sig $ SigSpecWireId wireId
+
+  output wireId sig = do
+    i <- fresh
+    tell
+      [ ModuleBodyWire $ Wire [] $ WireStmt [WireOptionOutput i] wireId
+      , ModuleBodyConnStmt $ ConnStmt (SigSpecWireId wireId) $ spec sig
+      ]
 
   process :: forall a. FiniteBits a => (Sig a -> Rtl (Sig a)) -> Rtl (Sig a)
   process f = do

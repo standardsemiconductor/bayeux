@@ -13,12 +13,14 @@ module Bayeux.Cell
   , logicAnd
   , logicOr
   , or
+  , -- ** Shift
+    shr
   ) where
 
-import Bayeux.Rtl hiding (at, binary, unary)
+import Bayeux.Rtl hiding (at, binary, unary, shift, shr)
 import Bayeux.Signal
 import Control.Monad
-import Data.Bits
+import Data.Bits hiding (shift)
 import Prelude hiding (and, not, or)
 
 -- | increment
@@ -51,3 +53,6 @@ logicOr = binary logicOrC
 
 or :: FiniteBits a => MonadSignal m => Sig a -> Sig a -> m (Sig a)
 or = binary orC
+
+shr :: FiniteBits a => FiniteBits b => MonadSignal m => Sig a -> Sig b -> m (Sig a)
+shr = shift shrC
