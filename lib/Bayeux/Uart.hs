@@ -1,5 +1,6 @@
-{-# LANGUAGE OverloadedLists   #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedLists     #-}
+{-# LANGUAGE OverloadedStrings   #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Bayeux.Uart
   ( MonadUart(..)
@@ -7,87 +8,82 @@ module Bayeux.Uart
   , echo
   ) where
 
+import qualified Bayeux.Cell as C
 import Bayeux.Rtl hiding (at, binary, mux, process, shift, shr, unary)
 import Bayeux.Signal
 import Control.Monad
-import Control.Monad.Except
-import Control.Monad.Writer
 import Data.Bits hiding (shift)
 import Data.Word
 
-data OptSig = OptSig{ valid :: Sig, value :: Sig }
+data OptSig a = OptSig{ valid :: Sig Bool, value :: Sig a }
   deriving (Eq, Read, Show)
 
 class MonadUart m where
   transmit :: Word16 -- ^ baud
-           -> OptSig
+           -> OptSig Word8
            -> m ()
-  receive :: Word16 -- ^ baud
-          -> Sig    -- ^ rx
-          -> m OptSig
+  receive :: Word16   -- ^ baud
+          -> Sig Bool -- ^ rx
+          -> m (OptSig Word8)
 
 instance MonadUart Rtl where
-  transmit baud byte = void $ process False 1 $ \txFsm -> do
-    isStart <- eq txFsm =<< (val . binaryValue) False
-    txCtr <- process False 16 $ \txCtr -> do
-      ctrDone <- eq txCtr =<< (val . binaryValue) baud
-      txCtr' <- inc txCtr
-      ifm [ isStart `thenm` zero 16
-          , ctrDone `thenm` zero 16
+  transmit baud byte = void $ process $ \txFsm -> do
+    isStart <- C.eq txFsm $ val False
+    txCtr <- process $ \txCtr -> do
+      ctrDone <- C.eq txCtr $ val baud
+      txCtr' <- C.inc txCtr
+      ifm [ isStart `thenm` val 0
+          , ctrDone `thenm` val 0
           , elsem txCtr'
           ]
-    ctrDone <- eq txCtr =<< (val . binaryValue) baud
-    notDone <- bar ctrDone
-    txIx <- process False 4 $ \txIx -> do
-      isEmpty <- eq txIx nine
-      txIx'   <- inc txIx
+    ctrDone <- C.eq txCtr $ val baud
+    notDone <- C.logicNot ctrDone
+    txIx <- process $ \txIx -> do
+      isEmpty <- txIx `C.eq` val 9
+      txIx'   <- C.inc txIx
       ifm [ notDone `thenm` txIx
-          , isEmpty `thenm` zero 4
+          , isEmpty `thenm` val (0 :: Word8)
           , elsem txIx'
           ]
-    isStartFrame <- eq txIx $ zero 4
-    isEndFrame   <- eq txIx nine
-    buf <- process False 8 $ \buf -> do
-      buf' <- shr buf one
+    isStartFrame <- txIx `C.eq` val 0
+    isEndFrame   <- txIx `C.eq` val 9
+    buf <- process $ \buf -> do
+      buf' <- buf `C.shr` val True
       ifm [ isStart      `thenm` value byte
           , isStartFrame `thenm` buf
           , notDone      `thenm` buf
           , elsem buf'
           ]
     e <- buf `at` 0
-    out "\\tx" =<< ifm
-      [ isStart      `thenm` one
-      , isStartFrame `thenm` zero 1
-      , isEndFrame   `thenm` one
+    output "\\tx" =<< ifm
+      [ isStart      `thenm` val True
+      , isStartFrame `thenm` val False
+      , isEndFrame   `thenm` val True
       , elsem e
       ]
-    txFsm' <- bar =<< ctrDone `conj` isEndFrame
+    txFsm' <- C.logicNot =<< ctrDone `C.logicAnd` isEndFrame
     mux isStart txFsm' $ valid byte
 
   receive baud rx = do
-    rxLow  <- rx `eq` zero 1
-    rxHigh <- bar rxLow
-    idle   <- val $ Value 2 [B0, B0]
-    start  <- val $ Value 2 [B0, B1]
-    recv   <- val $ Value 2 [B1, B0]
-    stop   <- val $ Value 2 [B1, B1]
-    s <- process False 30 $ \s -> do
-      isIdle  <- rxFsm s `eq` idle
-      isStart <- rxFsm s `eq` start
-      isRecv  <- rxFsm s `eq` recv
-      isStop  <- rxFsm s `eq` stop
-      isBaudHalf        <- eq (rxCtr s) =<< (val . binaryValue) (baud `shiftR` 1)
-      isBaudHalfRxStart <- conj isBaudHalf isStart
-      isBaud            <- eq (rxCtr s) =<< (val . binaryValue) baud
-      isBaudRxRecv      <- conj isBaud isRecv
-      ixDone            <- eq (rxIx s) =<< val (Value 4 [B0, B1, B1, B1])
-      gotoRxStart <- conj rxLow isIdle
-      gotoRxRecv  <- conj rxLow isBaudHalfRxStart
-      gotoRxStop  <- conj isBaud =<< conj ixDone isRecv
+    rxLow  <- rx `C.eq` val False
+    rxHigh <- C.logicNot rxLow
+    s <- process $ \s -> do
+      isIdle  <- rxFsm s `C.eq` idle
+      isStart <- rxFsm s `C.eq` start
+      isRecv  <- rxFsm s `C.eq` recv
+      isStop  <- rxFsm s `C.eq` stop
+      isBaudHalf        <- rxCtr s `C.eq` val (baud `shiftR` 1)
+      isBaudHalfRxStart <- isBaudHalf `C.logicAnd` isStart
+      isBaud            <- rxCtr s `C.eq` val baud
+      isBaudRxRecv      <- isBaud `C.logicAnd` isRecv
+      ixDone            <- rxIx s `C.eq` val 7
+      gotoRxStart <- rxLow `C.logicAnd` isIdle
+      gotoRxRecv  <- rxLow `C.logicAnd` isBaudHalfRxStart
+      gotoRxStop  <- C.logicAnd isBaud =<< C.logicAnd ixDone isRecv
       gotoRxIdle  <- do
-        fromRxStart <- conj rxHigh isBaudHalfRxStart
-        fromRxStop  <- conj isBaud isStop
-        fromRxStart `disj` fromRxStop
+        fromRxStart <- rxHigh `C.logicAnd` isBaudHalfRxStart
+        fromRxStop  <- isBaud `C.logicAnd` isStop
+        fromRxStart `C.logicOr` fromRxStop
       rxFsm' <- ifm
         [ gotoRxStart `thenm` start
         , gotoRxRecv  `thenm` recv
@@ -95,99 +91,57 @@ instance MonadUart Rtl where
         , gotoRxIdle  `thenm` idle
         , elsem $ rxFsm s
         ]
-      rxCtr1 <- inc $ rxCtr s
+      rxCtr1 <- C.inc $ rxCtr s
       rxCtr' <- ifm
-        [ isIdle            `thenm` zero 16
-        , isBaudHalfRxStart `thenm` zero 16
-        , isBaud            `thenm` zero 16
+        [ isIdle            `thenm` val 0
+        , isBaudHalfRxStart `thenm` val 0
+        , isBaud            `thenm` val 0
         , elsem rxCtr1
         ]
-      rxIx1 <- inc $ rxIx s
+      rxIx1 <- C.inc $ rxIx s
       rxIx' <- ifm
-        [ isIdle  `thenm` zero 4
-        , isStart `thenm` zero 4
-        , isStop  `thenm` zero 4
+        [ isIdle  `thenm` val 0
+        , isStart `thenm` val 0
+        , isStop  `thenm` val 0
         , isBaudRxRecv `thenm` rxIx1
         , elsem $ rxIx s
         ]
-      one8  <- val $ binaryValue (0x80 :: Word8)
-      zero8 <- val $ binaryValue (0x00 :: Word8)
-      mask  <- val $ binaryValue (0x7F :: Word8)
       rx8 <- ifm
-        [ rx `thenm` one8
-        , elsem zero8
+        [ rx `thenm` val 0x80
+        , elsem $    val 0x00
         ]
-      shiftedBuf <- shr (rxBuf s) one
-      maskedBuf <- conj shiftedBuf mask
-      rxBufRx <- disj rx8 maskedBuf
+      shiftedBuf <- rxBuf s `C.shr` val True
+      maskedBuf <- shiftedBuf `C.and` val 0x7F
+      rxBufRx <- rx8 `C.or` maskedBuf
       rxBuf' <- ifm
         [ isBaudRxRecv `thenm` rxBufRx
         , elsem $ rxBuf s
         ]
-      cat [rxBuf', rxIx', rxCtr', rxFsm']
-    isStop  <- rxFsm s `eq` stop
-    isBaud  <- eq (rxCtr s) =<< (val . binaryValue) baud
-    isValid <- isStop `conj` isBaud
+      return Sig{ spec = pad <> spec rxBuf' <> spec rxIx' <> spec rxCtr' <> spec rxFsm' }
+    isStop  <- rxFsm s `C.eq` stop
+    isBaud  <- C.eq (rxCtr s) $ val baud
+    isValid <- isStop `C.logicAnd` isBaud
     return OptSig{ valid = isValid, value = rxBuf s }
     where
-      rxFsm s = Sig{ spec = SigSpecSlice (spec s) 1  (Just 0),  size = 2,  signed = False }
-      rxCtr s = Sig{ spec = SigSpecSlice (spec s) 17 (Just 2),  size = 16, signed = False }
-      rxIx  s = Sig{ spec = SigSpecSlice (spec s) 21 (Just 18), size = 4,  signed = False }
-      rxBuf s = Sig{ spec = SigSpecSlice (spec s) 29 (Just 22), size = 8,  signed = False }
+      pad = "24'000000000000000000000000"
+      idle  = val 0
+      start = val 1
+      recv  = val 2
+      stop  = val 3
+      rxFsm :: Sig Word64 -> Sig Word8
+      rxFsm s = Sig{ spec = SigSpecSlice (spec s) 7  (Just 0) }
+      rxCtr :: Sig Word64 -> Sig Word16
+      rxCtr s = Sig{ spec = SigSpecSlice (spec s) 23 (Just 8) }
+      rxIx :: Sig Word64 -> Sig Word8
+      rxIx  s = Sig{ spec = SigSpecSlice (spec s) 31 (Just 24) }
+      rxBuf :: Sig Word64 -> Sig Word8
+      rxBuf s = Sig{ spec = SigSpecSlice (spec s) 39 (Just 32) }
 
-shr :: MonadSignal m => Sig -> Sig -> m Sig
-shr = shift shrC
-
-eq :: Monad m => MonadSignal m => Sig -> Sig -> m Sig
-eq a = flip at 0 <=< binary eqC a
-
-zero :: Integer -> Sig
-zero w =
-  Sig{ spec = SigSpecConstant $ ConstantValue $ Value w $ replicate (fromIntegral w) B0
-     , size = w
-     , signed = False
-     }
-
-one :: Sig
-one =
-  Sig{ spec = SigSpecConstant $ ConstantValue $ Value 1 [B1]
-     , size = 1
-     , signed = False
-     }
-
-nine :: Sig
-nine =
-  Sig{ spec = SigSpecConstant $ ConstantValue $ Value 4 [B1, B0, B0, B1]
-     , size = 4
-     , signed = False
-     }
-
-inc :: Monad m => MonadSignal m => Sig -> m Sig
-inc a = binary addC a =<< (val . Value (size a)) (replicate (fromIntegral (size a) - 1) B0 <> [B1])
-
-bar :: Monad m => MonadSignal m => Sig -> m Sig
-bar = flip at 0 <=< unary notC
-
-out :: WireId -> Sig -> Rtl ()
-out wireId sig = do
-  when (size sig /= 1) $ throwError SizeMismatch
-  i <- fresh
-  tell
-    [ ModuleBodyWire $ Wire [] $ WireStmt [WireOptionOutput i] wireId
-    , ModuleBodyConnStmt $ ConnStmt (SigSpecWireId wireId) $ spec sig
-    ]
-
-conj :: MonadSignal m => Sig -> Sig -> m Sig
-conj = binary andC
-
-disj :: MonadSignal m => Sig -> Sig -> m Sig
-disj = binary orC
-
-hello :: Monad m => MonadUart m => MonadSignal m => m ()
-hello = void $ process False 32 $ \timer -> do
-  is5Sec <- eq timer =<< (val . binaryValue) (60000000 :: Word32)
-  transmit 624 . OptSig is5Sec =<< (val . binaryValue) (0x61 :: Word8)
-  flip (mux is5Sec) (zero 32) =<< inc timer
+hello :: Monad m => MonadUart m => MonadSignal m => m (Sig Word32)
+hello = process $ \timer -> do
+  is5Sec <- timer `C.eq` val 60000000
+  transmit 624 $ OptSig is5Sec $ val 0x61
+  flip (mux is5Sec) (val 0) =<< C.inc timer
 
 echo :: Monad m => MonadUart m => MonadSignal m => m ()
 echo = transmit 624 =<< receive 624 =<< input "\\rx"

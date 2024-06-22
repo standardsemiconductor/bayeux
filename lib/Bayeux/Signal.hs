@@ -1,5 +1,10 @@
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE InstanceSigs               #-}
+{-# LANGUAGE ScopedTypeVariables        #-}
+
 module Bayeux.Signal
   ( Sig(..)
+  , val
   , MonadSignal(..)
   , ifm, thenm, elsem
   ) where
@@ -9,34 +14,39 @@ import qualified Bayeux.Rtl as Rtl
 import Control.Monad
 import Control.Monad.Except
 import Control.Monad.Writer
+import Data.Bits
 import Data.List.NonEmpty
 import Data.Maybe
+import Data.String
 
-data Sig = Sig
-  { spec   :: SigSpec
-  , size   :: Integer
-  , signed :: Bool
-  }
-  deriving (Eq, Read, Show)
+newtype Sig a = Sig{ spec :: SigSpec }
+  deriving (Eq, IsString, Read, Show)
+
+val :: FiniteBits a => a -> Sig a
+val = Sig . SigSpecConstant . ConstantValue . binaryValue
+
+instance Bits a => Bits (Sig a) where
+  isSigned _ = isSigned (undefined :: a)
+
+instance FiniteBits a => FiniteBits (Sig a) where
+  finiteBitSize _ = finiteBitSize (undefined :: a)
 
 class MonadSignal m where
-  val :: Value -> m Sig
-  input :: WireId -> m Sig
-
-  process :: Bool    -- ^ signed
-          -> Integer -- ^ width
-          -> (Sig -> m Sig)
-          -> m Sig
-  at :: Sig -> Integer -> m Sig
-  cat :: [Sig] -> m Sig
+  input   :: WireId -> m (Sig Bool)
+  output  :: WireId -> Sig Bool -> m ()
+  process :: FiniteBits a => (Sig a -> m (Sig a)) -> m (Sig a)
+  at      :: FiniteBits a => Sig a -> Integer -> m (Sig Bool)
 
   -- | If S == 1 then B else A
-  mux :: Sig   -- ^ S
-      -> Sig   -- ^ A
-      -> Sig   -- ^ B
-      -> m Sig -- ^ Y
+  mux :: FiniteBits a
+      => Sig Bool   -- ^ S
+      -> Sig a     -- ^ A
+      -> Sig a     -- ^ B
+      -> m (Sig a) -- ^ Y
 
-  unary :: ( CellId
+  unary :: FiniteBits a
+        => FiniteBits b
+        => ( CellId
              -> Bool
              -> Integer
              -> Integer
@@ -44,9 +54,12 @@ class MonadSignal m where
              -> SigSpec
              -> Cell
            )
-        -> Sig
-        -> m Sig
-  binary :: ( CellId
+        -> Sig a
+        -> m (Sig b)
+  binary :: FiniteBits a
+         => FiniteBits b
+         => FiniteBits c
+         => ( CellId
               -> Bool
               -> Integer
               -> Bool
@@ -57,11 +70,13 @@ class MonadSignal m where
               -> SigSpec
               -> Cell
             )
-         -> Sig
-         -> Sig
-         -> m Sig
+         -> Sig a
+         -> Sig b
+         -> m (Sig c)
 
-  shift :: ( CellId
+  shift :: FiniteBits a
+        => FiniteBits b
+        => ( CellId
              -> Bool
              -> Integer
              -> Integer
@@ -71,79 +86,73 @@ class MonadSignal m where
              -> SigSpec
              -> Cell
            )
-        -> Sig
-        -> Sig
-        -> m Sig
+        -> Sig a
+        -> Sig b
+        -> m (Sig a)
 
 instance MonadSignal Rtl where
-  val v@(Value s _) = return $ Sig
-    { spec = SigSpecConstant $ ConstantValue v
-    , size = s
-    , signed = False
-    }
-
   input wireId = do
     i <- fresh
     tell [ModuleBodyWire $ Wire [] $ WireStmt [WireOptionInput i] wireId]
-    return Sig{ spec = SigSpecWireId wireId, size = 1, signed = False }
+    return $ Sig $ SigSpecWireId wireId
 
-  process s w f = do
-    old <- freshWire w
-    let oldSig = Sig{ spec = old, size = w, signed = s }
+  output wireId sig = do
+    i <- fresh
+    tell
+      [ ModuleBodyWire $ Wire [] $ WireStmt [WireOptionOutput i] wireId
+      , ModuleBodyConnStmt $ ConnStmt (SigSpecWireId wireId) $ spec sig
+      ]
+
+  process :: forall a. FiniteBits a => (Sig a -> Rtl (Sig a)) -> Rtl (Sig a)
+  process f = do
+    old <- freshWire $ fromIntegral $ finiteBitSize (undefined :: a)
+    let oldSig = Sig old
     procStmt <- freshProcStmt
     srcSig <- f oldSig
-    when (size srcSig /= w) $ throwError SizeMismatch
     tell [ModuleBodyProcess $ updateP procStmt (DestSigSpec old) (SrcSigSpec (spec srcSig))]
     return oldSig
 
   at s i = do
-    when (i >= size s) $ throwError SizeMismatch
-    t <- Rtl.at (spec s) i
-    return Sig{ spec = t, size = 1, signed = False }
-
-  cat sigs = do
-    let sz = sum $ size <$> sigs
-    y <- freshWire sz
-    tell [ModuleBodyConnStmt $ ConnStmt y (SigSpecCat $ spec <$> sigs)]
-    return Sig{ spec = y, size = sz, signed = False}
-
-  mux s a b = do
-    unless valid $ throwError SizeMismatch
-    y <- Rtl.mux (size a) (spec s) (spec a) (spec b)
-    return Sig{ spec = y, size = size a, signed = signed a }
+    when (i >= sz) $ throwError SizeMismatch
+    Sig <$> Rtl.at (spec s) i
     where
-      valid =
-        size s == 1 && not (signed s)
-         && size a == size b && signed a == signed b
+      sz = fromIntegral $ finiteBitSize s
 
-  unary cFn a = do
-    y <- Rtl.unary cFn (signed a) (size a) (size a) (spec a)
-    return Sig{ spec = y, size = size a, signed = signed a }
-
-  binary cFn a b = do
-    unless valid $ throwError SizeMismatch
-    y <- Rtl.binary cFn (signed a) (size a) (signed b) (size b) (size a) (spec a) (spec b)
-    return Sig{ spec = y, size = size a, signed = signed a }
+  mux s a b = Sig <$> Rtl.mux sz (spec s) (spec a) (spec b)
     where
-      valid = signed a == signed b && size a == size b
+      sz = fromIntegral $ finiteBitSize a
+
+  unary cFn a = Sig <$> Rtl.unary cFn (isSigned a) aSz ySz (spec a)
+    where
+      aSz = fromIntegral $ finiteBitSize a
+      ySz = aSz
+
+  binary cFn a b = Sig <$> Rtl.binary cFn (isSigned a) aSz (isSigned b) bSz ySz (spec a) (spec b)
+    where
+      aSz = fromIntegral $ finiteBitSize a
+      bSz = fromIntegral $ finiteBitSize b
+      ySz = aSz
 
   shift cFn a b = do
-    when (signed b) $ throwError SignedShift
-    y <- Rtl.shift cFn (signed a) (size a) (size b) (size a) (spec a) (spec b)
-    return Sig{ spec = y, size = size a, signed = signed a }
+    when (isSigned b) $ throwError SignedShift
+    Sig <$> Rtl.shift cFn (isSigned a) aSz bSz ySz (spec a) (spec b)
+    where
+      aSz = fromIntegral $ finiteBitSize a
+      bSz = fromIntegral $ finiteBitSize b
+      ySz = aSz
 
-data Cond = Cond
-  { condition :: Maybe Sig
-  , result    :: Sig
+data Cond a = Cond
+  { condition :: Maybe (Sig Bool)
+  , result    :: Sig a
   }
 
-ifm :: Monad m => MonadSignal m => NonEmpty Cond -> m Sig
+ifm :: FiniteBits a => Monad m => MonadSignal m => NonEmpty (Cond a) -> m (Sig a)
 ifm (a :| bs) = case nonEmpty bs of
   Nothing   -> return $ result a
   Just rest -> flip (mux (fromJust $ condition a)) (result a) =<< ifm rest
 
-thenm :: Sig -> Sig -> Cond
+thenm :: Sig Bool -> Sig a -> Cond a
 thenm s = Cond (Just s)
 
-elsem :: Sig -> Cond
+elsem :: Sig a -> Cond a
 elsem = Cond Nothing

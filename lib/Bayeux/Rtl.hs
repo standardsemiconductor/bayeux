@@ -142,6 +142,12 @@ data Value = Value Integer [BinaryDigit]
 instance Pretty Value where
   pretty (Value i bs) = pretty i <> "\'" <> foldMap pretty bs
 
+instance IsString Value where
+  fromString s = let (l, r) = break (== '\'') s
+                 in if read l /= length r - 1
+                    then error $ "IsString " <> s
+                    else Value (read l) $ map (fromString . pure) $ drop 1 r
+
 data BinaryDigit = B0
                  | B1
                  | X
@@ -158,6 +164,15 @@ instance Pretty BinaryDigit where
     Z  -> "z"
     M  -> "m"
     D  -> "-"
+
+instance IsString BinaryDigit where
+  fromString = \case
+    "0" -> B0
+    "1" -> B1
+    "x" -> X
+    "z" -> Z
+    "m" -> M
+    _   -> D
 
 binaryDigits :: FiniteBits b => b -> [BinaryDigit]
 binaryDigits b = bool B0 B1 . testBit b <$> reverse [0..finiteBitSize b - 1]
@@ -252,6 +267,9 @@ instance Pretty Constant where
     ConstantInteger i -> pretty i
     ConstantString  t -> dquotes $ pretty t
 
+instance IsString Constant where
+  fromString = ConstantValue . fromString
+
 data ModuleEndStmt = ModuleEndStmt
   deriving (Eq, Read, Show)
 
@@ -301,6 +319,9 @@ instance Semigroup SigSpec where
 
 instance Monoid SigSpec where
   mempty = SigSpecCat mempty
+
+instance IsString SigSpec where
+  fromString = SigSpecConstant . fromString
 
 data ConnStmt = ConnStmt SigSpec SigSpec
   deriving (Eq, Read, Show)
