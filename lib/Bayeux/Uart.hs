@@ -38,7 +38,7 @@ instance MonadUart Rtl where
           , elsem txCtr'
           ]
     ctrDone <- eq txCtr $ val baud
-    notDone <- bar ctrDone
+    notDone <- C.logicNot ctrDone
     txIx <- process $ \txIx -> do
       isEmpty <- eq txIx nine
       txIx'   <- C.inc txIx
@@ -62,12 +62,12 @@ instance MonadUart Rtl where
       , isEndFrame   `thenm` val True
       , elsem e
       ]
-    txFsm' <- bar =<< ctrDone `conj` isEndFrame
+    txFsm' <- C.logicNot =<< ctrDone `C.logicAnd` isEndFrame
     mux isStart txFsm' $ valid byte
 
   receive baud rx = do
     rxLow  <- rx `eq` zero
-    rxHigh <- bar rxLow
+    rxHigh <- C.logicNot rxLow
     s <- process $ \s -> do
       isIdle  <- rxFsm s `eq` idle
       isStart <- rxFsm s `eq` start
@@ -160,12 +160,6 @@ one = Sig{ spec = SigSpecConstant $ ConstantValue $ Value 1 [B1] }
 
 nine :: Sig Word8
 nine = "8'00001001"
-
-bar :: Monad m => MonadSignal m => Sig Bool -> m (Sig Bool)
-bar = flip at 0 <=< not'
-  where
-    not' :: MonadSignal m => Sig Bool -> m (Sig Bool)
-    not' = unary notC -- TODO not right, should have dedicated cells.
 
 out :: WireId -> Sig Bool -> Rtl ()
 out wireId sig = do
