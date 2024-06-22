@@ -33,8 +33,8 @@ instance MonadUart Rtl where
     txCtr <- process $ \txCtr -> do
       ctrDone <- eq txCtr =<< val baud
       txCtr' <- inc txCtr
-      ifm [ isStart `thenm` 0
-          , ctrDone `thenm` 0
+      ifm [ isStart `thenm` "8'00000000"
+          , ctrDone `thenm` "8'00000000"
           , elsem txCtr'
           ]
     ctrDone <- eq txCtr =<< val baud
@@ -79,7 +79,7 @@ instance MonadUart Rtl where
       isBaudHalfRxStart <- conj isBaudHalf isStart
       isBaud            <- eq (rxCtr s) =<< val baud
       isBaudRxRecv      <- conj isBaud isRecv
-      ixDone            <- eq (rxIx s) 7
+      ixDone            <- eq (rxIx s) "8'00000111"
       gotoRxStart <- conj rxLow isIdle
       gotoRxRecv  <- conj rxLow isBaudHalfRxStart
       gotoRxStop  <- conj isBaud =<< conj ixDone isRecv
@@ -96,16 +96,16 @@ instance MonadUart Rtl where
         ]
       rxCtr1 <- inc $ rxCtr s
       rxCtr' <- ifm
-        [ isIdle            `thenm` 0
-        , isBaudHalfRxStart `thenm` 0
-        , isBaud            `thenm` 0
+        [ isIdle            `thenm` "16'0000000000000000"
+        , isBaudHalfRxStart `thenm` "16'0000000000000000"
+        , isBaud            `thenm` "16'0000000000000000"
         , elsem rxCtr1
         ]
       rxIx1 <- inc $ rxIx s
       rxIx' <- ifm
-        [ isIdle  `thenm` 0
-        , isStart `thenm` 0
-        , isStop  `thenm` 0
+        [ isIdle  `thenm` "8'00000000"
+        , isStart `thenm` "8'00000000"
+        , isStop  `thenm` "8'00000000"
         , isBaudRxRecv `thenm` rxIx1
         , elsem $ rxIx s
         ]
@@ -113,11 +113,11 @@ instance MonadUart Rtl where
 --      zero8 <- val $ binaryValue (0x00 :: Word8)
 --      mask  <- val $ binaryValue (0x7F :: Word8)
       rx8 <- ifm
-        [ rx `thenm` 0x80
-        , elsem 0x00
+        [ rx `thenm` "8'10000000" --0x80
+        , elsem "8'00000000"
         ]
       shiftedBuf <- shr (rxBuf s) one
-      maskedBuf <- bitwiseAnd shiftedBuf 0x7F
+      maskedBuf <- bitwiseAnd shiftedBuf "8'01111111" --0x7F
       rxBufRx <- bitwiseOr rx8 maskedBuf
       rxBuf' <- ifm
         [ isBaudRxRecv `thenm` rxBufRx
@@ -129,10 +129,10 @@ instance MonadUart Rtl where
     isValid <- isStop `conj` isBaud
     return OptSig{ valid = isValid, value = rxBuf s }
     where
-      idle  = 0
-      start = 1
-      recv  = 2
-      stop  = 3
+      idle  = "8'00000000"
+      start = "8'00000001"
+      recv  = "8'00000010"
+      stop  = "8'00000011"
       rxFsm :: Sig Word64 -> Sig Word8
       rxFsm s = Sig{ spec = SigSpecSlice (spec s) 1  (Just 0) }
       rxCtr :: Sig Word64 -> Sig Word16
@@ -157,7 +157,7 @@ one :: Sig Bool
 one = Sig{ spec = SigSpecConstant $ ConstantValue $ Value 1 [B1] }
 
 nine :: Sig Word8
-nine = 9
+nine = "8'00001001"
 
 inc :: FiniteBits a => Monad m => MonadSignal m => Sig a -> m (Sig a)
 inc a = binary addC a =<< val True
@@ -188,7 +188,7 @@ disj = bitwiseOr
 hello :: Monad m => MonadUart m => MonadSignal m => m ()
 hello = void $ process $ \timer -> do
   is5Sec <- eq timer =<< val (60000000 :: Word32)
-  transmit 624 $ OptSig is5Sec 0x61
+  transmit 624 $ OptSig is5Sec "8'01100001"
   flip (mux is5Sec) zero =<< inc timer
 
 echo :: Monad m => MonadUart m => MonadSignal m => m ()

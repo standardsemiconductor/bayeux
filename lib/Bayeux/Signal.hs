@@ -1,5 +1,6 @@
-{-# LANGUAGE InstanceSigs        #-}
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE InstanceSigs               #-}
+{-# LANGUAGE ScopedTypeVariables        #-}
 
 module Bayeux.Signal
   ( Sig(..)
@@ -15,11 +16,10 @@ import Control.Monad.Writer
 import Data.Bits
 import Data.List.NonEmpty
 import Data.Maybe
+import Data.String
 
 newtype Sig a = Sig{ spec :: SigSpec }
-  deriving (Eq, Read, Show)
-
-instance Num a => Num (Sig a)
+  deriving (Eq, IsString, Read, Show)
 
 instance Bits a => Bits (Sig a) where
   isSigned _ = isSigned (undefined :: a)
@@ -133,7 +133,7 @@ instance MonadSignal Rtl where
       ySz = aSz
 
   shift cFn a b = do
-    when (isSigned b) $ throwError SizeMismatch -- TODO fix
+    when (isSigned b) $ throwError SignedShift
     Sig <$> Rtl.shift cFn (isSigned a) aSz bSz ySz (spec a) (spec b)
     where
       aSz = fromIntegral $ finiteBitSize a

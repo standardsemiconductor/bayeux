@@ -39,10 +39,16 @@ ctr :: Monad m => MonadSignal m => m (Sig Word32)
 ctr = process increment
 
 eq :: Monad m => MonadSignal m => Sig Word32 -> Sig Word32 -> m (Sig Bool)
-eq a = binary eqC a
+eq a = flip at 0 <=< eq' a
+  where
+    eq' :: MonadSignal m => Sig Word32 -> Sig Word32 -> m (Sig Word32)
+    eq' = binary eqC
 
 bar :: Monad m => MonadSignal m => Sig Bool -> m (Sig Bool)
-bar = unary notC
+bar = flip at 0 <=< not'
+  where
+    not' :: MonadSignal m => Sig Bool -> m (Sig Bool)
+    not' = unary notC -- TODO not right, should have dedicated cells.
 
 prog :: Monad m => MonadSignal m => MonadRgb m => m ()
 prog = do
@@ -54,10 +60,10 @@ prog = do
 
 cycleProg :: Monad m => MonadSignal m => MonadRgb m => m ()
 cycleProg = do
-  zero   <- val 0
-  one    <- val 1
-  two    <- val 2
-  second <- val 12000000
+  zero   <- val (0 :: Word32)
+  one    <- val (1 :: Word32)
+  two    <- val (2 :: Word32)
+  second <- val (12000000 :: Word32)
   t <- process $ \timer -> do
     t1Sec <- timer `eq` second
     timer' <- increment timer
