@@ -106,7 +106,7 @@ module \top
   connect \wire23 \wire21 [0]
   wire width 1 \wire24
 
-  cell $and $cell25
+  cell $logic_and $cell25
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \B_SIGNED 0
@@ -134,7 +134,7 @@ module \top
   connect \wire28 \wire26 [0]
   wire width 1 \wire29
 
-  cell $and $cell30
+  cell $logic_and $cell30
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \B_SIGNED 0
@@ -162,7 +162,7 @@ module \top
   connect \wire33 \wire31 [0]
   wire width 1 \wire34
 
-  cell $and $cell35
+  cell $logic_and $cell35
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \B_SIGNED 0
@@ -175,7 +175,7 @@ module \top
 
   wire width 1 \wire36
 
-  cell $and $cell37
+  cell $logic_and $cell37
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \B_SIGNED 0
@@ -188,7 +188,7 @@ module \top
 
   wire width 1 \wire38
 
-  cell $and $cell39
+  cell $logic_and $cell39
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \B_SIGNED 0
@@ -201,7 +201,7 @@ module \top
 
   wire width 1 \wire40
 
-  cell $and $cell41
+  cell $logic_and $cell41
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \B_SIGNED 0
@@ -214,7 +214,7 @@ module \top
 
   wire width 1 \wire42
 
-  cell $and $cell43
+  cell $logic_and $cell43
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \B_SIGNED 0
@@ -227,7 +227,7 @@ module \top
 
   wire width 1 \wire44
 
-  cell $and $cell45
+  cell $logic_and $cell45
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \B_SIGNED 0
@@ -487,7 +487,7 @@ module \top
   connect \wire89 \wire87 [0]
   wire width 1 \wire90
 
-  cell $and $cell91
+  cell $logic_and $cell91
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \B_SIGNED 0

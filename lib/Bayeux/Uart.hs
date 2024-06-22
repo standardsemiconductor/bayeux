@@ -74,16 +74,16 @@ instance MonadUart Rtl where
       isRecv  <- rxFsm s `C.eq` recv
       isStop  <- rxFsm s `C.eq` stop
       isBaudHalf        <- C.eq (rxCtr s) $ val (baud `shiftR` 1)
-      isBaudHalfRxStart <- conj isBaudHalf isStart
+      isBaudHalfRxStart <- C.logicAnd isBaudHalf isStart
       isBaud            <- C.eq (rxCtr s) $ val baud
-      isBaudRxRecv      <- conj isBaud isRecv
+      isBaudRxRecv      <- C.logicAnd isBaud isRecv
       ixDone            <- C.eq (rxIx s) "8'00000111"
-      gotoRxStart <- conj rxLow isIdle
-      gotoRxRecv  <- conj rxLow isBaudHalfRxStart
-      gotoRxStop  <- conj isBaud =<< conj ixDone isRecv
+      gotoRxStart <- C.logicAnd rxLow isIdle
+      gotoRxRecv  <- C.logicAnd rxLow isBaudHalfRxStart
+      gotoRxStop  <- C.logicAnd isBaud =<< C.logicAnd ixDone isRecv
       gotoRxIdle  <- do
-        fromRxStart <- conj rxHigh isBaudHalfRxStart
-        fromRxStop  <- conj isBaud isStop
+        fromRxStart <- C.logicAnd rxHigh isBaudHalfRxStart
+        fromRxStop  <- C.logicAnd isBaud isStop
         fromRxStart `C.logicOr` fromRxStop
       rxFsm' <- ifm
         [ gotoRxStart `thenm` start
@@ -115,7 +115,7 @@ instance MonadUart Rtl where
         , elsem "8'00000000"
         ]
       shiftedBuf <- shr $ rxBuf s
-      maskedBuf <- bitwiseAnd shiftedBuf "8'01111111" --0x7F
+      maskedBuf <- C.and shiftedBuf "8'01111111" --0x7F
       rxBufRx <- C.or rx8 maskedBuf
       rxBuf' <- ifm
         [ isBaudRxRecv `thenm` rxBufRx
@@ -124,7 +124,7 @@ instance MonadUart Rtl where
       return Sig{ spec = pad <> spec rxBuf' <> spec rxIx' <> spec rxCtr' <> spec rxFsm' }
     isStop  <- rxFsm s `C.eq` stop
     isBaud  <- C.eq (rxCtr s) $ val baud
-    isValid <- isStop `conj` isBaud
+    isValid <- isStop `C.logicAnd` isBaud
     return OptSig{ valid = isValid, value = rxBuf s }
     where
       pad = "24'000000000000000000000000"
@@ -162,12 +162,6 @@ out wireId sig = do
     [ ModuleBodyWire $ Wire [] $ WireStmt [WireOptionOutput i] wireId
     , ModuleBodyConnStmt $ ConnStmt (SigSpecWireId wireId) $ spec sig
     ]
-
-bitwiseAnd :: FiniteBits a => MonadSignal m => Sig a -> Sig a -> m (Sig a)
-bitwiseAnd = binary andC
-
-conj :: MonadSignal m => Sig Bool -> Sig Bool -> m (Sig Bool)
-conj = bitwiseAnd
 
 hello :: Monad m => MonadUart m => MonadSignal m => m ()
 hello = void $ process $ \timer -> do
