@@ -4,6 +4,7 @@
 
 module Bayeux.Signal
   ( Sig(..)
+  , val
   , MonadSignal(..)
   , ifm, thenm, elsem
   ) where
@@ -21,6 +22,9 @@ import Data.String
 newtype Sig a = Sig{ spec :: SigSpec }
   deriving (Eq, IsString, Read, Show)
 
+val :: FiniteBits a => a -> Sig a
+val = Sig . SigSpecConstant . ConstantValue . binaryValue
+
 instance Bits a => Bits (Sig a) where
   isSigned _ = isSigned (undefined :: a)
 
@@ -28,7 +32,6 @@ instance FiniteBits a => FiniteBits (Sig a) where
   finiteBitSize _ = finiteBitSize (undefined :: a)
 
 class MonadSignal m where
-  val     :: FiniteBits a => a -> m (Sig a)
   input   :: WireId -> m (Sig Bool)
   process :: FiniteBits a => (Sig a -> m (Sig a)) -> m (Sig a)
   at      :: FiniteBits a => Sig a -> Integer -> m (Sig Bool)
@@ -88,8 +91,6 @@ class MonadSignal m where
         -> m (Sig a)
 
 instance MonadSignal Rtl where
-  val = return . Sig . SigSpecConstant . ConstantValue . binaryValue
-
   input wireId = do
     i <- fresh
     tell [ModuleBodyWire $ Wire [] $ WireStmt [WireOptionInput i] wireId]

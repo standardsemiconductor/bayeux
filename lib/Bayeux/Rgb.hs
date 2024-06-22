@@ -31,9 +31,7 @@ instance MonadRgb Rtl where
       ]
 
 increment :: Monad m => MonadSignal m => Sig Word32 -> m (Sig Word32)
-increment a = do
-  suc <- val (1 :: Word32)
-  binary addC a suc
+increment a = binary addC a $ val (1 :: Word32)
 
 ctr :: Monad m => MonadSignal m => m (Sig Word32)
 ctr = process increment
@@ -60,10 +58,10 @@ prog = do
 
 cycleProg :: Monad m => MonadSignal m => MonadRgb m => m ()
 cycleProg = do
-  zero   <- val (0 :: Word32)
-  one    <- val (1 :: Word32)
-  two    <- val (2 :: Word32)
-  second <- val (12000000 :: Word32)
+  let zero = val (0 :: Word32)
+      one  = val (1 :: Word32)
+      two  = val (2 :: Word32)
+      second = val (12000000 :: Word32)
   t <- process $ \timer -> do
     t1Sec <- timer `eq` second
     timer' <- increment timer
