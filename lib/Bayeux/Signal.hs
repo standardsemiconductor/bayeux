@@ -36,7 +36,6 @@ class MonadSignal m where
   output  :: WireId -> Sig Bool -> m ()
   process :: FiniteBits a => (Sig a -> m (Sig a)) -> m (Sig a)
   at      :: FiniteBits a => Sig a -> Integer -> m (Sig Bool)
---  cat     :: [Sig a] -> m (Sig [a])
 
   -- | If S == 1 then B else A
   mux :: FiniteBits a
@@ -119,13 +118,7 @@ instance MonadSignal Rtl where
     Sig <$> Rtl.at (spec s) i
     where
       sz = fromIntegral $ finiteBitSize s
-{-
-  cat sigs = do
-    let sz = sum $ size <$> sigs
-    y <- freshWire sz
-    tell [ModuleBodyConnStmt $ ConnStmt y (SigSpecCat $ spec <$> sigs)]
-    return Sig{ spec = y, size = sz, signed = False}
--}
+
   mux s a b = Sig <$> Rtl.mux sz (spec s) (spec a) (spec b)
     where
       sz = fromIntegral $ finiteBitSize a

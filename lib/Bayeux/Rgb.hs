@@ -43,22 +43,19 @@ prog = do
 cycleProg :: Monad m => MonadSignal m => MonadRgb m => m ()
 cycleProg = do
   let zero = val (0 :: Word32)
-      one  = val (1 :: Word32)
-      two  = val (2 :: Word32)
-      second = val (12000000 :: Word32)
   t <- process $ \timer -> do
-    t1Sec <- timer `C.eq` second
+    t1Sec <- timer `C.eq` val 12000000
     timer' <- C.inc timer
     mux t1Sec timer' zero
   tNEqZ <- C.logicNot =<< t `C.eq` zero
   c <- process $ \color -> do
-    cEqBlue <- color `C.eq` two
+    cEqBlue <- color `C.eq` val 2
     c' <- C.inc color
     ifm [ tNEqZ   `thenm` color
         , cEqBlue `thenm` zero
         , elsem c'
         ]
-  pwmR <- c `C.eq` zero
-  pwmG <- c `C.eq` one
-  pwmB <- c `C.eq` two
+  pwmR <- c `C.eq` val 0
+  pwmG <- c `C.eq` val 1
+  pwmB <- c `C.eq` val 2
   rgb pwmR pwmG pwmB
