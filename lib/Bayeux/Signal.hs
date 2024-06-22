@@ -105,8 +105,7 @@ instance MonadSignal Rtl where
 
   process :: forall a. FiniteBits a => (Sig a -> Rtl (Sig a)) -> Rtl (Sig a)
   process f = do
-    let w = fromIntegral $ finiteBitSize (undefined :: a)
-    old <- freshWire w
+    old <- freshWire $ fromIntegral $ finiteBitSize (undefined :: a)
     let oldSig = Sig old
     procStmt <- freshProcStmt
     srcSig <- f oldSig
