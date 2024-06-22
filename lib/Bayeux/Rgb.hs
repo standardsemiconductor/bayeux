@@ -7,10 +7,10 @@ module Bayeux.Rgb
   , cycleProg
   ) where
 
+import qualified Bayeux.Cell as C
 import Bayeux.Rtl hiding (at, binary, process, mux, unary)
 import Bayeux.Signal
 import Control.Monad
-import Control.Monad.Except
 import Control.Monad.Writer
 import Data.Word
 
@@ -30,23 +30,8 @@ instance MonadRgb Rtl where
       , ModuleBodyCell $ sbRgbaDrv (spec r) (spec g) (spec b)
       ]
 
-increment :: Monad m => MonadSignal m => Sig Word32 -> m (Sig Word32)
-increment a = binary addC a $ val (1 :: Word32)
-
 ctr :: Monad m => MonadSignal m => m (Sig Word32)
-ctr = process increment
-
-eq :: Monad m => MonadSignal m => Sig Word32 -> Sig Word32 -> m (Sig Bool)
-eq a = flip at 0 <=< eq' a
-  where
-    eq' :: MonadSignal m => Sig Word32 -> Sig Word32 -> m (Sig Word32)
-    eq' = binary eqC
-
-bar :: Monad m => MonadSignal m => Sig Bool -> m (Sig Bool)
-bar = flip at 0 <=< not'
-  where
-    not' :: MonadSignal m => Sig Bool -> m (Sig Bool)
-    not' = unary notC -- TODO not right, should have dedicated cells.
+ctr = process C.inc
 
 prog :: Monad m => MonadSignal m => MonadRgb m => m ()
 prog = do
@@ -63,18 +48,18 @@ cycleProg = do
       two  = val (2 :: Word32)
       second = val (12000000 :: Word32)
   t <- process $ \timer -> do
-    t1Sec <- timer `eq` second
-    timer' <- increment timer
+    t1Sec <- timer `C.eq` second
+    timer' <- C.inc timer
     mux t1Sec timer' zero
-  tNEqZ <- bar =<< t `eq` zero
+  tNEqZ <- C.logicNot =<< t `C.eq` zero
   c <- process $ \color -> do
-    cEqBlue <- color `eq` two
-    c' <- increment color
+    cEqBlue <- color `C.eq` two
+    c' <- C.inc color
     ifm [ tNEqZ   `thenm` color
         , cEqBlue `thenm` zero
         , elsem c'
         ]
-  pwmR <- c `eq` zero
-  pwmG <- c `eq` one
-  pwmB <- c `eq` two
+  pwmR <- c `C.eq` zero
+  pwmG <- c `C.eq` one
+  pwmB <- c `C.eq` two
   rgb pwmR pwmG pwmB
