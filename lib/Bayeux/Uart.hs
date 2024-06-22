@@ -8,10 +8,10 @@ module Bayeux.Uart
   , echo
   ) where
 
+import qualified Bayeux.Cell as C
 import Bayeux.Rtl hiding (at, binary, mux, process, shift, shr, unary)
 import Bayeux.Signal
 import Control.Monad
-import Control.Monad.Except
 import Control.Monad.Writer
 import Data.Bits hiding (shift)
 import Data.Word
@@ -32,7 +32,7 @@ instance MonadUart Rtl where
     isStart <- eq txFsm $ val False
     txCtr <- process $ \txCtr -> do
       ctrDone <- eq txCtr $ val baud
-      txCtr' <- inc txCtr
+      txCtr' <- C.inc txCtr
       ifm [ isStart `thenm` "16'0000000000000000"
           , ctrDone `thenm` "16'0000000000000000"
           , elsem txCtr'
@@ -41,7 +41,7 @@ instance MonadUart Rtl where
     notDone <- bar ctrDone
     txIx <- process $ \txIx -> do
       isEmpty <- eq txIx nine
-      txIx'   <- inc txIx
+      txIx'   <- C.inc txIx
       ifm [ notDone `thenm` txIx
           , isEmpty `thenm` zero
           , elsem txIx'
@@ -92,14 +92,14 @@ instance MonadUart Rtl where
         , gotoRxIdle  `thenm` idle
         , elsem $ rxFsm s
         ]
-      rxCtr1 <- inc $ rxCtr s
+      rxCtr1 <- C.inc $ rxCtr s
       rxCtr' <- ifm
         [ isIdle            `thenm` "16'0000000000000000"
         , isBaudHalfRxStart `thenm` "16'0000000000000000"
         , isBaud            `thenm` "16'0000000000000000"
         , elsem rxCtr1
         ]
-      rxIx1 <- inc $ rxIx s
+      rxIx1 <- C.inc $ rxIx s
       rxIx' <- ifm
         [ isIdle  `thenm` "8'00000000"
         , isStart `thenm` "8'00000000"
@@ -161,9 +161,6 @@ one = Sig{ spec = SigSpecConstant $ ConstantValue $ Value 1 [B1] }
 nine :: Sig Word8
 nine = "8'00001001"
 
-inc :: FiniteBits a => Monad m => MonadSignal m => Sig a -> m (Sig a)
-inc a = binary addC a $ val True
-
 bar :: Monad m => MonadSignal m => Sig Bool -> m (Sig Bool)
 bar = flip at 0 <=< not'
   where
@@ -194,7 +191,7 @@ hello :: Monad m => MonadUart m => MonadSignal m => m ()
 hello = void $ process $ \timer -> do
   is5Sec <- eq timer $ val (60000000 :: Word32)
   transmit 624 $ OptSig is5Sec "8'01100001"
-  flip (mux is5Sec) zero =<< inc timer
+  flip (mux is5Sec) zero =<< C.inc timer
 
 echo :: Monad m => MonadUart m => MonadSignal m => m ()
 echo = transmit 624 =<< receive 624 =<< input "\\rx"
