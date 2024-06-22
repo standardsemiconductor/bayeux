@@ -29,25 +29,25 @@ class MonadUart m where
 
 instance MonadUart Rtl where
   transmit baud byte = void $ process $ \txFsm -> do
-    isStart <- eq txFsm $ val False
+    isStart <- C.eq txFsm $ val False
     txCtr <- process $ \txCtr -> do
-      ctrDone <- eq txCtr $ val baud
+      ctrDone <- C.eq txCtr $ val baud
       txCtr' <- C.inc txCtr
       ifm [ isStart `thenm` "16'0000000000000000"
           , ctrDone `thenm` "16'0000000000000000"
           , elsem txCtr'
           ]
-    ctrDone <- eq txCtr $ val baud
+    ctrDone <- C.eq txCtr $ val baud
     notDone <- C.logicNot ctrDone
     txIx <- process $ \txIx -> do
-      isEmpty <- eq txIx nine
+      isEmpty <- C.eq txIx nine
       txIx'   <- C.inc txIx
       ifm [ notDone `thenm` txIx
           , isEmpty `thenm` zero
           , elsem txIx'
           ]
-    isStartFrame <- eq txIx zero
-    isEndFrame   <- eq txIx nine
+    isStartFrame <- C.eq txIx zero
+    isEndFrame   <- C.eq txIx nine
     buf <- process $ \buf -> do
       buf' <- shr buf
       ifm [ isStart      `thenm` value byte
@@ -66,25 +66,25 @@ instance MonadUart Rtl where
     mux isStart txFsm' $ valid byte
 
   receive baud rx = do
-    rxLow  <- rx `eq` zero
+    rxLow  <- rx `C.eq` zero
     rxHigh <- C.logicNot rxLow
     s <- process $ \s -> do
-      isIdle  <- rxFsm s `eq` idle
-      isStart <- rxFsm s `eq` start
-      isRecv  <- rxFsm s `eq` recv
-      isStop  <- rxFsm s `eq` stop
-      isBaudHalf        <- eq (rxCtr s) $ val (baud `shiftR` 1)
+      isIdle  <- rxFsm s `C.eq` idle
+      isStart <- rxFsm s `C.eq` start
+      isRecv  <- rxFsm s `C.eq` recv
+      isStop  <- rxFsm s `C.eq` stop
+      isBaudHalf        <- C.eq (rxCtr s) $ val (baud `shiftR` 1)
       isBaudHalfRxStart <- conj isBaudHalf isStart
-      isBaud            <- eq (rxCtr s) $ val baud
+      isBaud            <- C.eq (rxCtr s) $ val baud
       isBaudRxRecv      <- conj isBaud isRecv
-      ixDone            <- eq (rxIx s) "8'00000111"
+      ixDone            <- C.eq (rxIx s) "8'00000111"
       gotoRxStart <- conj rxLow isIdle
       gotoRxRecv  <- conj rxLow isBaudHalfRxStart
       gotoRxStop  <- conj isBaud =<< conj ixDone isRecv
       gotoRxIdle  <- do
         fromRxStart <- conj rxHigh isBaudHalfRxStart
         fromRxStop  <- conj isBaud isStop
-        fromRxStart `disj` fromRxStop
+        fromRxStart `C.logicOr` fromRxStop
       rxFsm' <- ifm
         [ gotoRxStart `thenm` start
         , gotoRxRecv  `thenm` recv
@@ -116,14 +116,14 @@ instance MonadUart Rtl where
         ]
       shiftedBuf <- shr $ rxBuf s
       maskedBuf <- bitwiseAnd shiftedBuf "8'01111111" --0x7F
-      rxBufRx <- bitwiseOr rx8 maskedBuf
+      rxBufRx <- C.or rx8 maskedBuf
       rxBuf' <- ifm
         [ isBaudRxRecv `thenm` rxBufRx
         , elsem $ rxBuf s
         ]
       return Sig{ spec = pad <> spec rxBuf' <> spec rxIx' <> spec rxCtr' <> spec rxFsm' }
-    isStop  <- rxFsm s `eq` stop
-    isBaud  <- eq (rxCtr s) $ val baud
+    isStop  <- rxFsm s `C.eq` stop
+    isBaud  <- C.eq (rxCtr s) $ val baud
     isValid <- isStop `conj` isBaud
     return OptSig{ valid = isValid, value = rxBuf s }
     where
@@ -143,12 +143,6 @@ instance MonadUart Rtl where
 
 shr :: FiniteBits a => MonadSignal m => Sig a -> m (Sig a)
 shr a = shift shrC a one
-
-eq :: FiniteBits a => Monad m => MonadSignal m => Sig a -> Sig a -> m (Sig Bool)
-eq a = flip at 0 <=< eq' a
-  where
-    eq' :: FiniteBits a => MonadSignal m => Sig a -> Sig a -> m (Sig a)
-    eq' = binary eqC
 
 zero :: forall a. FiniteBits a => Sig a
 zero = Sig{ spec = SigSpecConstant $ ConstantValue $ Value (fromIntegral w) $ replicate w B0 }
@@ -175,15 +169,9 @@ bitwiseAnd = binary andC
 conj :: MonadSignal m => Sig Bool -> Sig Bool -> m (Sig Bool)
 conj = bitwiseAnd
 
-bitwiseOr :: FiniteBits a => MonadSignal m => Sig a -> Sig a -> m (Sig a)
-bitwiseOr = binary orC
-
-disj :: MonadSignal m => Sig Bool -> Sig Bool -> m (Sig Bool)
-disj = bitwiseOr
-
 hello :: Monad m => MonadUart m => MonadSignal m => m ()
 hello = void $ process $ \timer -> do
-  is5Sec <- eq timer $ val (60000000 :: Word32)
+  is5Sec <- C.eq timer $ val (60000000 :: Word32)
   transmit 624 $ OptSig is5Sec "8'01100001"
   flip (mux is5Sec) zero =<< C.inc timer
 

@@ -10,13 +10,15 @@ module Bayeux.Cell
     add
   , eq
   , logicAnd
+  , logicOr
+  , or
   ) where
 
 import Bayeux.Rtl hiding (at, binary, unary)
 import Bayeux.Signal
 import Control.Monad
 import Data.Bits
-import Prelude hiding (not)
+import Prelude hiding (not, or)
 
 -- | increment
 inc :: FiniteBits a => MonadSignal m => Sig a -> m (Sig a)
@@ -39,3 +41,9 @@ eq a = flip at 0 <=< eq' a
 
 logicAnd :: MonadSignal m => Sig Bool -> Sig Bool -> m (Sig Bool)
 logicAnd = binary logicAndC
+
+logicOr :: MonadSignal m => Sig Bool -> Sig Bool -> m (Sig Bool)
+logicOr = binary logicOrC
+
+or :: FiniteBits a => MonadSignal m => Sig a -> Sig a -> m (Sig a)
+or = binary orC

@@ -9,10 +9,10 @@ module \top
     parameter \A_SIGNED 0
     parameter \A_WIDTH 32
     parameter \B_SIGNED 0
-    parameter \B_WIDTH 32
+    parameter \B_WIDTH 1
     parameter \Y_WIDTH 32
     connect \A \wire1
-    connect \B 32'00000000000000000000000000000001
+    connect \B 1'1
     connect \Y \wire3
   end
 

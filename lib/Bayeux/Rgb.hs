@@ -10,7 +10,6 @@ module Bayeux.Rgb
 import qualified Bayeux.Cell as C
 import Bayeux.Rtl hiding (at, binary, process, mux, unary)
 import Bayeux.Signal
-import Control.Monad
 import Control.Monad.Writer
 import Data.Word
 
