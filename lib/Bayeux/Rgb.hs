@@ -3,6 +3,7 @@
 
 module Bayeux.Rgb
   ( MonadRgb(..)
+  , outputRgb
   , prog
   , cycleProg
   ) where
@@ -18,16 +19,15 @@ class MonadRgb m where
   rgb :: Sig Bool -- ^ red
       -> Sig Bool -- ^ green
       -> Sig Bool -- ^ blue
-      -> m ()
+      -> m (Sig Bool, Sig Bool, Sig Bool)
 
 instance MonadRgb Rtl where
-  rgb r g b = do
-    tell
-      [ ModuleBodyWire $ Wire [] $ WireStmt [WireOptionOutput 2] "\\red"
-      , ModuleBodyWire $ Wire [] $ WireStmt [WireOptionOutput 3] "\\green"
-      , ModuleBodyWire $ Wire [] $ WireStmt [WireOptionOutput 4] "\\blue"
-      , ModuleBodyCell $ sbRgbaDrv (spec r) (spec g) (spec b)
-      ]
+  rgb pwmR pwmG pwmB = do
+    red   <- freshWire 1
+    green <- freshWire 1
+    blue  <- freshWire 1
+    tell [ModuleBodyCell $ sbRgbaDrv (spec pwmR) (spec pwmG) (spec pwmB) red green blue]
+    return (Sig red, Sig green, Sig blue)
 
 ctr :: Monad m => MonadSignal m => m (Sig Word32)
 ctr = process C.inc
@@ -38,7 +38,7 @@ prog = do
   r <- c `at` 24
   g <- c `at` 23
   b <- c `at` 22
-  rgb r g b
+  outputRgb r g b
 
 cycleProg :: Monad m => MonadSignal m => MonadRgb m => m ()
 cycleProg = do
@@ -58,4 +58,19 @@ cycleProg = do
   pwmR <- c `C.eq` val 0
   pwmG <- c `C.eq` val 1
   pwmB <- c `C.eq` val 2
-  rgb pwmR pwmG pwmB
+  outputRgb pwmR pwmG pwmB
+
+-- | Rgb driver with output wires \"red\", \"green\", and \"blue\".
+outputRgb
+  :: Monad m
+  => MonadSignal m
+  => MonadRgb m
+  => Sig Bool -- ^ red pwm
+  -> Sig Bool -- ^ green pwm
+  -> Sig Bool -- ^ blue pwm
+  -> m ()
+outputRgb pwmR pwmG pwmB = do
+  (r, g, b) <- rgb pwmR pwmG pwmB
+  output "\\red"   r
+  output "\\green" g
+  output "\\blue"  b

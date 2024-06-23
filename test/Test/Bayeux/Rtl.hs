@@ -27,6 +27,9 @@ tests =
           (SigSpecWireId "\\pwm_r")
           (SigSpecWireId "\\pwm_g")
           (SigSpecWireId "\\pwm_b")
+          (SigSpecWireId "\\red")
+          (SigSpecWireId "\\green")
+          (SigSpecWireId "\\blue")
       , prettyTest "fiatLux"   fiatLux
       , prettyTest "add"     $ addC "\\adder" False 32 False 32 33 (SigSpecWireId "\\a") (SigSpecWireId "\\b") (SigSpecWireId "\\y")
       , prettyTest "counter" $ counter 8 "\\old" "\\new" "$old" "$procStmt"

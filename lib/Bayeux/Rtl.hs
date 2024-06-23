@@ -204,6 +204,9 @@ fiatLux = top $
           (SigSpecWireId "\\pwm_r")
           (SigSpecWireId "\\pwm_g")
           (SigSpecWireId "\\pwm_b")
+          (SigSpecWireId "\\red")
+          (SigSpecWireId "\\green")
+          (SigSpecWireId "\\blue")
        ]
 
 newtype AutoIdxStmt = AutoIdxStmt Integer
@@ -596,8 +599,11 @@ sbRgbaDrv
   :: SigSpec -- ^ red   pwm input
   -> SigSpec -- ^ green pwm input
   -> SigSpec -- ^ blue  pwm input
+  -> SigSpec -- ^ red   RGB0 output
+  -> SigSpec -- ^ green RGB1 output
+  -> SigSpec -- ^ blue  RGB2 output
   -> Cell
-sbRgbaDrv pwmR pwmG pwmB = Cell
+sbRgbaDrv pwmR pwmG pwmB red green blue = Cell
   [AttrStmt "\\module_not_derived" $ ConstantInteger 1]
   (CellStmt "\\SB_RGBA_DRV" "\\RGBA_DRIVER")
   [ CellParameter Nothing "\\CURRENT_MODE" $ ConstantString "0b1"
@@ -605,11 +611,11 @@ sbRgbaDrv pwmR pwmG pwmB = Cell
   , CellParameter Nothing "\\RGB1_CURRENT" $ ConstantString "0b111111"
   , CellParameter Nothing "\\RGB2_CURRENT" $ ConstantString "0b111111"
   , CellConnect "\\CURREN" $ SigSpecConstant $ ConstantValue $ Value 1 [B1]
-  , CellConnect "\\RGB0" $ SigSpecWireId "\\red"
+  , CellConnect "\\RGB0" red
   , CellConnect "\\RGB0PWM" pwmR
-  , CellConnect "\\RGB1" $ SigSpecWireId "\\green"
+  , CellConnect "\\RGB1" green
   , CellConnect "\\RGB1PWM" pwmG
-  , CellConnect "\\RGB2" $ SigSpecWireId "\\blue"
+  , CellConnect "\\RGB2" blue
   , CellConnect "\\RGB2PWM" pwmB
   , CellConnect "\\RGBLEDEN" $ SigSpecConstant $ ConstantValue $ Value 1 [B1]
   ]

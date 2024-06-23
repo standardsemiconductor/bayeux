@@ -31,9 +31,9 @@ module \top
   connect \wire6 \wire1 [23]
   wire width 1 \wire7
   connect \wire7 \wire1 [22]
-  wire output 2 \red
-  wire output 3 \green
-  wire output 4 \blue
+  wire width 1 \wire8
+  wire width 1 \wire9
+  wire width 1 \wire10
   attribute \module_not_derived 1
   cell \SB_RGBA_DRV \RGBA_DRIVER
     parameter \CURRENT_MODE "0b1"
@@ -41,13 +41,19 @@ module \top
     parameter \RGB1_CURRENT "0b111111"
     parameter \RGB2_CURRENT "0b111111"
     connect \CURREN 1'1
-    connect \RGB0 \red
+    connect \RGB0 \wire8
     connect \RGB0PWM \wire5
-    connect \RGB1 \green
+    connect \RGB1 \wire9
     connect \RGB1PWM \wire6
-    connect \RGB2 \blue
+    connect \RGB2 \wire10
     connect \RGB2PWM \wire7
     connect \RGBLEDEN 1'1
   end
 
+  wire output 11 \red
+  connect \red \wire8
+  wire output 12 \green
+  connect \green \wire9
+  wire output 13 \blue
+  connect \blue \wire10
 end
