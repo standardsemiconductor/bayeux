@@ -5,6 +5,7 @@
 module Bayeux.Signal
   ( Sig(..)
   , val
+  , OptSig(..)
   , MonadSignal(..)
   , ifm, thenm, elsem
   ) where
@@ -30,6 +31,9 @@ instance Bits a => Bits (Sig a) where
 
 instance FiniteBits a => FiniteBits (Sig a) where
   finiteBitSize _ = finiteBitSize (undefined :: a)
+
+data OptSig a = OptSig{ valid :: Sig Bool, value :: Sig a }
+  deriving (Eq, Read, Show)
 
 class MonadSignal m where
   input   :: WireId -> m (Sig Bool)

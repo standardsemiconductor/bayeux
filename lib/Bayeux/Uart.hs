@@ -15,9 +15,6 @@ import Control.Monad
 import Data.Bits hiding (shift)
 import Data.Word
 
-data OptSig a = OptSig{ valid :: Sig Bool, value :: Sig a }
-  deriving (Eq, Read, Show)
-
 class MonadUart m where
   transmit :: Word16 -- ^ baud
            -> OptSig Word8
