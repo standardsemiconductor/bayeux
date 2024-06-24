@@ -37,30 +37,24 @@ val v = let bs = foldMap binaryDigits $ LB.unpack $ encode v
   where
     w = width (undefined :: a)
 
-instance Bits a => Bits (Sig a) where
-  isSigned _ = isSigned (undefined :: a)
-
-instance FiniteBits a => FiniteBits (Sig a) where
-  finiteBitSize _ = finiteBitSize (undefined :: a)
-
 data OptSig a = OptSig{ valid :: Sig Bool, value :: Sig a }
   deriving (Eq, Read, Show)
 
 class MonadSignal m where
   input   :: WireId -> m (Sig Bool)
   output  :: WireId -> Sig Bool -> m ()
-  process :: FiniteBits a => (Sig a -> m (Sig a)) -> m (Sig a)
-  at      :: FiniteBits a => Sig a -> Integer -> m (Sig Bool)
+  process :: Width a => (Sig a -> m (Sig a)) -> m (Sig a)
+  at      :: Width a => Sig a -> Integer -> m (Sig Bool)
 
   -- | If S == 1 then B else A
-  mux :: FiniteBits a
+  mux :: Width a
       => Sig Bool   -- ^ S
       -> Sig a     -- ^ A
       -> Sig a     -- ^ B
       -> m (Sig a) -- ^ Y
 
-  unary :: FiniteBits a
-        => FiniteBits b
+  unary :: Width a
+        => Width b
         => ( CellId
              -> Bool
              -> Integer
@@ -71,9 +65,9 @@ class MonadSignal m where
            )
         -> Sig a
         -> m (Sig b)
-  binary :: FiniteBits a
-         => FiniteBits b
-         => FiniteBits c
+  binary :: Width a
+         => Width b
+         => Width c
          => ( CellId
               -> Bool
               -> Integer
@@ -89,8 +83,8 @@ class MonadSignal m where
          -> Sig b
          -> m (Sig c)
 
-  shift :: FiniteBits a
-        => FiniteBits b
+  shift :: Width a
+        => Width b
         => ( CellId
              -> Bool
              -> Integer
@@ -118,9 +112,9 @@ instance MonadSignal Rtl where
       , ModuleBodyConnStmt $ ConnStmt (SigSpecWireId wireId) $ spec sig
       ]
 
-  process :: forall a. FiniteBits a => (Sig a -> Rtl (Sig a)) -> Rtl (Sig a)
+  process :: forall a. Width a => (Sig a -> Rtl (Sig a)) -> Rtl (Sig a)
   process f = do
-    old <- freshWire $ fromIntegral $ finiteBitSize (undefined :: a)
+    old <- freshWire $ width (undefined :: a)
     let oldSig = Sig old
     procStmt <- freshProcStmt
     srcSig <- f oldSig
@@ -131,29 +125,29 @@ instance MonadSignal Rtl where
     when (i >= sz) $ throwError SizeMismatch
     Sig <$> Rtl.at (spec s) i
     where
-      sz = fromIntegral $ finiteBitSize s
+      sz = width s
 
   mux s a b = Sig <$> Rtl.mux sz (spec s) (spec a) (spec b)
     where
-      sz = fromIntegral $ finiteBitSize a
+      sz = width a
 
-  unary cFn a = Sig <$> Rtl.unary cFn (isSigned a) aSz ySz (spec a)
+  unary cFn a = Sig <$> Rtl.unary cFn False aSz ySz (spec a)
     where
-      aSz = fromIntegral $ finiteBitSize a
+      aSz = width a
       ySz = aSz
 
-  binary cFn a b = Sig <$> Rtl.binary cFn (isSigned a) aSz (isSigned b) bSz ySz (spec a) (spec b)
+  binary cFn a b = Sig <$> Rtl.binary cFn False aSz False bSz ySz (spec a) (spec b)
     where
-      aSz = fromIntegral $ finiteBitSize a
-      bSz = fromIntegral $ finiteBitSize b
+      aSz = width a
+      bSz = width b
       ySz = aSz
 
   shift cFn a b = do
-    when (isSigned b) $ throwError SignedShift
-    Sig <$> Rtl.shift cFn (isSigned a) aSz bSz ySz (spec a) (spec b)
+--    when (isSigned b) $ throwError SignedShift
+    Sig <$> Rtl.shift cFn False aSz bSz ySz (spec a) (spec b)
     where
-      aSz = fromIntegral $ finiteBitSize a
-      bSz = fromIntegral $ finiteBitSize b
+      aSz = width a
+      bSz = width b
       ySz = aSz
 
 data Cond a = Cond
@@ -161,7 +155,7 @@ data Cond a = Cond
   , result    :: Sig a
   }
 
-ifm :: FiniteBits a => Monad m => MonadSignal m => NonEmpty (Cond a) -> m (Sig a)
+ifm :: Width a => Monad m => MonadSignal m => NonEmpty (Cond a) -> m (Sig a)
 ifm (a :| bs) = case nonEmpty bs of
   Nothing   -> return $ result a
   Just rest -> flip (mux (fromJust $ condition a)) (result a) =<< ifm rest
