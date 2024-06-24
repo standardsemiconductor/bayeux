@@ -24,11 +24,15 @@ library
                     , Bayeux.Signal
                     , Bayeux.Tableaux
                     , Bayeux.Uart
+                    , Bayeux.Width
     other-modules:    Paths_bayeux
     autogen-modules:  Paths_bayeux
     build-depends:    async
                     , base
+                    , binary
+                    , bytestring
                     , containers
+                    , derive-storable
                     , filepath
                     , megaparsec
                     , mtl
