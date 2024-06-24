@@ -40,6 +40,9 @@ prog = do
   b <- c `at` 22
   outputRgb r g b
 
+--data Color = Red | Green | Blue
+--  deriving (Binary, Eq, Read, Show, Width)
+
 cycleProg :: Monad m => MonadSignal m => MonadRgb m => m ()
 cycleProg = do
   let zero = val (0 :: Word32)

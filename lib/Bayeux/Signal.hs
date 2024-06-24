@@ -25,9 +25,6 @@ import Data.Maybe
 import Data.String
 import GHC.Generics
 
-data MyType = Foo Word16 Word32
-  deriving (Binary, Eq, Generic, Read, Show, Width)
-
 newtype Sig a = Sig{ spec :: SigSpec }
   deriving (Eq, IsString, Read, Show)
 
@@ -35,18 +32,11 @@ instance Width a => Width (Sig a) where
   width _ = width (undefined :: a)
 
 val :: forall a. Binary a => Width a => a -> Sig a
-val = Sig
-        . SigSpecConstant
-        . ConstantValue
-        . Value (width (undefined :: a))
-        . foldMap binaryDigits
-        . LB.unpack
-        . encode
+val v = let bs = foldMap binaryDigits $ LB.unpack $ encode v
+        in Sig $ SigSpecConstant $ ConstantValue $ Value w $ drop (length bs - fromIntegral w) bs
+  where
+    w = width (undefined :: a)
 
-{-
-val :: FiniteBits a => a -> Sig a
-val = Sig . SigSpecConstant . ConstantValue . binaryValue
--}
 instance Bits a => Bits (Sig a) where
   isSigned _ = isSigned (undefined :: a)
 

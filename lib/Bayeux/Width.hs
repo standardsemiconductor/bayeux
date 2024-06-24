@@ -38,26 +38,7 @@ class Width a where
   width :: a -> Integer
   default width :: (Generic a, Width1 (Rep a)) => a -> Integer
   width = defaultWidth
-{-
-instance Width (V1 p) where
-  width _ = 0
 
-instance Width (U1 p) where
-  width _ = 1
-
-instance Width (K1 i c p) where
-  width _ = 1
-
-instance Width (f p) => Width (M1 i c f p) where
-  width (M1 x) = width x
-
-instance (Width (a p), Width (b p)) => Width ((a :+: b) p) where
-  width (L1 x) = width x
-  width (R1 x) = width x
-
-instance (Width (a p), Width (b p)) => Width ((a :*: b) p) where
-  width (a :*: b) = width a + width b
--}
 instance Width Bool where
   width _ = 1
 
