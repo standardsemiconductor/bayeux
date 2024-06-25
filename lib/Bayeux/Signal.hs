@@ -1,6 +1,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE InstanceSigs               #-}
 {-# LANGUAGE ScopedTypeVariables        #-}
+
 module Bayeux.Signal
   ( Sig(..)
   , val
