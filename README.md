@@ -10,27 +10,25 @@ bx --help
 
 Build your chip
 ```haskell
-rgbCycle :: Monad m => MonadRtl m => MonadRgb m => m ()
-rgbCycle = do
-  t <- process 32 $ \timer -> do
-    t1Sec  <- timer `eq` second
-    timer' <- increment timer
-    mux 32 t1Sec timer' zero
-  tEqZ <- t `eq` zero
-  c <- process 32 $ \color -> do
-    cEqBlue <- color `eq` two
-    c'      <- increment color
-    mux 32 tEqZ color =<< mux 32 cEqBlue c' zero
-  pwmR <- c `eq` zero
-  pwmG <- c `eq` one
-  pwmB <- c `eq` two
-  rgb pwmR pwmG pwmB
-  where
-    constSig = SigSpecConstant . ConstantInteger
-    zero   = constSig 0
-    one    = constSig 1
-    two    = constSig 2
-    second = constSig 12000000
+cycleProg :: Monad m => MonadSignal m => MonadRgb m => m ()
+cycleProg = do
+  let zero = val (0 :: Word32)
+  t <- process $ \timer -> do
+    t1Sec <- timer === val 12000000
+    timer' <- inc timer
+    mux t1Sec timer' zero
+  tNEqZ <- logicNot =<< t === zero
+  c <- process $ \color -> do
+    cEqBlue <- color === val Blue
+    c' <- inc color
+    ifm [ tNEqZ   `thenm` color
+        , cEqBlue `thenm` val Red
+        , elsem c'
+        ]
+  pwmR <- c === val Red
+  pwmG <- c === val Green
+  pwmB <- c === val Blue
+  outputRgb pwmR pwmG pwmB
 ```
 
 or synthesize a demo
