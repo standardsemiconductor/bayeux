@@ -1,3 +1,5 @@
+{-# LANGUAGE DeriveAnyClass    #-}
+{-# LANGUAGE DeriveGeneric     #-}
 {-# LANGUAGE OverloadedLists   #-}
 {-# LANGUAGE OverloadedStrings #-}
 
@@ -12,8 +14,10 @@ import Bayeux.Cell ((===))
 import qualified Bayeux.Cell as C
 import Bayeux.Rtl hiding (at, binary, process, mux, unary)
 import Bayeux.Signal
+import Bayeux.Width
 import Control.Monad.Writer
-import Data.Word
+import Data.Binary
+import GHC.Generics
 
 -- | PWM inputs, width=1
 class MonadRgb m where
@@ -41,6 +45,12 @@ prog = do
   b <- c `at` 22
   outputRgb r g b
 
+data Color = Red | Green | Blue
+  deriving (Binary, Eq, Generic, Read, Show)
+
+instance Width Color where
+  width _ = 2
+
 cycleProg :: Monad m => MonadSignal m => MonadRgb m => m ()
 cycleProg = do
   let zero = val (0 :: Word32)
@@ -48,17 +58,17 @@ cycleProg = do
     t1Sec <- timer === val 12000000
     timer' <- C.inc timer
     mux t1Sec timer' zero
-  tNEqZ <- C.logicNot =<< t `C.eq` zero
+  tNEqZ <- C.logicNot =<< t === zero
   c <- process $ \color -> do
-    cEqBlue <- color === val 2
+    cEqBlue <- color === val Blue
     c' <- C.inc color
     ifm [ tNEqZ   `thenm` color
-        , cEqBlue `thenm` zero
+        , cEqBlue `thenm` val Red
         , elsem c'
         ]
-  pwmR <- c === val 0
-  pwmG <- c === val 1
-  pwmB <- c === val 2
+  pwmR <- c === val Red
+  pwmG <- c === val Green
+  pwmB <- c === val Blue
   outputRgb pwmR pwmG pwmB
 
 -- | Rgb driver with output wires \"red\", \"green\", and \"blue\".

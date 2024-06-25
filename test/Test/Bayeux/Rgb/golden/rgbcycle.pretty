@@ -75,49 +75,49 @@ module \top
     connect \Y \wire13
   end
 
-  wire width 32 \wire15
-  wire width 32 \wire17
+  wire width 2 \wire15
+  wire width 2 \wire17
 
   cell $eq $cell18
     parameter \A_SIGNED 0
-    parameter \A_WIDTH 32
+    parameter \A_WIDTH 2
     parameter \B_SIGNED 0
-    parameter \B_WIDTH 32
-    parameter \Y_WIDTH 32
+    parameter \B_WIDTH 2
+    parameter \Y_WIDTH 2
     connect \A \wire15
-    connect \B 32'00000000000000000000000000000010
+    connect \B 2'10
     connect \Y \wire17
   end
 
   wire width 1 \wire19
   connect \wire19 \wire17 [0]
-  wire width 32 \wire20
+  wire width 2 \wire20
 
   cell $add $cell21
     parameter \A_SIGNED 0
-    parameter \A_WIDTH 32
+    parameter \A_WIDTH 2
     parameter \B_SIGNED 0
     parameter \B_WIDTH 1
-    parameter \Y_WIDTH 32
+    parameter \Y_WIDTH 2
     connect \A \wire15
     connect \B 1'1
     connect \Y \wire20
   end
 
-  wire width 32 \wire22
+  wire width 2 \wire22
 
   cell $mux $cell23
-    parameter \WIDTH 32
+    parameter \WIDTH 2
     connect \A \wire20
-    connect \B 32'00000000000000000000000000000000
+    connect \B 2'00
     connect \S \wire19
     connect \Y \wire22
   end
 
-  wire width 32 \wire24
+  wire width 2 \wire24
 
   cell $mux $cell25
-    parameter \WIDTH 32
+    parameter \WIDTH 2
     connect \A \wire22
     connect \B \wire15
     connect \S \wire13
@@ -133,46 +133,46 @@ module \top
       update \wire15 \wire24
   end
 
-  wire width 32 \wire26
+  wire width 2 \wire26
 
   cell $eq $cell27
     parameter \A_SIGNED 0
-    parameter \A_WIDTH 32
+    parameter \A_WIDTH 2
     parameter \B_SIGNED 0
-    parameter \B_WIDTH 32
-    parameter \Y_WIDTH 32
+    parameter \B_WIDTH 2
+    parameter \Y_WIDTH 2
     connect \A \wire15
-    connect \B 32'00000000000000000000000000000000
+    connect \B 2'00
     connect \Y \wire26
   end
 
   wire width 1 \wire28
   connect \wire28 \wire26 [0]
-  wire width 32 \wire29
+  wire width 2 \wire29
 
   cell $eq $cell30
     parameter \A_SIGNED 0
-    parameter \A_WIDTH 32
+    parameter \A_WIDTH 2
     parameter \B_SIGNED 0
-    parameter \B_WIDTH 32
-    parameter \Y_WIDTH 32
+    parameter \B_WIDTH 2
+    parameter \Y_WIDTH 2
     connect \A \wire15
-    connect \B 32'00000000000000000000000000000001
+    connect \B 2'01
     connect \Y \wire29
   end
 
   wire width 1 \wire31
   connect \wire31 \wire29 [0]
-  wire width 32 \wire32
+  wire width 2 \wire32
 
   cell $eq $cell33
     parameter \A_SIGNED 0
-    parameter \A_WIDTH 32
+    parameter \A_WIDTH 2
     parameter \B_SIGNED 0
-    parameter \B_WIDTH 32
-    parameter \Y_WIDTH 32
+    parameter \B_WIDTH 2
+    parameter \Y_WIDTH 2
     connect \A \wire15
-    connect \B 32'00000000000000000000000000000010
+    connect \B 2'10
     connect \Y \wire32
   end
 
