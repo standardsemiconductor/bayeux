@@ -32,7 +32,6 @@ library
                     , binary
                     , bytestring
                     , containers
-                    , derive-storable
                     , filepath
                     , megaparsec
                     , mtl

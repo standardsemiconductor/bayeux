@@ -17,7 +17,6 @@ import Bayeux.Signal
 import Bayeux.Width
 import Control.Monad.Writer
 import Data.Binary
-import Data.Word
 import GHC.Generics
 
 -- | PWM inputs, width=1

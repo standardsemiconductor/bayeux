@@ -22,7 +22,6 @@ import Bayeux.Rtl hiding (at, binary, unary, shift, shr)
 import Bayeux.Signal
 import Bayeux.Width
 import Control.Monad
-import Data.Bits hiding (shift)
 import Prelude hiding (and, not, or)
 
 -- | increment

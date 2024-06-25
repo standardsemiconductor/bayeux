@@ -1,5 +1,3 @@
-{-# LANGUAGE DeriveAnyClass             #-}
-{-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE InstanceSigs               #-}
 {-# LANGUAGE ScopedTypeVariables        #-}
@@ -18,12 +16,10 @@ import Control.Monad
 import Control.Monad.Except
 import Control.Monad.Writer
 import Data.Binary
-import Data.Bits
 import qualified Data.ByteString.Lazy as LB
 import Data.List.NonEmpty (NonEmpty(..), nonEmpty)
 import Data.Maybe
 import Data.String
-import GHC.Generics
 
 newtype Sig a = Sig{ spec :: SigSpec }
   deriving (Eq, IsString, Read, Show)
@@ -31,11 +27,11 @@ newtype Sig a = Sig{ spec :: SigSpec }
 instance Width a => Width (Sig a) where
   width _ = width (undefined :: a)
 
-val :: forall a. Binary a => Width a => a -> Sig a
+val :: Binary a => Width a => a -> Sig a
 val v = let bs = foldMap binaryDigits $ LB.unpack $ encode v
         in Sig $ SigSpecConstant $ ConstantValue $ Value w $ drop (length bs - fromIntegral w) bs
   where
-    w = width (undefined :: a)
+    w = width v
 
 data OptSig a = OptSig{ valid :: Sig Bool, value :: Sig a }
   deriving (Eq, Read, Show)
@@ -143,7 +139,6 @@ instance MonadSignal Rtl where
       ySz = aSz
 
   shift cFn a b = do
---    when (isSigned b) $ throwError SignedShift
     Sig <$> Rtl.shift cFn False aSz bSz ySz (spec a) (spec b)
     where
       aSz = width a
