@@ -58,7 +58,7 @@ cycleProg = do
     t1Sec <- timer === val 12000000
     timer' <- C.inc timer
     mux t1Sec timer' zero
-  tNEqZ <- C.logicNot =<< t `C.eq` zero
+  tNEqZ <- C.logicNot =<< t === zero
   c <- process $ \color -> do
     cEqBlue <- color === val Blue
     c' <- C.inc color
