@@ -10,6 +10,7 @@ module Bayeux.Cell
     add
   , and
   , eq
+  , (===)
   , logicAnd
   , logicOr
   , or
@@ -45,6 +46,10 @@ eq a = flip at 0 <=< eq' a
   where
     eq' :: Width a => MonadSignal m => Sig a -> Sig a -> m (Sig a)
     eq' = binary eqC
+
+infix 4 ===
+(===) :: Width a => Monad m => MonadSignal m => Sig a -> Sig a -> m (Sig Bool)
+(===) = eq
 
 logicAnd :: MonadSignal m => Sig Bool -> Sig Bool -> m (Sig Bool)
 logicAnd = binary logicAndC

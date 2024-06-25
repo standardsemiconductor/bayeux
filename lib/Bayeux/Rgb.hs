@@ -10,6 +10,7 @@ module Bayeux.Rgb
   , cycleProg
   ) where
 
+import Bayeux.Cell ((===))
 import qualified Bayeux.Cell as C
 import Bayeux.Rtl hiding (at, binary, process, mux, unary)
 import Bayeux.Signal
@@ -55,20 +56,20 @@ cycleProg :: Monad m => MonadSignal m => MonadRgb m => m ()
 cycleProg = do
   let zero = val (0 :: Word32)
   t <- process $ \timer -> do
-    t1Sec <- timer `C.eq` val 12000000
+    t1Sec <- timer === val 12000000
     timer' <- C.inc timer
     mux t1Sec timer' zero
   tNEqZ <- C.logicNot =<< t `C.eq` zero
   c <- process $ \color -> do
-    cEqBlue <- color `C.eq` val Blue
+    cEqBlue <- color === val Blue
     c' <- C.inc color
     ifm [ tNEqZ   `thenm` color
         , cEqBlue `thenm` val Red
         , elsem c'
         ]
-  pwmR <- c `C.eq` val Red
-  pwmG <- c `C.eq` val Green
-  pwmB <- c `C.eq` val Blue
+  pwmR <- c === val Red
+  pwmG <- c === val Green
+  pwmB <- c === val Blue
   outputRgb pwmR pwmG pwmB
 
 -- | Rgb driver with output wires \"red\", \"green\", and \"blue\".
