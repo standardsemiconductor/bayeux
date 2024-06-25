@@ -8,6 +8,7 @@ module Bayeux.Uart
   , echo
   ) where
 
+import Bayeux.Cell ((===))
 import qualified Bayeux.Cell as C
 import Bayeux.Rtl hiding (at, binary, mux, process, shift, shr, unary)
 import Bayeux.Signal
@@ -25,25 +26,25 @@ class MonadUart m where
 
 instance MonadUart Rtl where
   transmit baud byte = void $ process $ \txFsm -> do
-    isStart <- C.eq txFsm $ val False
+    isStart <- txFsm === val False
     txCtr <- process $ \txCtr -> do
-      ctrDone <- C.eq txCtr $ val baud
+      ctrDone <- txCtr === val baud
       txCtr' <- C.inc txCtr
       ifm [ isStart `thenm` val 0
           , ctrDone `thenm` val 0
           , elsem txCtr'
           ]
-    ctrDone <- C.eq txCtr $ val baud
+    ctrDone <- txCtr === val baud
     notDone <- C.logicNot ctrDone
     txIx <- process $ \txIx -> do
-      isEmpty <- txIx `C.eq` val 9
+      isEmpty <- txIx === val 9
       txIx'   <- C.inc txIx
       ifm [ notDone `thenm` txIx
           , isEmpty `thenm` val (0 :: Word8)
           , elsem txIx'
           ]
-    isStartFrame <- txIx `C.eq` val 0
-    isEndFrame   <- txIx `C.eq` val 9
+    isStartFrame <- txIx === val 0
+    isEndFrame   <- txIx === val 9
     buf <- process $ \buf -> do
       buf' <- buf `C.shr` val True
       ifm [ isStart      `thenm` value byte
@@ -62,18 +63,18 @@ instance MonadUart Rtl where
     mux isStart txFsm' $ valid byte
 
   receive baud rx = do
-    rxLow  <- rx `C.eq` val False
+    rxLow  <- rx === val False
     rxHigh <- C.logicNot rxLow
     s <- process $ \s -> do
-      isIdle  <- rxFsm s `C.eq` idle
-      isStart <- rxFsm s `C.eq` start
-      isRecv  <- rxFsm s `C.eq` recv
-      isStop  <- rxFsm s `C.eq` stop
-      isBaudHalf        <- rxCtr s `C.eq` val (baud `shiftR` 1)
+      isIdle  <- rxFsm s === idle
+      isStart <- rxFsm s === start
+      isRecv  <- rxFsm s === recv
+      isStop  <- rxFsm s === stop
+      isBaudHalf        <- rxCtr s === val (baud `shiftR` 1)
       isBaudHalfRxStart <- isBaudHalf `C.logicAnd` isStart
-      isBaud            <- rxCtr s `C.eq` val baud
+      isBaud            <- rxCtr s === val baud
       isBaudRxRecv      <- isBaud `C.logicAnd` isRecv
-      ixDone            <- rxIx s `C.eq` val 7
+      ixDone            <- rxIx s === val 7
       gotoRxStart <- rxLow `C.logicAnd` isIdle
       gotoRxRecv  <- rxLow `C.logicAnd` isBaudHalfRxStart
       gotoRxStop  <- C.logicAnd isBaud =<< C.logicAnd ixDone isRecv
@@ -115,7 +116,7 @@ instance MonadUart Rtl where
         , elsem $ rxBuf s
         ]
       return Sig{ spec = pad <> spec rxBuf' <> spec rxIx' <> spec rxCtr' <> spec rxFsm' }
-    isStop  <- rxFsm s `C.eq` stop
+    isStop  <- rxFsm s === stop
     isBaud  <- C.eq (rxCtr s) $ val baud
     isValid <- isStop `C.logicAnd` isBaud
     return OptSig{ valid = isValid, value = rxBuf s }
@@ -136,7 +137,7 @@ instance MonadUart Rtl where
 
 hello :: Monad m => MonadUart m => MonadSignal m => m (Sig Word32)
 hello = process $ \timer -> do
-  is5Sec <- timer `C.eq` val 60000000
+  is5Sec <- timer === val 60000000
   transmit 624 $ OptSig is5Sec $ val 0x61
   flip (mux is5Sec) (val 0) =<< C.inc timer
 
