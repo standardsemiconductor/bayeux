@@ -7,7 +7,6 @@ module Bayeux.Signal
   , val
   , OptSig(..)
   , MonadSignal(..)
-  , ifm, thenm, elsem
   ) where
 
 import Bayeux.Rtl hiding (mux)
@@ -18,7 +17,6 @@ import Control.Monad.Except
 import Control.Monad.Writer
 import Data.Binary
 import qualified Data.ByteString.Lazy as LB
-import Data.List.NonEmpty (NonEmpty(..), nonEmpty)
 import Data.Maybe
 import Data.String
 
@@ -145,19 +143,3 @@ instance MonadSignal Rtl where
       aSz = width a
       bSz = width b
       ySz = aSz
-
-data Cond a = Cond
-  { condition :: Maybe (Sig Bool)
-  , result    :: Sig a
-  }
-
-ifm :: Width a => Monad m => MonadSignal m => NonEmpty (Cond a) -> m (Sig a)
-ifm (a :| bs) = case nonEmpty bs of
-  Nothing   -> return $ result a
-  Just rest -> flip (mux (fromJust $ condition a)) (result a) =<< ifm rest
-
-thenm :: Sig Bool -> Sig a -> Cond a
-thenm s = Cond (Just s)
-
-elsem :: Sig a -> Cond a
-elsem = Cond Nothing

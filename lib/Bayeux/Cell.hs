@@ -16,12 +16,18 @@ module Bayeux.Cell
   , or
   , -- ** Shift
     shr
+  , -- * Control
+    ifm, thenm, elsem
+  , patm, (~>), wildm
   ) where
 
-import Bayeux.Rtl hiding (at, binary, unary, shift, shr)
+import Bayeux.Rtl hiding (at, binary, mux, shift, shr, unary)
 import Bayeux.Signal
 import Bayeux.Width
 import Control.Monad
+import Data.Binary
+import Data.List.NonEmpty (NonEmpty(..), nonEmpty)
+import Data.Maybe
 import Prelude hiding (and, not, or)
 
 -- | increment
@@ -61,3 +67,59 @@ or = binary orC
 
 shr :: Width a => Width b => MonadSignal m => Sig a -> Sig b -> m (Sig a)
 shr = shift shrC
+
+data Cond a = Cond
+  { condition :: Maybe (Sig Bool)
+  , result    :: Sig a
+  }
+
+ifm :: Width a => Monad m => MonadSignal m => NonEmpty (Cond a) -> m (Sig a)
+ifm (a :| bs) = case nonEmpty bs of
+  Nothing   -> return $ result a
+  Just rest -> flip (mux (fromJust $ condition a)) (result a) =<< ifm rest
+
+thenm :: Sig Bool -> Sig a -> Cond a
+thenm s = Cond (Just s)
+
+elsem :: Sig a -> Cond a
+elsem = Cond Nothing
+
+data Pat p r = Pat
+  { pattern       :: Maybe p
+  , patternResult :: Sig r
+  }
+
+infix 5 ~>
+(~>) :: p -> Sig r -> Pat p r
+(~>) p = Pat (Just p)
+
+wildm :: Sig r -> Pat p r
+wildm = Pat Nothing
+
+toCondition
+  :: Binary p
+  => Width p
+  => Monad m
+  => MonadSignal m
+  => Sig p
+  -> Pat p r
+  -> m (Cond r)
+toCondition s p = case pattern p of
+  Nothing -> return $ Cond Nothing $ patternResult p
+  Just v  -> do
+   isEq <- s === val v
+   return $ Cond
+     { condition = Just isEq
+     , result    = patternResult p
+     }
+
+patm
+  :: Binary p
+  => Width p
+  => Width r
+  => Monad m
+  => MonadSignal m
+  => Sig p
+  -> NonEmpty (Pat p r)
+  -> m (Sig r)
+patm s = ifm <=< mapM (toCondition s)
