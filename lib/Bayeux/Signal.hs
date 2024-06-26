@@ -133,11 +133,30 @@ instance MonadSignal Rtl where
       aSz = width a
       ySz = aSz
 
+  binary
+    :: forall a b c
+     . Width a
+    => Width b
+    => Width c
+    => ( CellId
+           -> Bool
+           -> Integer
+           -> Bool
+           -> Integer
+           -> Integer
+           -> SigSpec
+           -> SigSpec
+           -> SigSpec
+           -> Cell
+       )
+    -> Sig a
+    -> Sig b
+    -> Rtl (Sig c)
   binary cFn a b = Sig <$> Rtl.binary cFn False aSz False bSz ySz (spec a) (spec b)
     where
       aSz = width a
       bSz = width b
-      ySz = aSz
+      ySz = width (undefined :: c)
 
   shift cFn a b = do
     Sig <$> Rtl.shift cFn False aSz bSz ySz (spec a) (spec b)
