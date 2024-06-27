@@ -17,7 +17,6 @@ import Control.Monad.Except
 import Control.Monad.Writer
 import Data.Binary
 import qualified Data.ByteString.Lazy as LB
-import Data.Maybe
 import Data.String
 
 newtype Sig a = Sig{ spec :: SigSpec }

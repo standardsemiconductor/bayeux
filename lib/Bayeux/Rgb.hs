@@ -54,19 +54,19 @@ instance Width Color where
 cycleProg :: Monad m => MonadSignal m => MonadRgb m => m ()
 cycleProg = do
   t <- process $ \timer -> do
-    timer' <- inc timer
+    t' <- inc timer
     patm timer
       [ 12000000 ~> val (0 :: Word32)
-      , wildm timer'
+      , wildm t'
       ]
   c <- process $ \color -> do
-    c' <- patm color
-      [ Red   ~> val Green
-      , Green ~> val Blue
-      , wildm $  val Red
+    c' <- inc color
+    c'' <- patm color
+      [ Blue ~> val Red
+      , wildm c'
       ]
     patm t
-      [ 12000000 ~> c'
+      [ 12000000 ~> c''
       , wildm color
       ]
   pwmR <- c === val Red

@@ -85,8 +85,8 @@ elsem :: Sig a -> Cond a
 elsem = Cond Nothing
 
 data Pat p r = Pat
-  { pattern       :: Maybe p
-  , patternResult :: Sig r
+  { pat       :: Maybe p
+  , patResult :: Sig r
   }
 
 infix 5 ~>
@@ -104,13 +104,13 @@ toCondition
   => Sig p
   -> Pat p r
   -> m (Cond r)
-toCondition s p = case pattern p of
-  Nothing -> return $ Cond Nothing $ patternResult p
+toCondition s p = case pat p of
+  Nothing -> return $ Cond Nothing $ patResult p
   Just v  -> do
    isEq <- s === val v
    return $ Cond
      { condition = Just isEq
-     , result    = patternResult p
+     , result    = patResult p
      }
 
 patm
