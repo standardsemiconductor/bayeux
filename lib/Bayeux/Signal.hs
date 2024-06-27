@@ -5,6 +5,7 @@
 module Bayeux.Signal
   ( Sig(..)
   , val
+  , slice
   , OptSig(..)
   , MonadSignal(..)
   ) where
@@ -30,6 +31,14 @@ val v = let bs = foldMap binaryDigits $ LB.unpack $ encode v
         in Sig $ SigSpecConstant $ ConstantValue $ Value w $ drop (length bs - fromIntegral w) bs
   where
     w = width v
+
+-- | Slice a signal. @slice 7 0@ is equal to @[7:0]@, the first byte.
+slice
+  :: Integer -- ^ end
+  -> Integer -- ^ start
+  -> Sig a
+  -> Sig b
+slice end start s = Sig{ spec = SigSpecSlice (spec s) end (Just start) }
 
 data OptSig a = OptSig{ valid :: Sig Bool, value :: Sig a }
   deriving (Eq, Read, Show)

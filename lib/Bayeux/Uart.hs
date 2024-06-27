@@ -127,13 +127,13 @@ instance MonadUart Rtl where
       recv  = val 2
       stop  = val 3
       rxFsm :: Sig Word64 -> Sig Word8
-      rxFsm s = Sig{ spec = SigSpecSlice (spec s) 7  (Just 0) }
+      rxFsm = slice 7 0
       rxCtr :: Sig Word64 -> Sig Word16
-      rxCtr s = Sig{ spec = SigSpecSlice (spec s) 23 (Just 8) }
+      rxCtr = slice 23 8
       rxIx :: Sig Word64 -> Sig Word8
-      rxIx  s = Sig{ spec = SigSpecSlice (spec s) 31 (Just 24) }
+      rxIx = slice 31 24
       rxBuf :: Sig Word64 -> Sig Word8
-      rxBuf s = Sig{ spec = SigSpecSlice (spec s) 39 (Just 32) }
+      rxBuf = slice 39 32
 
 hello :: Monad m => MonadUart m => MonadSignal m => m (Sig Word32)
 hello = process $ \timer -> do
