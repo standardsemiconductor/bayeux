@@ -8,7 +8,7 @@ module Bayeux.Uart
   , echo
   ) where
 
-import Bayeux.Cell ((===))
+import Bayeux.Cell ((===), ifm, elsem, thenm)
 import qualified Bayeux.Cell as C
 import Bayeux.Rtl hiding (at, binary, mux, process, shift, shr, unary)
 import Bayeux.Signal
