@@ -39,3 +39,6 @@ instance KnownNat n => Width (Finite n) where
 
 instance (KnownNat n, Width e) => Width (Array (Finite n) e) where
   width _ = (fromIntegral . natVal) (Proxy :: Proxy n) * width (undefined :: e)
+
+instance Width a => Width (Maybe a) where
+  width _ = 1 + width (undefined :: a)

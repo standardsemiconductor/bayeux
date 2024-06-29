@@ -1,3 +1,4 @@
+{-# LANGUAGE DataKinds           #-}
 {-# LANGUAGE OverloadedLists     #-}
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -8,12 +9,15 @@ module Bayeux.Uart
   , echo
   ) where
 
+import Bayeux.Buffer (buffer)
 import Bayeux.Cell ((===), ifm, elsem, thenm)
 import qualified Bayeux.Cell as C
 import Bayeux.Rtl hiding (at, binary, mux, process, shift, shr, unary)
 import Bayeux.Signal
 import Control.Monad
+import Data.Array
 import Data.Bits hiding (shift)
+import Data.Finite
 import Data.Word
 
 class MonadUart m where
@@ -65,7 +69,7 @@ instance MonadUart Rtl where
   receive baud rx = do
     rxLow  <- rx === val False
     rxHigh <- C.logicNot rxLow
-    s <- process $ \s -> do
+    (s, buf) <- machine $ \s -> do
       isIdle  <- rxFsm s === idle
       isStart <- rxFsm s === start
       isRecv  <- rxFsm s === recv
@@ -74,10 +78,11 @@ instance MonadUart Rtl where
       isBaudHalfRxStart <- isBaudHalf `C.logicAnd` isStart
       isBaud            <- rxCtr s === val baud
       isBaudRxRecv      <- isBaud `C.logicAnd` isRecv
-      ixDone            <- rxIx s === val 7
+--      ixDone            <- rxIx s === val 7
+      buf <- buffer $ OptSig isBaudRxRecv rx
       gotoRxStart <- rxLow `C.logicAnd` isIdle
       gotoRxRecv  <- rxLow `C.logicAnd` isBaudHalfRxStart
-      gotoRxStop  <- C.logicAnd isBaud =<< C.logicAnd ixDone isRecv
+      gotoRxStop  <- {-C.logicAnd isBaud =<<-} C.logicAnd {-ixDone-}(valid buf) isRecv
       gotoRxIdle  <- do
         fromRxStart <- rxHigh `C.logicAnd` isBaudHalfRxStart
         fromRxStop  <- isBaud `C.logicAnd` isStop
@@ -96,44 +101,27 @@ instance MonadUart Rtl where
         , isBaud            `thenm` val 0
         , elsem rxCtr1
         ]
-      rxIx1 <- C.inc $ rxIx s
-      rxIx' <- ifm
-        [ isIdle  `thenm` val 0
-        , isStart `thenm` val 0
-        , isStop  `thenm` val 0
-        , isBaudRxRecv `thenm` rxIx1
-        , elsem $ rxIx s
-        ]
-      rx8 <- ifm
-        [ rx `thenm` val 0x80
-        , elsem $    val 0x00
-        ]
-      shiftedBuf <- rxBuf s `C.shr` val True
-      maskedBuf <- shiftedBuf `C.and` val 0x7F
-      rxBufRx <- rx8 `C.or` maskedBuf
-      rxBuf' <- ifm
-        [ isBaudRxRecv `thenm` rxBufRx
-        , elsem $ rxBuf s
-        ]
-      return Sig{ spec = pad <> spec rxBuf' <> spec rxIx' <> spec rxCtr' <> spec rxFsm' }
+      return (Sig{ spec = pad <> spec rxCtr' <> spec rxFsm' }, packMaybe buf)
     isStop  <- rxFsm s === stop
-    isBaud  <- C.eq (rxCtr s) $ val baud
+    isBaud  <- rxCtr s === val baud
     isValid <- isStop `C.logicAnd` isBaud
-    return OptSig{ valid = isValid, value = rxBuf s }
+--    let bufOptSig = unpackMaybe buf
+--    isValid' <- isValid `C.logicAnd` valid bufOptSig
+    return $ unpackMaybe buf -- $ OptSig isValid' $ value bufOptSig
     where
-      pad = "24'000000000000000000000000"
+      pad = "8'00000000"
       idle  = val 0
       start = val 1
       recv  = val 2
       stop  = val 3
-      rxFsm :: Sig Word64 -> Sig Word8
+      rxFsm :: Sig Word32 -> Sig Word8
       rxFsm = slice 7 0
-      rxCtr :: Sig Word64 -> Sig Word16
+      rxCtr :: Sig Word32 -> Sig Word16
       rxCtr = slice 23 8
-      rxIx :: Sig Word64 -> Sig Word8
-      rxIx = slice 31 24
-      rxBuf :: Sig Word64 -> Sig Word8
-      rxBuf = slice 39 32
+      packMaybe :: OptSig (Array (Finite 8) Bool) -> Sig (Maybe Word8)
+      packMaybe (OptSig validSig valueSig) = Sig $ spec validSig <> spec valueSig
+      unpackMaybe :: Sig (Maybe Word8) -> OptSig Word8
+      unpackMaybe s = OptSig (slice 8 8 s) (slice 7 0 s)
 
 hello :: Monad m => MonadUart m => MonadSignal m => m (Sig Word32)
 hello = process $ \timer -> do

@@ -47,6 +47,7 @@ class MonadSignal m where
   input   :: WireId -> m (Sig Bool)
   output  :: WireId -> Sig Bool -> m ()
   process :: Width a => (Sig a -> m (Sig a)) -> m (Sig a)
+  machine :: Width s => Width o => (Sig s -> m (Sig s, Sig o)) -> m (Sig s, Sig o)
   at      :: Width a => Sig a -> Integer -> m (Sig Bool)
 
   -- | If S == 1 then B else A
@@ -123,6 +124,20 @@ instance MonadSignal Rtl where
     srcSig <- f oldSig
     tell [ModuleBodyProcess $ updateP procStmt (DestSigSpec old) (SrcSigSpec (spec srcSig))]
     return oldSig
+
+  machine
+    :: forall s o
+     . Width s
+    => Width o
+    => (Sig s -> Rtl (Sig s, Sig o))
+    -> Rtl (Sig s, Sig o)
+  machine f = do
+    old <- freshWire $ width (undefined :: s)
+    let oldSig = Sig old
+    procStmt <- freshProcStmt
+    (srcSig, outSig) <- f oldSig
+    tell [ModuleBodyProcess $ updateP procStmt (DestSigSpec old) (SrcSigSpec (spec srcSig))]
+    return (srcSig, outSig)
 
   at s i = do
     when (i >= sz) $ throwError SizeMismatch

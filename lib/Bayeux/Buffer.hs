@@ -66,7 +66,7 @@ instance MonadBuffer Rtl where
         [ True ~> buf'
         , wildm buf
         ]
-    return $ OptSig isFull buf
+    flip OptSig buf <$> process (const $ isFull `C.logicAnd` valid input)
     where
       w :: Integer
       w = width (undefined :: e)
