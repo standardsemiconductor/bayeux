@@ -129,8 +129,6 @@ import Bayeux.Width
 import Control.Monad.Except
 import Control.Monad.State
 import Control.Monad.Writer
-import Data.Bits hiding (shift)
-import Data.Bool
 import Data.String
 import Data.Text (Text)
 import Prettyprinter hiding (width)
