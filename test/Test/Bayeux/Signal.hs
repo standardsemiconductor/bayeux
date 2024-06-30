@@ -8,12 +8,14 @@ import Bayeux.Encode
 import Bayeux.Signal
 import Bayeux.Width
 import Data.Word
+import Prettyprinter
+import Prettyprinter.Render.String
 import Test.Tasty
 import Test.Tasty.HUnit
 
 tests :: [TestTree]
 tests =
-  [ testGroup "val encoding" valEncoding
+  [ testGroup "encoding" valEncoding
   ]
 
 valEncoding :: [TestTree]
@@ -26,5 +28,10 @@ valEncoding =
   , valTest (Just True)  "2'11"
   ]
 
-valTest :: Encode a => Width a => a -> Sig a -> TestTree
-valTest a s = testCase "" $ val a @?= s
+valTest :: Encode a => Show a => Width a => a -> Sig a -> TestTree
+valTest a s = testCase testName $ val a @?= s
+  where
+    testName = show a <> " ~ " <> renderPretty s
+
+renderPretty :: Pretty a => a -> String
+renderPretty = renderString . layoutPretty defaultLayoutOptions . pretty

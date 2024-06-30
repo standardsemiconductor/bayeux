@@ -18,9 +18,10 @@ import Control.Monad
 import Control.Monad.Except
 import Control.Monad.Writer
 import Data.String
+import Prettyprinter hiding (width)
 
 newtype Sig a = Sig{ spec :: SigSpec }
-  deriving (Eq, IsString, Read, Show)
+  deriving (Eq, IsString, Pretty, Read, Show)
 
 instance Width a => Width (Sig a) where
   width _ = width (undefined :: a)
