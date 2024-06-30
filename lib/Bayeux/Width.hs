@@ -1,3 +1,5 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+
 module Bayeux.Width where
 
 import Data.Word
@@ -19,3 +21,6 @@ instance Width Word32 where
 
 instance Width Word64 where
   width _ = 64
+
+instance Width a => Width (Maybe a) where
+  width _ = 1 + width (undefined :: a)

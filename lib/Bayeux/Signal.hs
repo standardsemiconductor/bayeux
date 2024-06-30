@@ -10,14 +10,13 @@ module Bayeux.Signal
   , MonadSignal(..)
   ) where
 
+import Bayeux.Encode
 import Bayeux.Rtl hiding (mux)
 import qualified Bayeux.Rtl as Rtl
 import Bayeux.Width
 import Control.Monad
 import Control.Monad.Except
 import Control.Monad.Writer
-import Data.Binary
-import qualified Data.ByteString.Lazy as LB
 import Data.String
 
 newtype Sig a = Sig{ spec :: SigSpec }
@@ -26,11 +25,8 @@ newtype Sig a = Sig{ spec :: SigSpec }
 instance Width a => Width (Sig a) where
   width _ = width (undefined :: a)
 
-val :: Binary a => Width a => a -> Sig a
-val v = let bs = foldMap binaryDigits $ LB.unpack $ encode v
-        in Sig $ SigSpecConstant $ ConstantValue $ Value w $ drop (length bs - fromIntegral w) bs
-  where
-    w = width v
+val :: Encode a => Width a => a -> Sig a
+val v = Sig $ SigSpecConstant $ ConstantValue $ Value (width v) (encode v)
 
 -- | Slice a signal. @slice 7 0@ is equal to @[7:0]@, the first byte.
 slice
