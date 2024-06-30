@@ -28,6 +28,9 @@ instance Width Word32 where
 instance Width Word64 where
   width _ = 64
 
+instance Width a => Width (Maybe a) where
+  width _ = 1 + width (undefined :: a)
+
 instance KnownNat n => Width (Finite n) where
   width _
     | n == 1    = 1

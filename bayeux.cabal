@@ -18,6 +18,7 @@ library
                     , Bayeux.Buffer
                     , Bayeux.Cell
                     , Bayeux.Cli
+                    , Bayeux.Encode
                     , Bayeux.Flow
                     , Bayeux.Lp
                     , Bayeux.Rgb
@@ -31,7 +32,6 @@ library
     build-depends:    array
                     , async
                     , base
-                    , binary
                     , bytestring
                     , containers
                     , filepath
@@ -64,11 +64,13 @@ test-suite test
     other-modules:    Test.Bayeux.Lp
                     , Test.Bayeux.Rgb
                     , Test.Bayeux.Rtl
+                    , Test.Bayeux.Signal
                     , Test.Bayeux.Uart
     build-depends:    base
                     , bayeux
                     , extra
                     , filepath
+                    , finite-typelits
                     , hedgehog
                     , megaparsec
                     , prettyprinter
