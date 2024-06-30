@@ -21,17 +21,17 @@ module Bayeux.Cell
   , patm, (~>), wildm
   ) where
 
+import Bayeux.Encode
 import Bayeux.Rtl hiding (at, binary, mux, shift, shr, unary)
 import Bayeux.Signal
 import Bayeux.Width
 import Control.Monad
-import Data.Binary
 import Data.List.NonEmpty (NonEmpty(..), nonEmpty)
 import Data.Maybe
 import Prelude hiding (and, not, or)
 
 -- | increment
-inc :: Width a => MonadSignal m => Sig a -> m (Sig a)
+inc :: Encode a => Width a => MonadSignal m => Sig a -> m (Sig a)
 inc a = binary addC a $ val True
 
 logicNot :: MonadSignal m => Sig Bool -> m (Sig Bool)
@@ -97,7 +97,7 @@ wildm :: Sig r -> Pat p r
 wildm = Pat Nothing
 
 toCondition
-  :: Binary p
+  :: Encode p
   => Width p
   => Monad m
   => MonadSignal m
@@ -114,7 +114,7 @@ toCondition s p = case pat p of
      }
 
 patm
-  :: Binary p
+  :: Encode p
   => Width p
   => Width r
   => Monad m
