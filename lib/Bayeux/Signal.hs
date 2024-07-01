@@ -148,7 +148,7 @@ instance MonadSignal Rtl where
     procStmt <- freshProcStmt
     (srcSig, outSig) <- f oldSig
     tell [ModuleBodyProcess $ updateP procStmt (DestSigSpec old) (SrcSigSpec (spec srcSig))]
-    return (srcSig, outSig)
+    return (oldSig, outSig)
 
   at s i = do
     when (i >= sz) $ throwError SizeMismatch
