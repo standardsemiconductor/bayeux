@@ -1,14 +1,18 @@
-{-# LANGUAGE LambdaCase          #-}
-{-# LANGUAGE OverloadedStrings   #-}
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE FlexibleInstances    #-}
+{-# LANGUAGE LambdaCase           #-}
+{-# LANGUAGE OverloadedStrings    #-}
+{-# LANGUAGE ScopedTypeVariables  #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 
 module Bayeux.Encode where
 
 import Bayeux.Width
 import Data.Bits
 import Data.Bool
+import Data.Finite
 import Data.String
 import Data.Word
+import GHC.TypeLits
 import Prettyprinter hiding (width)
 
 data BinaryDigit = B0
@@ -59,6 +63,11 @@ instance Encode Word32 where
 
 instance Encode Word64 where
   encode = binaryDigits
+
+instance KnownNat n => Encode (Finite n) where
+  encode b = bool B0 B1 . testBit (getFinite b) <$> reverse [0..w - 1]
+    where
+      w = fromIntegral $ width b
 
 instance (Encode a, Width a) => Encode (Maybe a) where
   encode = \case

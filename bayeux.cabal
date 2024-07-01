@@ -15,6 +15,7 @@ data-files:         data/**/*.pcf
 library
     ghc-options:      -Wall
     exposed-modules:  Bayeux
+                    , Bayeux.Buffer
                     , Bayeux.Cell
                     , Bayeux.Cli
                     , Bayeux.Encode
@@ -28,11 +29,13 @@ library
                     , Bayeux.Width
     other-modules:    Paths_bayeux
     autogen-modules:  Paths_bayeux
-    build-depends:    async
+    build-depends:    array
+                    , async
                     , base
                     , bytestring
                     , containers
                     , filepath
+                    , finite-typelits
                     , megaparsec
                     , mtl
                     , parser-combinators
@@ -67,6 +70,7 @@ test-suite test
                     , bayeux
                     , extra
                     , filepath
+                    , finite-typelits
                     , hedgehog
                     , megaparsec
                     , prettyprinter

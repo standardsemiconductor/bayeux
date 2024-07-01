@@ -1,8 +1,14 @@
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE FlexibleInstances    #-}
+{-# LANGUAGE ScopedTypeVariables  #-}
+{-# LANGUAGE TypeSynonymInstances #-}
 
 module Bayeux.Width where
 
+import Data.Array
+import Data.Finite
+import Data.Proxy
 import Data.Word
+import GHC.TypeLits
 
 class Width a where
   width :: a -> Integer
@@ -24,3 +30,15 @@ instance Width Word64 where
 
 instance Width a => Width (Maybe a) where
   width _ = 1 + width (undefined :: a)
+
+instance KnownNat n => Width (Finite n) where
+  width _
+    | n == 1    = 1
+    | otherwise = ceil $ logBase 2 $ fromInteger n
+    where
+      n = natVal (Proxy :: Proxy n)
+      ceil :: Double -> Integer
+      ceil = ceiling
+
+instance (KnownNat n, Width e) => Width (Array (Finite n) e) where
+  width _ = (fromIntegral . natVal) (Proxy :: Proxy n) * width (undefined :: e)
