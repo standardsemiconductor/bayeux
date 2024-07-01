@@ -244,7 +244,7 @@ module \top
   cell $mux $cell53
     parameter \WIDTH 8
     connect \A \wire50
-    connect \B 8'01100001
+    connect \B { \wire5 8'01100001 } [7:0]
     connect \S \wire10
     connect \Y \wire52
   end
@@ -320,7 +320,7 @@ module \top
   cell $mux $cell67
     parameter \WIDTH 1
     connect \A \wire64
-    connect \B \wire5
+    connect \B { \wire5 8'01100001 } [8:8]
     connect \S \wire10
     connect \Y \wire66
   end
