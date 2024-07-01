@@ -8,7 +8,7 @@ module Bayeux.Buffer
   ( MonadBuffer(..)
   ) where
 
-import Bayeux.Cell ((===), inc, shr, patm, (~>), wildm)
+import Bayeux.Cell
 import qualified Bayeux.Cell as C
 import Bayeux.Encode
 import Bayeux.Rtl (Rtl)
@@ -25,8 +25,8 @@ class MonadBuffer m where
     :: Encode e
     => Width e
     => KnownNat n
-    => OptSig e
-    -> m (OptSig (Array (Finite n) e))
+    => Sig (Maybe e)
+    -> m (Sig (Maybe (Array (Finite n) e)))
 
 instance MonadBuffer Rtl where
   buffer
@@ -34,8 +34,8 @@ instance MonadBuffer Rtl where
      . Encode e
     => Width e
     => KnownNat n
-    => OptSig e
-    -> Rtl (OptSig (Array (Finite n) e))
+    => Sig (Maybe e)
+    -> Rtl (Sig (Maybe (Array (Finite n) e)))
   buffer input = do
     ix <- process $ \ix  -> do
       ixPlusOne <- inc ix
@@ -43,7 +43,7 @@ instance MonadBuffer Rtl where
         [ maxBound ~> val (0 :: Finite n)
         , wildm ixPlusOne
         ]
-      patm (valid input)
+      patm (sliceValid input)
         [ True ~> ix'
         , wildm ix
         ]
@@ -56,7 +56,7 @@ instance MonadBuffer Rtl where
           le = fromIntegral w
           input' :: Sig (Array (Finite n) e)
           input' = Sig $ mconcat
-            [ spec (value input)
+            [ spec (sliceValue input)
             , fromString $ show ((la - 1) * le) <> "'" <> concat (replicate (la - 1) (replicate le '0'))
             ]
           mask :: Sig (Array (Finite n) e)
@@ -65,11 +65,12 @@ instance MonadBuffer Rtl where
                   in fromString $ show la <> "'" <> zs <> ones
       maskedBuf <- shiftedBuf `C.and` mask
       buf' <- input' `C.or` maskedBuf
-      patm (valid input)
+      patm (sliceValid input)
         [ True ~> buf'
         , wildm buf
         ]
-    flip OptSig buf <$> process (const $ isFull `C.logicAnd` valid input)
+    isValid' <- process $ const $ isFull `C.logicAnd` sliceValid input
+    return $ Sig $ spec isValid' <> spec buf
     where
       w :: Integer
       w = width (undefined :: e)

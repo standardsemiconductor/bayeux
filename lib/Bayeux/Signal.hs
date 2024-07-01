@@ -6,7 +6,10 @@ module Bayeux.Signal
   ( Sig(..)
   , val
   , slice
-  , OptSig(..)
+  , toMaybeSig
+  , fromMaybeSig
+  , sliceValid
+  , sliceValue
   , MonadSignal(..)
   ) where
 
@@ -37,8 +40,19 @@ slice
   -> Sig b
 slice end start s = Sig{ spec = SigSpecSlice (spec s) end (Just start) }
 
-data OptSig a = OptSig{ valid :: Sig Bool, value :: Sig a }
-  deriving (Eq, Read, Show)
+toMaybeSig :: Sig Bool -> Sig a -> Sig (Maybe a)
+toMaybeSig validSig valueSig = Sig $ spec validSig <> spec valueSig
+
+fromMaybeSig :: Width a => Sig (Maybe a) -> (Sig Bool, Sig a)
+fromMaybeSig s = (slice (w - 1) (w - 1) s, slice (w - 2) 0 s)
+  where
+    w = width s
+
+sliceValid :: Width a => Sig (Maybe a) -> Sig Bool
+sliceValid = fst . fromMaybeSig
+
+sliceValue :: Width a => Sig (Maybe a) -> Sig a
+sliceValue = snd . fromMaybeSig
 
 class MonadSignal m where
   input   :: WireId -> m (Sig Bool)

@@ -192,7 +192,7 @@ module \top
     parameter \B_SIGNED 0
     parameter \B_WIDTH 1
     parameter \Y_WIDTH 1
-    connect \A \wire29
+    connect \A { \wire29 \rx } [1:1]
     connect \B 1'1
     connect \Y \wire40
   end
@@ -268,7 +268,7 @@ module \top
     parameter \B_SIGNED 0
     parameter \B_WIDTH 8
     parameter \Y_WIDTH 8
-    connect \A { \rx 7'0000000 }
+    connect \A { { \wire29 \rx } [0:0] 7'0000000 }
     connect \B \wire52
     connect \Y \wire54
   end
@@ -281,7 +281,7 @@ module \top
     parameter \B_SIGNED 0
     parameter \B_WIDTH 1
     parameter \Y_WIDTH 1
-    connect \A \wire29
+    connect \A { \wire29 \rx } [1:1]
     connect \B 1'1
     connect \Y \wire56
   end
@@ -317,7 +317,7 @@ module \top
     parameter \B_WIDTH 1
     parameter \Y_WIDTH 1
     connect \A \wire47
-    connect \B \wire29
+    connect \B { \wire29 \rx } [1:1]
     connect \Y \wire63
   end
 
@@ -364,7 +364,7 @@ module \top
     parameter \B_SIGNED 0
     parameter \B_WIDTH 1
     parameter \Y_WIDTH 1
-    connect \A \wire61
+    connect \A { \wire61 \wire48 } [8:8]
     connect \B \wire17
     connect \Y \wire69
   end
