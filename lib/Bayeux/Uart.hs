@@ -68,7 +68,7 @@ instance MonadUart Rtl where
   receive baud rx = do
     rxLow  <- rx === val False
     rxHigh <- C.logicNot rxLow
-    (s, buf) <- machine $ \s -> do
+    (_, buf) <- machine $ \s -> do
       isIdle  <- rxFsm s === idle
       isStart <- rxFsm s === start
       isRecv  <- rxFsm s === recv
