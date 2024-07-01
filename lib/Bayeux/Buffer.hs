@@ -56,7 +56,10 @@ instance MonadBuffer Rtl where
       let la = fromIntegral $ width (undefined :: Array (Finite n) e)
           le = fromIntegral w
           input' :: Sig (Array (Finite n) e)
-          input' = Sig $ stimes (la `div` le) $ spec $ value input
+          input' = Sig $ mconcat
+            [ spec (value input)
+            , fromString $ show ((la - 1) * le) <> "'" <> concat (replicate (la - 1) (replicate le '0'))
+            ]
           mask :: Sig (Array (Finite n) e)
           mask  = let zs = replicate le '0'
                       ones = replicate (la - le) '1'
@@ -67,7 +70,7 @@ instance MonadBuffer Rtl where
         [ True ~> buf'
         , wildm buf
         ]
-    return $ OptSig isFull buf
+    flip OptSig buf <$> process (const $ isFull `C.logicAnd` valid input)
     where
       w :: Integer
       w = width (undefined :: e)
