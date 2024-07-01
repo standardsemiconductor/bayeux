@@ -10,19 +10,20 @@ module Bayeux.Buffer
 
 import Bayeux.Cell ((===), inc, shr, patm, (~>), wildm)
 import qualified Bayeux.Cell as C
+import Bayeux.Encode
 import Bayeux.Rtl (Rtl)
 import Bayeux.Signal hiding (input)
 import Bayeux.Width
 import Data.Array
-import Data.Binary
 import Data.Finite
 import Data.Semigroup
 import Data.String
+import Data.Word
 import GHC.TypeNats
 
 class MonadBuffer m where
   buffer
-    :: Binary e
+    :: Encode e
     => Width e
     => KnownNat n
     => OptSig e
@@ -31,7 +32,7 @@ class MonadBuffer m where
 instance MonadBuffer Rtl where
   buffer
     :: forall e n
-     . Binary e
+     . Encode e
     => Width e
     => KnownNat n
     => OptSig e
@@ -70,8 +71,3 @@ instance MonadBuffer Rtl where
     where
       w :: Integer
       w = width (undefined :: e)
-
-instance KnownNat n => Binary (Finite n) where
-  put = put . getFinite
-  get = fmap finite get
-  putList = putList . fmap getFinite

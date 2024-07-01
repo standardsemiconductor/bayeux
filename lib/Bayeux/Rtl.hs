@@ -124,14 +124,14 @@ module Bayeux.Rtl
   , compile
   ) where
 
+import Bayeux.Encode
+import Bayeux.Width
 import Control.Monad.Except
 import Control.Monad.State
 import Control.Monad.Writer
-import Data.Bits hiding (shift)
-import Data.Bool
 import Data.String
 import Data.Text (Text)
-import Prettyprinter
+import Prettyprinter hiding (width)
 
 newtype Ident = Ident Text
   deriving (Eq, IsString, Pretty, Read, Semigroup, Monoid, Show)
@@ -148,37 +148,8 @@ instance IsString Value where
                     then error $ "IsString " <> s
                     else Value (read l) $ map (fromString . pure) $ drop 1 r
 
-data BinaryDigit = B0
-                 | B1
-                 | X
-                 | Z
-                 | M
-                 | D
-  deriving (Eq, Read, Show)
-
-instance Pretty BinaryDigit where
-  pretty = \case
-    B0 -> "0"
-    B1 -> "1"
-    X  -> "x"
-    Z  -> "z"
-    M  -> "m"
-    D  -> "-"
-
-instance IsString BinaryDigit where
-  fromString = \case
-    "0" -> B0
-    "1" -> B1
-    "x" -> X
-    "z" -> Z
-    "m" -> M
-    _   -> D
-
-binaryDigits :: FiniteBits b => b -> [BinaryDigit]
-binaryDigits b = bool B0 B1 . testBit b <$> reverse [0..finiteBitSize b - 1]
-
-binaryValue :: FiniteBits b => b -> Value
-binaryValue b = Value (fromIntegral $ finiteBitSize b) $ binaryDigits b
+binaryValue :: Encode b => Width b => b -> Value
+binaryValue b = Value (width b) $ encode b
 
 data File = File (Maybe AutoIdxStmt) [Module]
   deriving (Eq, Read, Show)
@@ -280,7 +251,8 @@ instance Pretty ModuleEndStmt where
   pretty _ = "end" <> hardline
 
 initial
-  :: FiniteBits output
+  :: Encode output
+  => Width  output
   => Text -- ^ output identifier
   -> output
   -> [ModuleBody]
@@ -291,8 +263,8 @@ initial outputIdent output =
       (SigSpecConstant value)
   ]
   where
-    value = let size = fromIntegral $ finiteBitSize output
-                bs   = binaryDigits output
+    value = let size = fromIntegral $ width output
+                bs   = encode output
             in ConstantValue $ Value size bs
 
 data AttrStmt = AttrStmt Ident Constant

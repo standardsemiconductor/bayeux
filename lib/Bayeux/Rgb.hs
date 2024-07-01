@@ -1,5 +1,4 @@
-{-# LANGUAGE DeriveAnyClass    #-}
-{-# LANGUAGE DeriveGeneric     #-}
+{-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedLists   #-}
 {-# LANGUAGE OverloadedStrings #-}
 
@@ -12,12 +11,12 @@ module Bayeux.Rgb
 
 import Bayeux.Cell ((===), inc, patm, (~>), wildm)
 import qualified Bayeux.Cell as C
+import Bayeux.Encode
 import Bayeux.Rtl hiding (at, binary, process, mux, unary)
 import Bayeux.Signal
 import Bayeux.Width
 import Control.Monad.Writer
-import Data.Binary
-import GHC.Generics
+import Data.Word
 
 -- | PWM inputs, width=1
 class MonadRgb m where
@@ -46,10 +45,16 @@ prog = do
   outputRgb r g b
 
 data Color = Red | Green | Blue
-  deriving (Binary, Eq, Generic, Read, Show)
+  deriving (Eq, Read, Show)
 
 instance Width Color where
   width _ = 2
+
+instance Encode Color where
+  encode = \case
+    Red   -> [B0, B0]
+    Green -> [B0, B1]
+    Blue  -> [B1, B0]
 
 cycleProg :: Monad m => MonadSignal m => MonadRgb m => m ()
 cycleProg = do
