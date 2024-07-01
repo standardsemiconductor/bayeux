@@ -1,7 +1,6 @@
 {-# LANGUAGE DataKinds           #-}
 {-# LANGUAGE OverloadedLists     #-}
 {-# LANGUAGE OverloadedStrings   #-}
-{-# LANGUAGE ScopedTypeVariables #-}
 
 module Bayeux.Uart
   ( MonadUart(..)
@@ -78,11 +77,10 @@ instance MonadUart Rtl where
       isBaudHalfRxStart <- isBaudHalf `C.logicAnd` isStart
       isBaud            <- rxCtr s === val baud
       isBaudRxRecv      <- isBaud `C.logicAnd` isRecv
---      ixDone            <- rxIx s === val 7
       buf <- buffer $ OptSig isBaudRxRecv rx
       gotoRxStart <- rxLow `C.logicAnd` isIdle
       gotoRxRecv  <- rxLow `C.logicAnd` isBaudHalfRxStart
-      gotoRxStop  <- {-C.logicAnd isBaud =<<-} C.logicAnd {-ixDone-}(valid buf) isRecv
+      gotoRxStop  <- C.logicAnd (valid buf) isRecv
       gotoRxIdle  <- do
         fromRxStart <- rxHigh `C.logicAnd` isBaudHalfRxStart
         fromRxStop  <- isBaud `C.logicAnd` isStop
@@ -102,12 +100,7 @@ instance MonadUart Rtl where
         , elsem rxCtr1
         ]
       return (Sig{ spec = pad <> spec rxCtr' <> spec rxFsm' }, packMaybe buf)
-    isStop  <- rxFsm s === stop
-    isBaud  <- rxCtr s === val baud
-    isValid <- isStop `C.logicAnd` isBaud
---    let bufOptSig = unpackMaybe buf
---    isValid' <- isValid `C.logicAnd` valid bufOptSig
-    return $ unpackMaybe buf -- $ OptSig isValid' $ value bufOptSig
+    return $ unpackMaybe buf
     where
       pad = "8'00000000"
       idle  = val 0

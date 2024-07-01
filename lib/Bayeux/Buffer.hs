@@ -16,7 +16,6 @@ import Bayeux.Signal hiding (input)
 import Bayeux.Width
 import Data.Array
 import Data.Finite
-import Data.Semigroup
 import Data.String
 import Data.Word
 import GHC.TypeNats
