@@ -77,7 +77,7 @@ instance MonadUart Rtl where
       isBaudHalfRxStart <- isBaudHalf `C.logicAnd` isStart
       isBaud            <- rxCtr s === val baud
       isBaudRxRecv      <- isBaud `C.logicAnd` isRecv
-      buf <- buffer $ fromOptSig $ OptSig isBaudRxRecv rx
+      buf <- buffer $ toMaybeSig isBaudRxRecv rx
       gotoRxStart <- rxLow `C.logicAnd` isIdle
       gotoRxRecv  <- rxLow `C.logicAnd` isBaudHalfRxStart
       gotoRxStop  <- C.logicAnd (sliceValid buf) isRecv
@@ -116,7 +116,7 @@ instance MonadUart Rtl where
 hello :: Monad m => MonadUart m => MonadSignal m => m (Sig Word32)
 hello = process $ \timer -> do
   is5Sec <- timer === val 60000000
-  transmit 624 $ fromOptSig $ OptSig is5Sec $ val 0x61
+  transmit 624 $ toMaybeSig is5Sec $ val 0x61
   flip (mux is5Sec) (val 0) =<< C.inc timer
 
 echo :: Monad m => MonadUart m => MonadSignal m => m ()
