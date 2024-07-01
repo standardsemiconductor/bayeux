@@ -56,7 +56,10 @@ instance MonadBuffer Rtl where
       let la = fromIntegral $ width (undefined :: Array (Finite n) e)
           le = fromIntegral w
           input' :: Sig (Array (Finite n) e)
-          input' = Sig $ stimes (la `div` le) $ spec $ value input
+          input' = Sig $ mconcat
+            [ spec (value input)
+            , fromString $ show ((la - 1) * le) <> "'" <> concat (replicate (la - 1) (replicate le '0'))
+            ]
           mask :: Sig (Array (Finite n) e)
           mask  = let zs = replicate le '0'
                       ones = replicate (la - le) '1'
