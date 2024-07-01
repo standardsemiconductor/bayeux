@@ -9,7 +9,7 @@ module Bayeux.Rgb
   , cycleProg
   ) where
 
-import Bayeux.Cell ((===), inc, patm, (~>), wildm)
+import Bayeux.Cell
 import qualified Bayeux.Cell as C
 import Bayeux.Encode
 import Bayeux.Rtl hiding (at, binary, process, mux, unary)
