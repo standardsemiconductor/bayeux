@@ -28,6 +28,9 @@ instance Width Word32 where
 instance Width Word64 where
   width _ = 64
 
+instance (Width a, Width b) => Width (a, b) where
+  width (a, b) = width a + width b
+
 instance Width a => Width (Maybe a) where
   width _ = 1 + width (undefined :: a)
 
