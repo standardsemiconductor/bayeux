@@ -93,6 +93,7 @@ module Bayeux.Rtl
     muxC
   , -- *** Primitive cells
     sbRgbaDrv
+  , sbLeddaIp
   , -- ** Processes
     Process(..)
   , ProcStmt(..)
@@ -590,6 +591,54 @@ sbRgbaDrv pwmR pwmG pwmB red green blue = Cell
   , CellConnect "\\RGB2" blue
   , CellConnect "\\RGB2PWM" pwmB
   , CellConnect "\\RGBLEDEN" $ SigSpecConstant $ ConstantValue $ Value 1 [B1]
+  ]
+  CellEndStmt
+
+sbLeddaIp
+  :: SigSpec -- ^ leddcs
+  -> SigSpec -- ^ leddclk
+  -> SigSpec -- ^ leddat7
+  -> SigSpec -- ^ leddat6
+  -> SigSpec -- ^ leddat5
+  -> SigSpec -- ^ leddat4
+  -> SigSpec -- ^ leddat3
+  -> SigSpec -- ^ leddat2
+  -> SigSpec -- ^ leddat1
+  -> SigSpec -- ^ leddat0
+  -> SigSpec -- ^ leddaddr3
+  -> SigSpec -- ^ leddaddr2
+  -> SigSpec -- ^ leddaddr1
+  -> SigSpec -- ^ leddaddr0
+  -> SigSpec -- ^ ledden
+  -> SigSpec -- ^ leddexe
+  -> SigSpec -- ^ pwmout0
+  -> SigSpec -- ^ pwmout1
+  -> SigSpec -- ^ pwmout2
+  -> SigSpec -- ^ leddon out
+  -> Cell
+sbLeddaIp cs clk d7 d6 d5 d4 d3 d2 d1 d0 a3 a2 a1 a0 en exe o0 o1 o2 ledon = Cell
+  [AttrStmt "\\module_not_derived" $ ConstantInteger 1]
+  (CellStmt "\\SB_LEDDA_IP" "\\SB_LEDDA_IP_INST")
+  [ CellConnect "\\LEDDCS" cs
+  , CellConnect "\\LEDDCLK" clk
+  , CellConnect "\\LEDDAT7" d7
+  , CellConnect "\\LEDDAT6" d6
+  , CellConnect "\\LEDDAT5" d5
+  , CellConnect "\\LEDDAT4" d4
+  , CellConnect "\\LEDDAT3" d3
+  , CellConnect "\\LEDDAT2" d2
+  , CellConnect "\\LEDDAT1" d1
+  , CellConnect "\\LEDDAT0" d0
+  , CellConnect "\\LEDDADDR3" a3
+  , CellConnect "\\LEDDADDR2" a2
+  , CellConnect "\\LEDDADDR1" a1
+  , CellConnect "\\LEDDADDR0" a0
+  , CellConnect "\\LEDDDEN" en
+  , CellConnect "\\LEDDEXE" exe
+  , CellConnect "\\PWMOUT0" o0
+  , CellConnect "\\PWMOUT1" o1
+  , CellConnect "\\PWMOUT2" o2
+  , CellConnect "\\LEDDON" ledon
   ]
   CellEndStmt
 
