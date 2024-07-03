@@ -106,3 +106,20 @@ outputLed = outputRgb . slicePwm <=< led
 
 slicePwm :: Sig (Bool, Bool, Bool, Bool) -> Sig (Bool, Bool, Bool)
 slicePwm = slice 3 1
+
+ledCtrl
+  :: Monad m
+  => MonadLed m
+  => MonadRgb m
+  => MonadSignal m
+  => MonadUart m
+  => m ()
+ledCtrl = do
+  b <- receive 624
+  cmds <- patm b
+    [ Just 'r' ~> val $ Just [Pwrr 0xFF, Pwrg 0x00, Pwrb 0x00]
+    , Just 'g' ~> val $ Just [Pwrr 0x00, Pwrg 0xFF, Pwrb 0x00]
+    , Just 'b' ~> val $ Just [Pwrr 0x00, Pwrg 0x00, Pwrb 0xFF]
+    , wildm $ val Nothing
+    ]
+  outputLed =<< cobuffer cmds
