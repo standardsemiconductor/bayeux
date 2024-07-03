@@ -60,8 +60,7 @@ sliceFst :: forall a b. Width a => Width b => Sig (a, b) -> Sig a
 sliceFst s = slice (width s - 1) (width (undefined :: a)) s
 
 sliceSnd :: forall a b. Width b => Sig (a, b) -> Sig b
-sliceSnd s = slice (width (undefined :: b) - 1) 0 s
-
+sliceSnd = slice (width (undefined :: b) - 1) 0
 
 class MonadSignal m where
   input   :: WireId -> m (Sig Bool)
