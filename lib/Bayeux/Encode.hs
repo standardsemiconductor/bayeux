@@ -2,7 +2,6 @@
 {-# LANGUAGE LambdaCase           #-}
 {-# LANGUAGE OverloadedStrings    #-}
 {-# LANGUAGE ScopedTypeVariables  #-}
-{-# LANGUAGE TypeSynonymInstances #-}
 
 module Bayeux.Encode where
 
@@ -68,6 +67,9 @@ instance KnownNat n => Encode (Finite n) where
   encode b = bool B0 B1 . testBit (getFinite b) <$> reverse [0..w - 1]
     where
       w = fromIntegral $ width b
+
+instance (Encode a, Encode b) => Encode (a, b) where
+  encode (a, b) = encode a <> encode b
 
 instance (Encode a, Width a) => Encode (Maybe a) where
   encode = \case

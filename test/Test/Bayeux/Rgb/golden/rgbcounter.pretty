@@ -42,11 +42,11 @@ module \top
     parameter \RGB2_CURRENT "0b111111"
     connect \CURREN 1'1
     connect \RGB0 \wire8
-    connect \RGB0PWM \wire5
+    connect \RGB0PWM { \wire5 \wire6 \wire7 } [2:2]
     connect \RGB1 \wire9
-    connect \RGB1PWM \wire6
+    connect \RGB1PWM { \wire5 \wire6 \wire7 } [1:1]
     connect \RGB2 \wire10
-    connect \RGB2PWM \wire7
+    connect \RGB2PWM { \wire5 \wire6 \wire7 } [0:0]
     connect \RGBLEDEN 1'1
   end
 

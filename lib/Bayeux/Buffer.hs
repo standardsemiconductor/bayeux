@@ -2,7 +2,6 @@
 {-# LANGUAGE InstanceSigs         #-}
 {-# LANGUAGE OverloadedLists      #-}
 {-# LANGUAGE ScopedTypeVariables  #-}
-{-# LANGUAGE TypeSynonymInstances #-}
 
 module Bayeux.Buffer
   ( MonadBuffer(..)

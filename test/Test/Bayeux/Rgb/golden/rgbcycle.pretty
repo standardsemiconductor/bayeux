@@ -179,11 +179,11 @@ module \top
     parameter \RGB2_CURRENT "0b111111"
     connect \CURREN 1'1
     connect \RGB0 \wire33
-    connect \RGB0PWM \wire26
+    connect \RGB0PWM { \wire26 \wire29 \wire32 } [2:2]
     connect \RGB1 \wire34
-    connect \RGB1PWM \wire29
+    connect \RGB1PWM { \wire26 \wire29 \wire32 } [1:1]
     connect \RGB2 \wire35
-    connect \RGB2PWM \wire32
+    connect \RGB2PWM { \wire26 \wire29 \wire32 } [0:0]
     connect \RGBLEDEN 1'1
   end
 

@@ -20,17 +20,15 @@ import Data.Word
 
 -- | PWM inputs, width=1
 class MonadRgb m where
-  rgb :: Sig Bool -- ^ red
-      -> Sig Bool -- ^ green
-      -> Sig Bool -- ^ blue
+  rgb :: Sig (Bool, Bool, Bool) -- ^ (red, green, blue) pwms
       -> m (Sig Bool, Sig Bool, Sig Bool)
 
 instance MonadRgb Rtl where
-  rgb pwmR pwmG pwmB = do
+  rgb pwmRGB = do
     red   <- freshWire 1
     green <- freshWire 1
     blue  <- freshWire 1
-    tell [ModuleBodyCell $ sbRgbaDrv (spec pwmR) (spec pwmG) (spec pwmB) red green blue]
+    tell [ModuleBodyCell $ sbRgbaDrv (spec $ slice 2 2 pwmRGB) (spec $ slice 1 1 pwmRGB) (spec $ slice 0 0 pwmRGB) red green blue]
     return (Sig red, Sig green, Sig blue)
 
 ctr :: Monad m => MonadSignal m => m (Sig Word32)
@@ -42,7 +40,7 @@ prog = do
   r <- c `at` 24
   g <- c `at` 23
   b <- c `at` 22
-  outputRgb r g b
+  outputRgb $ Sig $ spec r <> spec g <> spec b
 
 data Color = Red | Green | Blue
   deriving (Eq, Read, Show)
@@ -77,19 +75,17 @@ cycleProg = do
   pwmR <- c === val Red
   pwmG <- c === val Green
   pwmB <- c === val Blue
-  outputRgb pwmR pwmG pwmB
+  outputRgb $ Sig $ spec pwmR <> spec pwmG <> spec pwmB
 
 -- | Rgb driver with output wires \"red\", \"green\", and \"blue\".
 outputRgb
   :: Monad m
   => MonadSignal m
   => MonadRgb m
-  => Sig Bool -- ^ red pwm
-  -> Sig Bool -- ^ green pwm
-  -> Sig Bool -- ^ blue pwm
+  => Sig (Bool, Bool, Bool) -- ^ (red, green, blue) pwm
   -> m ()
-outputRgb pwmR pwmG pwmB = do
-  (r, g, b) <- rgb pwmR pwmG pwmB
+outputRgb pwmRGB = do
+  (r, g, b) <- rgb pwmRGB
   output "\\red"   r
   output "\\green" g
   output "\\blue"  b
