@@ -69,6 +69,9 @@ instance KnownNat n => Encode (Finite n) where
     where
       w = fromIntegral $ width b
 
+instance (Encode a, Encode b) => Encode (a, b) where
+  encode (a, b) = encode a <> encode b
+
 instance (Encode a, Width a) => Encode (Maybe a) where
   encode = \case
     Nothing -> B0 : replicate w B0

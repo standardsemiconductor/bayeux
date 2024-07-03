@@ -33,6 +33,8 @@ valEncoding =
   , valTest (2 :: Finite 3) "2'10"
   , valTest (1 :: Finite 3) "2'01"
   , valTest (7 :: Finite 8) "3'111"
+  , valTest (2 :: Finite 3, 7 :: Finite 8) "5'10111"
+  , valTest (Just False, Just True) "4'1011"
   ]
 
 valTest :: Encode a => Show a => Width a => a -> Sig a -> TestTree
