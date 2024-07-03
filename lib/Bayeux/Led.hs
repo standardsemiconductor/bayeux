@@ -2,11 +2,16 @@
 
 module Bayeux.Led
   ( MonadLed(..)
+  , outputLed
+  , slicePwm
   ) where
 
 import Bayeux.Encode
+import Bayeux.Rgb
 import Bayeux.Signal
 import Bayeux.Width
+import Control.Monad
+import Data.Word
 
 -- | Registers
 data Addr = Cr0 -- ^ Control 0
@@ -39,5 +44,14 @@ class MonadLed m where
   led :: Sig (Maybe (Addr, Word8))
       -> m (Sig (Bool, Bool, Bool, Bool))
 
-ledOut :: MonadLed m => MonadRgb => Sig (Maybe (Addr, Word8)) -> m ()
-ledOut = rgbOut . slicePwm <=< led
+outputLed
+  :: Monad m
+  => MonadLed m
+  => MonadRgb m
+  => MonadSignal m
+  => Sig (Maybe (Addr, Word8))
+  -> m ()
+outputLed = outputRgb . slicePwm <=< led
+
+slicePwm :: Sig (Bool, Bool, Bool, Bool) -> Sig (Bool, Bool, Bool)
+slicePwm = slice 3 1
