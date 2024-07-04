@@ -64,7 +64,7 @@ instance MonadBuffer Rtl where
           input' :: Sig (Array (Finite n) e)
           input' = Sig $ mconcat
             [ spec (sliceValue input)
-            , fromString $ show ((la - 1) * le) <> "'" <> concat (replicate (la - 1) (replicate le '0'))
+            , fromString $ show (la - le) <> "'" <> replicate (la - le) '0'
             ]
           mask :: Sig (Array (Finite n) e)
           mask  = let zs = replicate le '0'
@@ -139,7 +139,7 @@ data Cobuf n e = Cobuf
   deriving (Eq, Read, Show)
 
 instance (KnownNat n, Width e) => Width (Cobuf n e) where
-  width s = width (fsm s) + width (ix s) + width (buf s)
+  width _ = width (undefined :: Fsm) + width (undefined :: Finite n) + width (undefined :: Maybe (Array (Finite n) e))
 
 instance (KnownNat n, Encode e, Width e) => Encode (Cobuf n e) where
   encode s = encode (fsm s) <> encode (ix s) <> encode (buf s)
