@@ -8,6 +8,7 @@ module Test.Bayeux.Signal
 import Bayeux.Encode
 import Bayeux.Signal
 import Bayeux.Width
+import Data.Array
 import Data.Finite
 import Data.Word
 import Prettyprinter
@@ -35,6 +36,12 @@ valEncoding =
   , valTest (7 :: Finite 8) "3'111"
   , valTest (2 :: Finite 3, 7 :: Finite 8) "5'10111"
   , valTest (Just False, Just True) "4'1011"
+  , let a :: Array (Finite 3) (Maybe Bool)
+        a = listArray (0, 2) [Just True, Nothing, Just False]
+    in valTest a "6'110010"
+  , let a :: Maybe (Array (Finite 2) (Maybe Word8))
+        a = Just $ listArray (0, 1) $ [Just 0x38, Just 0x02]
+    in valTest a "19'1100111000100000010"
   ]
 
 valTest :: Encode a => Show a => Width a => a -> Sig a -> TestTree

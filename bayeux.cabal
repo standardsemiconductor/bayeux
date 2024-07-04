@@ -62,12 +62,14 @@ test-suite test
     type:             exitcode-stdio-1.0
     hs-source-dirs:   test
     main-is:          Main.hs
-    other-modules:    Test.Bayeux.Lp
+    other-modules:    Test.Bayeux.Led
+                    , Test.Bayeux.Lp
                     , Test.Bayeux.Rgb
                     , Test.Bayeux.Rtl
                     , Test.Bayeux.Signal
                     , Test.Bayeux.Uart
-    build-depends:    base
+    build-depends:    array
+                    , base
                     , bayeux
                     , extra
                     , filepath

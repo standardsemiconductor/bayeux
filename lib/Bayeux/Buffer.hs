@@ -1,6 +1,7 @@
 {-# LANGUAGE FlexibleInstances    #-}
 {-# LANGUAGE InstanceSigs         #-}
 {-# LANGUAGE OverloadedLists      #-}
+{-# LANGUAGE OverloadedStrings    #-}
 {-# LANGUAGE ScopedTypeVariables  #-}
 
 module Bayeux.Buffer
@@ -91,7 +92,7 @@ instance MonadBuffer Rtl where
   cobuffer a = fmap snd $ machine $ \s -> do
     let fsmSig = sliceFsm s
         ixSig  = sliceIx  s
-        bufSig = sliceBuf s
+        bufSig = sliceBuf s :: Sig (Maybe (Array (Finite n) e))
     isIdle <- fsmSig === val Idle
     isBusy <- fsmSig === val Busy
     ixMax <- ixSig === val maxBound
@@ -103,24 +104,22 @@ instance MonadBuffer Rtl where
       , elsem fsmSig
       ]
     ix1 <- inc ixSig
-    ix' <- patm ixSig
+    ix' <- flip (mux gotoBusy) (val 0) =<< patm ixSig
       [ maxBound ~> val (0 :: Finite n)
       , wildm ix1
       ]
-    ix'' <- mux gotoBusy ix' $ val 0
     let shamt = fromIntegral (width (undefined :: e)) :: Word8
-    buf' <- shr bufSig $ val shamt
-    buf'' <- flip (mux gotoIdle) (val Nothing) =<< patm fsmSig
+    bufValue' <- shr (sliceValue bufSig) $ val shamt
+    buf' <- flip (mux gotoIdle) (val Nothing) =<< patm fsmSig
       [ Idle ~> a
-      , wildm buf'
+      , wildm $ Sig $ "1'1" <> spec bufValue'
       ]
     let e  = slice (width (undefined :: e) - 1) 0 bufSig
-        o  = Sig $ (spec . sliceValid) bufSig <> spec e
-        s' = Sig $ spec fsm' <> spec ix'' <> spec buf''
+        o  = Sig $ spec isBusy <> spec e
+        s' = Sig $ spec fsm' <> spec ix' <> spec buf'
     return (s', o)
     where
       aValid = sliceValid a
-      aValue = sliceValue a
 
 data Fsm = Idle | Busy
   deriving (Eq, Read, Show)
