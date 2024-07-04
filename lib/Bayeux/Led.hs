@@ -124,18 +124,19 @@ ledCtrl
   => MonadUart m
   => m ()
 ledCtrl = do
+{-
   b <- receive 624 =<< input "\\rx"
   cmds <- patm (asChar b)
-    [ Just 'r' ~> val (Just $ listArray (0, 2) $ Just <$> [(Pwrr, 0xFF), (Pwrg, 0x00), (Pwrb, 0x00)])
+    [ Just 'c' ~> val (Just $ listArray (0, 2) [Just (Cr0, 0x80), Nothing, Nothing])
+    , Just 'r' ~> val (Just $ listArray (0, 2) $ Just <$> [(Pwrr, 0xFF), (Pwrg, 0x00), (Pwrb, 0x00)])
     , Just 'g' ~> val (Just $ listArray (0, 2) $ Just <$> [(Pwrr, 0x00), (Pwrg, 0xFF), (Pwrb, 0x00)])
     , Just 'b' ~> val (Just $ listArray (0, 2) $ Just <$> [(Pwrr, 0x00), (Pwrg, 0x00), (Pwrb, 0xFF)])
     , wildm $ val (Nothing :: Maybe (Array (Finite 3) (Maybe (Addr, Word8))))
     ]
-  setupDone <- process $ \d -> patm d
-    [ False ~> val True
-    , wildm $ val True
-    ]
-  outputLed =<< joinMaybe =<< cobuffer =<< mux setupDone cmds (val $ Just $ listArray (0, 2) [Just (Cr0, 0x80), Nothing, Nothing])
+-}
+  let cmds :: Array (Finite 2) (Maybe (Addr, Word8))
+      cmds = listArray (0, 1) [Just (Pwrr, 0xFF), Just (Cr0, 0x80)]
+  outputLed =<< joinMaybe =<< cobuffer (val $ Just cmds)
 
 asChar :: Sig (Maybe Word8) -> Sig (Maybe Char)
 asChar = Sig . spec

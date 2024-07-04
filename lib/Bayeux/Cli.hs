@@ -21,6 +21,7 @@ data Demo = FiatLux
           | RgbCycle
           | Hello
           | Echo
+          | LedCtrl
   deriving (Eq, Read, Show)
 
 data Prove = Prove
