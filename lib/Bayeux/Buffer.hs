@@ -12,7 +12,7 @@ import Bayeux.Cell
 import qualified Bayeux.Cell as C
 import Bayeux.Encode
 import Bayeux.Rtl (Rtl)
-import Bayeux.Signal hiding (input)
+import Bayeux.Signal
 import Bayeux.Width
 import Data.Array
 import Data.Finite
@@ -43,27 +43,27 @@ instance MonadBuffer Rtl where
     => KnownNat n
     => Sig (Maybe e)
     -> Rtl (Sig (Maybe (Array (Finite n) e)))
-  buffer input = do
-    ix <- process $ \ix  -> do
-      ixPlusOne <- inc ix
-      ix' <- patm ix
+  buffer inp = do
+    i <- process $ \i  -> do
+      iPlusOne <- inc i
+      i' <- patm i
         [ maxBound ~> val (0 :: Finite n)
-        , wildm ixPlusOne
+        , wildm iPlusOne
         ]
-      patm (sliceValid input)
-        [ True ~> ix'
-        , wildm ix
+      patm (sliceValid inp)
+        [ True ~> i'
+        , wildm i
         ]
-    isFull <- ix === val maxBound
-    buf <- process $ \buf -> do
+    isFull <- i === val maxBound
+    b <- process $ \b -> do
       let shamt :: Word8
           shamt = fromIntegral w
-      shiftedBuf <- shr buf $ val shamt
+      shiftedBuf <- shr b $ val shamt
       let la = fromIntegral $ width (undefined :: Array (Finite n) e)
           le = fromIntegral w
           input' :: Sig (Array (Finite n) e)
           input' = Sig $ mconcat
-            [ spec (sliceValue input)
+            [ spec $ sliceValue inp
             , fromString $ show (la - le) <> "'" <> replicate (la - le) '0'
             ]
           mask :: Sig (Array (Finite n) e)
@@ -72,12 +72,12 @@ instance MonadBuffer Rtl where
                   in fromString $ show la <> "'" <> zs <> ones
       maskedBuf <- shiftedBuf `C.and` mask
       buf' <- input' `C.or` maskedBuf
-      patm (sliceValid input)
+      patm (sliceValid inp)
         [ True ~> buf'
-        , wildm buf
+        , wildm b
         ]
-    isValid' <- process $ const $ isFull `C.logicAnd` sliceValid input
-    return $ Sig $ spec isValid' <> spec buf
+    isValid' <- process $ const $ isFull `C.logicAnd` sliceValid inp
+    return $ Sig $ spec isValid' <> spec b
     where
       w :: Integer
       w = width (undefined :: e)

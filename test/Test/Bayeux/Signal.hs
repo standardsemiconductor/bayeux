@@ -43,6 +43,9 @@ valEncoding =
         a = Just $ listArray (0, 1) $ [Just 0x38, Just 0x02]
     in valTest a "19'1100111000100000010"
   , valTest 'r' "8'01110010"
+  , let a :: Maybe (Array (Finite 1) Word8)
+        a = Just $ listArray (0, 0) [0xFE]
+    in valTest a "9'111111110"
   ]
 
 valTest :: Encode a => Show a => Width a => a -> Sig a -> TestTree
