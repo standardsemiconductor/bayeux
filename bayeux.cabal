@@ -67,7 +67,8 @@ test-suite test
                     , Test.Bayeux.Rtl
                     , Test.Bayeux.Signal
                     , Test.Bayeux.Uart
-    build-depends:    base
+    build-depends:    array
+                    , base
                     , bayeux
                     , extra
                     , filepath
