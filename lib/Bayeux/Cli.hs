@@ -21,6 +21,7 @@ data Demo = FiatLux
           | RgbCycle
           | Hello
           | Echo
+          | BufEcho
   deriving (Eq, Read, Show)
 
 data Prove = Prove

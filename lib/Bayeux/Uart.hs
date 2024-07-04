@@ -6,6 +6,7 @@ module Bayeux.Uart
   ( MonadUart(..)
   , hello
   , echo
+  , bufEcho
   ) where
 
 import Bayeux.Buffer
@@ -121,3 +122,13 @@ hello = process $ \timer -> do
 
 echo :: Monad m => MonadUart m => MonadSignal m => m ()
 echo = transmit 624 =<< receive 624 =<< input "\\rx"
+
+bufEcho :: Monad m => MonadBuffer m => MonadSignal m => MonadUart m => m ()
+bufEcho = do
+  b <- buf =<< receive 624 =<< input "\\rx"
+  transmit 624 =<< cobuf b
+  where
+    buf :: MonadBuffer m => Sig (Maybe Word8) -> m (Sig (Maybe (Array (Finite 1) Word8)))
+    buf = buffer
+    cobuf :: MonadBuffer m => Sig (Maybe (Array (Finite 1) Word8)) -> m (Sig (Maybe Word8))
+    cobuf = cobuffer

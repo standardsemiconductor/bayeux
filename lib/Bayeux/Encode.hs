@@ -6,6 +6,7 @@
 module Bayeux.Encode where
 
 import Bayeux.Width
+import Data.Array
 import Data.Bits
 import Data.Bool
 import Data.Finite
@@ -77,3 +78,6 @@ instance (Encode a, Width a) => Encode (Maybe a) where
     Just a  -> B1 : encode a
     where
       w = fromIntegral $ width (undefined :: a)
+
+instance Encode e => Encode (Array (Finite n) e) where
+  encode = foldMap encode
