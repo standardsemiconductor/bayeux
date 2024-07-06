@@ -19,6 +19,7 @@ import Test.Tasty.HUnit
 tests :: [TestTree]
 tests =
   [ testGroup "encoding" valEncoding
+  , testGroup "slicing"  sigSlicing
   ]
 
 valEncoding :: [TestTree]
@@ -53,6 +54,14 @@ valTest :: Encode a => Show a => Width a => a -> Sig a -> TestTree
 valTest a s = testCase testName $ val a @?= s
   where
     testName = show a <> " ~ " <> renderPretty s
+
+sigSlicing :: [TestTree]
+sigSlicing =
+  [ testCase "sliceFst" $ (sliceFst . val) (False, True) @?= slice 1 1 (val (False, True))
+  , testCase "sliceSnd" $ (sliceSnd . val) (False, True) @?= slice 0 0 (val (False, True))
+  , testCase "sliceValid" $ (sliceValid . val) (Nothing :: Maybe Word8) @?= (slice 8 8 . val) (Nothing :: Maybe Word8)
+  , testCase "sliceValue" $ (sliceValue . val) (Just 0x34 :: Maybe Word8) @?= (slice 7 0 . val) (Just 0x34 :: Maybe Word8)
+  ]
 
 renderPretty :: Pretty a => a -> String
 renderPretty = renderString . layoutPretty defaultLayoutOptions . pretty
