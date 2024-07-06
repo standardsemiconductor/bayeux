@@ -41,7 +41,7 @@ valEncoding =
         a = listArray (0, 2) [Just True, Nothing, Just False]
     in valTest a "6'110010"
   , let a :: Maybe (Array (Finite 2) (Maybe Word8))
-        a = Just $ listArray (0, 1) $ [Just 0x38, Just 0x02]
+        a = Just $ listArray (0, 1) [Just 0x38, Just 0x02]
     in valTest a "19'1100111000100000010"
   , valTest 'r' "8'01110010"
   , let a :: Maybe (Array (Finite 1) Word8)

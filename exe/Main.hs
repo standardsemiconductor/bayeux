@@ -35,7 +35,7 @@ parseDemo = asum
   , flag' RgbCycle $ long "RgbCycle" <> help "RgbCycle demo"
   , flag' Hello $ long "Hello" <> help "Hello demo"
   , flag' Echo $ long "Echo" <> help "Echo demo"
-  , flag' LedCtrl $ long "LedCtrl" <> help "Led control demo"
+  , flag' LedCtrl $ long "LedCtrl" <> help "Control Led IP through UART"
   , flag' BufEcho $ long "BufEcho" <> help "BufEcho demo"
   ]
 
