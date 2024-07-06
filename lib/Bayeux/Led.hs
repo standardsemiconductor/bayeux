@@ -124,7 +124,6 @@ ledCtrl
   => MonadUart m
   => m ()
 ledCtrl = do
-{-
   b <- receive 624 =<< input "\\rx"
   cmds <- patm (asChar b)
     [ Just 'c' ~> val (Just $ listArray (0, 2) [Just (Cr0, 0x80), Nothing, Nothing])
@@ -133,22 +132,18 @@ ledCtrl = do
     , Just 'b' ~> val (Just $ listArray (0, 2) $ Just <$> [(Pwrr, 0x00), (Pwrg, 0x00), (Pwrb, 0xFF)])
     , wildm $ val (Nothing :: Maybe (Array (Finite 3) (Maybe (Addr, Word8))))
     ]
--}
+  cmd <- joinMaybe =<< cobuffer cmds
   s <- process $ \s -> do
     s' <- inc s
     patm s
-      [ (maxBound :: Finite 4) ~> s
+      [ (maxBound :: Finite 3) ~> s
       , wildm s'
       ]
   outputLed =<< patm s
-    [ 0 ~> val (Just (Cr0, 0x80))
-    , 1 ~> val Nothing
-    , 2 ~> val (Just (Pwrr, 0xFF))
-    , wildm $ val Nothing
+    [ 0 ~> val (Just (Cr0,  0x80))
+    , 1 ~> val (Just (Pwrr, 0xFF))
+    , wildm $ cmd
     ]
---  let cmds :: Array (Finite 2) (Maybe (Addr, Word8))
---      cmds = listArray (0, 1) [Just (Pwrr, 0xFF), Just (Cr0, 0x80)]
---  outputLed =<< joinMaybe =<< cobuffer (val $ Just cmds)
 
 asChar :: Sig (Maybe Word8) -> Sig (Maybe Char)
 asChar = Sig . spec
