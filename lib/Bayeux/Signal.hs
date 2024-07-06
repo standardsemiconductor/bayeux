@@ -57,7 +57,7 @@ sliceValue :: Width a => Sig (Maybe a) -> Sig a
 sliceValue = snd . fromMaybeSig
 
 sliceFst :: forall a b. Width a => Width b => Sig (a, b) -> Sig a
-sliceFst s = slice (width s - 1) (width (undefined :: a)) s
+sliceFst s = slice (width s - 1) (width (undefined :: b)) s
 
 sliceSnd :: forall a b. Width b => Sig (a, b) -> Sig b
 sliceSnd = slice (width (undefined :: b) - 1) 0
