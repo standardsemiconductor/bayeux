@@ -139,7 +139,7 @@ data Cobuf n e = Cobuf
   deriving (Eq, Read, Show)
 
 instance (KnownNat n, Width e) => Width (Cobuf n e) where
-  width s = width (fsm s) + width (ix s) + width (buf s)
+  width _ = width (undefined :: Fsm) + width (undefined :: Finite n) + width (undefined :: Maybe (Array (Finite n) e))
 
 instance (KnownNat n, Encode e, Width e) => Encode (Cobuf n e) where
   encode s = encode (fsm s) <> encode (ix s) <> encode (buf s)

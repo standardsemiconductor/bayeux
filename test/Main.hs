@@ -1,5 +1,6 @@
 module Main (main) where
 
+import qualified Test.Bayeux.Led
 import qualified Test.Bayeux.Lp
 import qualified Test.Bayeux.Rgb
 import qualified Test.Bayeux.Rtl
@@ -9,7 +10,8 @@ import Test.Tasty
 
 main :: IO ()
 main = defaultMain $ testGroup "Test.Bayeux"
-  [ testGroup "Lp"     Test.Bayeux.Lp.tests
+  [ testGroup "Led"    Test.Bayeux.Led.tests
+  , testGroup "Lp"     Test.Bayeux.Lp.tests
   , testGroup "Rgb"    Test.Bayeux.Rgb.tests
   , testGroup "Rtl"    Test.Bayeux.Rtl.tests
   , testGroup "Signal" Test.Bayeux.Signal.tests

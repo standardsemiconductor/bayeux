@@ -21,6 +21,7 @@ data Demo = FiatLux
           | RgbCycle
           | Hello
           | Echo
+          | LedCtrl
           | BufEcho
   deriving (Eq, Read, Show)
 

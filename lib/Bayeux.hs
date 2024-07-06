@@ -4,6 +4,7 @@ module Bayeux (app) where
 
 import Bayeux.Cli
 import Bayeux.Flow
+import Bayeux.Led
 import Bayeux.Lp
 import Bayeux.Rgb
 import Bayeux.Rtl
@@ -47,6 +48,7 @@ getDemo = \case
   RgbCycle   -> rgbCycle
   Hello      -> handleErr $ compile hello
   Echo       -> handleErr $ compile echo
+  LedCtrl    -> handleErr $ compile ledCtrl
   BufEcho    -> handleErr $ compile bufEcho
 
 rgbCounter :: File

@@ -9,6 +9,7 @@ import Bayeux.Width
 import Data.Array
 import Data.Bits
 import Data.Bool
+import Data.Char
 import Data.Finite
 import Data.String
 import Data.Word
@@ -54,6 +55,12 @@ binaryDigits b = bool B0 B1 . testBit b <$> reverse [0..w - 1]
 
 instance Encode Word8 where
   encode = binaryDigits
+
+instance Encode Char where
+  encode = encode . toWord8
+    where
+      toWord8 :: Char -> Word8
+      toWord8 = fromIntegral . ord
 
 instance Encode Word16 where
   encode = binaryDigits

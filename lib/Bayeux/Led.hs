@@ -1,4 +1,6 @@
+{-# LANGUAGE DataKinds           #-}
 {-# LANGUAGE LambdaCase          #-}
+{-# LANGUAGE OverloadedLists     #-}
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
@@ -6,22 +8,28 @@ module Bayeux.Led
   ( MonadLed(..)
   , outputLed
   , slicePwm
+  , ledCtrl
   ) where
 
+import Bayeux.Buffer
+import Bayeux.Cell
 import Bayeux.Encode
 import Bayeux.Rgb
-import Bayeux.Rtl
+import Bayeux.Rtl hiding (mux, process)
 import Bayeux.Signal
+import Bayeux.Uart
 import Bayeux.Width
 import Control.Monad
 import Control.Monad.Writer
+import Data.Array
+import Data.Finite
 import Data.Word
 
 -- | Registers
-data Addr = Cr0 -- ^ Control 0
-          | Br  -- ^ Pre-scale
-          | Onr -- ^ ON time
-          | Ofr -- ^ OFF time
+data Addr = Cr0  -- ^ Control 0
+          | Br   -- ^ Pre-scale
+          | Onr  -- ^ ON time
+          | Ofr  -- ^ OFF time
           | Bcrr -- ^ Breathe on control
           | Bcfr -- ^ Breathe off control
           | Pwrr -- ^ Pulse width for RED
@@ -54,7 +62,7 @@ instance MonadLed Rtl where
     o1 <- freshWire 1 -- green
     o2 <- freshWire 1 -- blue
     ledon <- freshWire 1
-    let cs  = spec $ sliceValid cmd
+    let cs  = "1'1"
         clk = SigSpecWireId "\\clk"
         d   = sliceSnd $ sliceValue cmd
         a   = sliceFst $ sliceValue cmd
@@ -70,7 +78,7 @@ instance MonadLed Rtl where
         a2  = spec $ slice 2 2 a
         a1  = spec $ slice 1 1 a
         a0  = spec $ slice 0 0 a
-        en  = "1'1"
+        en  = spec $ sliceValid cmd
         exe = "1'1"
     tell [ ModuleBodyCell $
              sbLeddaIp cs
@@ -106,3 +114,41 @@ outputLed = outputRgb . slicePwm <=< led
 
 slicePwm :: Sig (Bool, Bool, Bool, Bool) -> Sig (Bool, Bool, Bool)
 slicePwm = slice 3 1
+
+ledCtrl
+  :: Monad m
+  => MonadLed m
+  => MonadBuffer m
+  => MonadRgb m
+  => MonadSignal m
+  => MonadUart m
+  => m ()
+ledCtrl = do
+  b <- receive 624 =<< input "\\rx"
+  cmds <- patm (asChar b)
+    [ Just 'c' ~> val (Just $ listArray (0, 2) [Just (Cr0, 0x80), Nothing, Nothing])
+    , Just 'r' ~> val (Just $ listArray (0, 2) $ Just <$> [(Pwrr, 0xFF), (Pwrg, 0x00), (Pwrb, 0x00)])
+    , Just 'g' ~> val (Just $ listArray (0, 2) $ Just <$> [(Pwrr, 0x00), (Pwrg, 0xFF), (Pwrb, 0x00)])
+    , Just 'b' ~> val (Just $ listArray (0, 2) $ Just <$> [(Pwrr, 0x00), (Pwrg, 0x00), (Pwrb, 0xFF)])
+    , wildm $ val (Nothing :: Maybe (Array (Finite 3) (Maybe (Addr, Word8))))
+    ]
+  cmd <- joinMaybe =<< cobuffer cmds
+  s <- process $ \s -> do
+    s' <- inc s
+    patm s
+      [ (maxBound :: Finite 3) ~> s
+      , wildm s'
+      ]
+  outputLed =<< patm s
+    [ 0 ~> val (Just (Cr0,  0x80))
+    , 1 ~> val (Just (Pwrr, 0xFF))
+    , wildm $ cmd
+    ]
+
+asChar :: Sig (Maybe Word8) -> Sig (Maybe Char)
+asChar = Sig . spec
+
+joinMaybe :: Width a => Monad m => MonadSignal m => Sig (Maybe (Maybe a)) -> m (Sig (Maybe a))
+joinMaybe s = do
+  v <- sliceValid s `logicAnd` (sliceValid . sliceValue) s
+  return $ Sig $ spec v <> (spec . sliceValue . sliceValue) s

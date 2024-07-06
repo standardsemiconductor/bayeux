@@ -621,14 +621,14 @@ sbLeddaIp cs clk d7 d6 d5 d4 d3 d2 d1 d0 a3 a2 a1 a0 en exe o0 o1 o2 ledon = Cel
   (CellStmt "\\SB_LEDDA_IP" "\\SB_LEDDA_IP_INST")
   [ CellConnect "\\LEDDCS" cs
   , CellConnect "\\LEDDCLK" clk
-  , CellConnect "\\LEDDAT7" d7
-  , CellConnect "\\LEDDAT6" d6
-  , CellConnect "\\LEDDAT5" d5
-  , CellConnect "\\LEDDAT4" d4
-  , CellConnect "\\LEDDAT3" d3
-  , CellConnect "\\LEDDAT2" d2
-  , CellConnect "\\LEDDAT1" d1
-  , CellConnect "\\LEDDAT0" d0
+  , CellConnect "\\LEDDDAT7" d7
+  , CellConnect "\\LEDDDAT6" d6
+  , CellConnect "\\LEDDDAT5" d5
+  , CellConnect "\\LEDDDAT4" d4
+  , CellConnect "\\LEDDDAT3" d3
+  , CellConnect "\\LEDDDAT2" d2
+  , CellConnect "\\LEDDDAT1" d1
+  , CellConnect "\\LEDDDAT0" d0
   , CellConnect "\\LEDDADDR3" a3
   , CellConnect "\\LEDDADDR2" a2
   , CellConnect "\\LEDDADDR1" a1
