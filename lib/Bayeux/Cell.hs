@@ -12,7 +12,9 @@ module Bayeux.Cell
   , eq
   , (===)
   , logicAnd
+  , (.&&)
   , logicOr
+  , (.||)
   , or
   , -- ** Shift
     shr
@@ -56,11 +58,25 @@ infix 4 ===
 (===) :: Width a => Monad m => MonadSignal m => Sig a -> Sig a -> m (Sig Bool)
 (===) = eq
 
+liftBin :: Monad m => (Sig a -> Sig b -> m (Sig c)) -> m (Sig a) -> m (Sig b) -> m (Sig c)
+liftBin f x y = do
+  x' <- x
+  y' <- y
+  f x' y'
+
 logicAnd :: MonadSignal m => Sig Bool -> Sig Bool -> m (Sig Bool)
 logicAnd = binary logicAndC
 
+infixr 3 .&&
+(.&&) :: Monad m => MonadSignal m => m (Sig Bool) -> m (Sig Bool) -> m (Sig Bool)
+(.&&) = liftBin logicAnd
+
 logicOr :: MonadSignal m => Sig Bool -> Sig Bool -> m (Sig Bool)
 logicOr = binary logicOrC
+
+infixr 2 .||
+(.||) :: Monad m => MonadSignal m => m (Sig Bool) -> m (Sig Bool) -> m (Sig Bool)
+(.||) = liftBin logicOr
 
 or :: Width a => MonadSignal m => Sig a -> Sig a -> m (Sig a)
 or = binary orC

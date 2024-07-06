@@ -73,7 +73,6 @@ instance MonadUart Rtl where
       isIdle  <- rxFsm s === idle
       isStart <- rxFsm s === start
       isRecv  <- rxFsm s === recv
-      isStop  <- rxFsm s === stop
       isBaudHalf        <- rxCtr s === val (baud `shiftR` 1)
       isBaudHalfRxStart <- isBaudHalf `C.logicAnd` isStart
       isBaud            <- rxCtr s === val baud
@@ -81,11 +80,9 @@ instance MonadUart Rtl where
       buf <- buffer $ toMaybeSig isBaudRxRecv rx
       gotoRxStart <- rxLow `C.logicAnd` isIdle
       gotoRxRecv  <- rxLow `C.logicAnd` isBaudHalfRxStart
-      gotoRxStop  <- C.logicAnd (sliceValid buf) isRecv
-      gotoRxIdle  <- do
-        fromRxStart <- rxHigh `C.logicAnd` isBaudHalfRxStart
-        fromRxStop  <- isBaud `C.logicAnd` isStop
-        fromRxStart `C.logicOr` fromRxStop
+      gotoRxStop  <- sliceValid buf `logicAnd` isRecv
+      gotoRxIdle  <- (rxHigh `logicAnd` isBaudHalfRxStart)
+                       .|| (pure isBaud .&& rxFsm s === stop)
       rxFsm' <- ifm
         [ gotoRxStart `thenm` start
         , gotoRxRecv  `thenm` recv
