@@ -62,7 +62,7 @@ instance MonadLed Rtl where
     o1 <- freshWire 1 -- green
     o2 <- freshWire 1 -- blue
     ledon <- freshWire 1
-    let cs  = spec $ sliceValid cmd
+    let cs  = "1'1" -- spec $ sliceValid cmd
         clk = SigSpecWireId "\\clk"
         d   = sliceSnd $ sliceValue cmd
         a   = sliceFst $ sliceValue cmd
@@ -78,7 +78,7 @@ instance MonadLed Rtl where
         a2  = spec $ slice 2 2 a
         a1  = spec $ slice 1 1 a
         a0  = spec $ slice 0 0 a
-        en  = "1'1"
+        en  = spec $ sliceValid cmd -- "1'1"
         exe = "1'1"
     tell [ ModuleBodyCell $
              sbLeddaIp cs
@@ -137,16 +137,14 @@ ledCtrl = do
   s <- process $ \s -> do
     s' <- inc s
     patm s
-      [ 0 ~> s'
-      , 1 ~> s'
-      , wildm s
+      [ (maxBound :: Finite 4) ~> s
+      , wildm s'
       ]
-  isIdle <- s === val (0 :: Finite 3)
-  isBusy <- s === val 1
-  outputLed =<< ifm
-    [ isIdle `thenm` val (Just (Cr0, 0x80))
-    , isBusy `thenm` val (Just (Pwrr, 0xFF))
-    , elsem $ val Nothing
+  outputLed =<< patm s
+    [ 0 ~> val (Just (Cr0, 0x80))
+    , 1 ~> val Nothing
+    , 2 ~> val (Just (Pwrr, 0xFF))
+    , wildm $ val Nothing
     ]
 --  let cmds :: Array (Finite 2) (Maybe (Addr, Word8))
 --      cmds = listArray (0, 1) [Just (Pwrr, 0xFF), Just (Cr0, 0x80)]
