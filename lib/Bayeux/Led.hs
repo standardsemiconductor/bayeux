@@ -134,9 +134,23 @@ ledCtrl = do
     , wildm $ val (Nothing :: Maybe (Array (Finite 3) (Maybe (Addr, Word8))))
     ]
 -}
-  let cmds :: Array (Finite 2) (Maybe (Addr, Word8))
-      cmds = listArray (0, 1) [Just (Pwrr, 0xFF), Just (Cr0, 0x80)]
-  outputLed =<< joinMaybe =<< cobuffer (val $ Just cmds)
+  s <- process $ \s -> do
+    s' <- inc s
+    patm s
+      [ 0 ~> s'
+      , 1 ~> s'
+      , wildm s
+      ]
+  isIdle <- s === val (0 :: Finite 3)
+  isBusy <- s === val 1
+  outputLed =<< ifm
+    [ isIdle `thenm` val (Just (Cr0, 0x80))
+    , isBusy `thenm` val (Just (Pwrr, 0xFF))
+    , elsem $ val Nothing
+    ]
+--  let cmds :: Array (Finite 2) (Maybe (Addr, Word8))
+--      cmds = listArray (0, 1) [Just (Pwrr, 0xFF), Just (Cr0, 0x80)]
+--  outputLed =<< joinMaybe =<< cobuffer (val $ Just cmds)
 
 asChar :: Sig (Maybe Word8) -> Sig (Maybe Char)
 asChar = Sig . spec
