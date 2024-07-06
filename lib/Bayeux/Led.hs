@@ -62,7 +62,7 @@ instance MonadLed Rtl where
     o1 <- freshWire 1 -- green
     o2 <- freshWire 1 -- blue
     ledon <- freshWire 1
-    let cs  = "1'1" -- spec $ sliceValid cmd
+    let cs  = "1'1"
         clk = SigSpecWireId "\\clk"
         d   = sliceSnd $ sliceValue cmd
         a   = sliceFst $ sliceValue cmd
@@ -78,7 +78,7 @@ instance MonadLed Rtl where
         a2  = spec $ slice 2 2 a
         a1  = spec $ slice 1 1 a
         a0  = spec $ slice 0 0 a
-        en  = spec $ sliceValid cmd -- "1'1"
+        en  = spec $ sliceValid cmd
         exe = "1'1"
     tell [ ModuleBodyCell $
              sbLeddaIp cs
