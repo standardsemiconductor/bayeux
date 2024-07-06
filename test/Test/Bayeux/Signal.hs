@@ -45,6 +45,8 @@ valEncoding =
   , let a :: Maybe (Array (Finite 1) Word8)
         a = Just $ listArray (0, 0) [0xFE]
     in valTest a "9'111111110"
+  , valTest (Left False :: Either Bool Bool) "2'00"
+  , valTest (Right 0xFE :: Either Bool Word8) "9'111111110"
   ]
 
 valTest :: Encode a => Show a => Width a => a -> Sig a -> TestTree

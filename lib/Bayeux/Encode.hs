@@ -79,5 +79,19 @@ instance (Encode a, Width a) => Encode (Maybe a) where
     where
       w = fromIntegral $ width (undefined :: a)
 
+instance (Encode l, Encode r, Width l, Width r) => Encode (Either l r) where
+  encode = \case
+    Left l -> let pad = if lw < rw
+                          then replicate (rw - lw) B0
+                          else mempty
+              in B0 : pad <> encode l
+    Right r -> let pad = if lw > rw
+                           then replicate (lw - rw) B0
+                           else mempty
+               in B1 : pad <> encode r
+    where
+      lw = fromIntegral $ width (undefined :: l)
+      rw = fromIntegral $ width (undefined :: r)
+
 instance Encode e => Encode (Array (Finite n) e) where
   encode = foldMap encode
