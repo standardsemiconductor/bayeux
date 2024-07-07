@@ -2,7 +2,7 @@ cabal-version:      3.0
 name:               bayeux
 version:            0.1.0.0
 homepage:           https://github.com/dopamane/bayeux
-license:            MIT
+license:            GPL-3.0-or-later
 license-file:       LICENSE
 author:             dopamane
 maintainer:         dwc1295@gmail.com
@@ -30,12 +30,12 @@ library
                     , Bayeux.Width
     other-modules:    Paths_bayeux
     autogen-modules:  Paths_bayeux
-    build-depends:    array
-                    , async
+    build-depends:    async
                     , base
                     , bytestring
                     , containers
                     , filepath
+                    , finitary
                     , finite-typelits
                     , megaparsec
                     , mtl
@@ -44,6 +44,7 @@ library
                     , serialport
                     , shake
                     , text
+                    , vector-sized
     hs-source-dirs:   lib
     default-language: Haskell2010
 
@@ -68,11 +69,11 @@ test-suite test
                     , Test.Bayeux.Rtl
                     , Test.Bayeux.Signal
                     , Test.Bayeux.Uart
-    build-depends:    array
-                    , base
+    build-depends:    base
                     , bayeux
                     , extra
                     , filepath
+                    , finitary
                     , finite-typelits
                     , hedgehog
                     , megaparsec
@@ -83,3 +84,4 @@ test-suite test
                     , tasty-hedgehog
                     , tasty-hunit
                     , text
+                    , vector-sized

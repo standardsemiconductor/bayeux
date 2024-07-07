@@ -2,6 +2,7 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE LambdaCase                 #-}
 {-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE ScopedTypeVariables        #-}
 
 -- | Yosys [RTLIL](https://yosyshq.readthedocs.io/projects/yosys/en/latest/yosys_internals/formats/rtlil_text.html)
 module Bayeux.Rtl
@@ -9,8 +10,10 @@ module Bayeux.Rtl
     Ident(..)
   , Value(..)
   , BinaryDigit(..)
-  , binaryDigits
-  , binaryValue
+  , width
+  , encode
+--  , binaryDigits
+--  , binaryValue
   , -- * File
     File(..)
   , top
@@ -125,17 +128,22 @@ module Bayeux.Rtl
   , compile
   ) where
 
-import Bayeux.Encode
-import Bayeux.Width
 import Control.Monad.Except
 import Control.Monad.State
 import Control.Monad.Writer
+import Data.Bits hiding (shift)
+import Data.Bool
+import Data.Finite hiding (shift)
+import Data.Finitary
+import Data.Proxy
 import Data.String
 import Data.Text (Text)
+import GHC.TypeLits
 import Prettyprinter hiding (width)
 
 newtype Ident = Ident Text
   deriving (Eq, IsString, Pretty, Read, Semigroup, Monoid, Show)
+
 
 data Value = Value Integer [BinaryDigit]
   deriving (Eq, Read, Show)
@@ -149,8 +157,45 @@ instance IsString Value where
                     then error $ "IsString " <> s
                     else Value (read l) $ map (fromString . pure) $ drop 1 r
 
-binaryValue :: Encode b => Width b => b -> Value
-binaryValue b = Value (width b) $ encode b
+data BinaryDigit = B0
+                 | B1
+                 | X
+                 | Z
+                 | M
+                 | D
+  deriving (Eq, Read, Show)
+
+instance Pretty BinaryDigit where
+  pretty = \case
+    B0 -> "0"
+    B1 -> "1"
+    X  -> "x"
+    Z  -> "z"
+    M  -> "m"
+    D  -> "-"
+
+instance IsString BinaryDigit where
+  fromString = \case
+    "0" -> B0
+    "1" -> B1
+    "x" -> X
+    "z" -> Z
+    "m" -> M
+    _   -> D
+
+width :: forall a. Finitary a => a -> Integer
+width _
+  | n == 1    = 1
+  | otherwise = ceil $ logBase 2 $ fromInteger n
+  where
+    n = natVal (Proxy :: Proxy (Cardinality a))
+    ceil :: Double -> Integer
+    ceil = ceiling
+
+encode :: Finitary a => a -> [BinaryDigit]
+encode c = bool B0 B1 . testBit (getFinite $ toFinite c) <$> reverse [0..w - 1]
+  where
+    w = fromIntegral $ width c
 
 data File = File (Maybe AutoIdxStmt) [Module]
   deriving (Eq, Read, Show)
@@ -252,8 +297,7 @@ instance Pretty ModuleEndStmt where
   pretty _ = "end" <> hardline
 
 initial
-  :: Encode output
-  => Width  output
+  :: Finitary output
   => Text -- ^ output identifier
   -> output
   -> [ModuleBody]
@@ -265,7 +309,7 @@ initial outputIdent output =
   ]
   where
     value = let size = fromIntegral $ width output
-                bs   = encode output
+                bs   = encode $ toFinite output
             in ConstantValue $ Value size bs
 
 data AttrStmt = AttrStmt Ident Constant

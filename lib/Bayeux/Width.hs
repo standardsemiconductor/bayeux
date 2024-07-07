@@ -1,8 +1,9 @@
+{-
 {-# LANGUAGE FlexibleInstances   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-
+-}
 module Bayeux.Width where
-
+{-
 import Data.Array
 import Data.Finite
 import Data.Proxy
@@ -50,3 +51,4 @@ instance KnownNat n => Width (Finite n) where
 
 instance (KnownNat n, Width e) => Width (Array (Finite n) e) where
   width _ = (fromIntegral . natVal) (Proxy :: Proxy n) * width (undefined :: e)
+-}

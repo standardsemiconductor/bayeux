@@ -1,5 +1,7 @@
+{-# LANGUAGE DeriveAnyClass       #-}
+{-# LANGUAGE DeriveGeneric        #-}
+{-# LANGUAGE DerivingStrategies   #-}
 {-# LANGUAGE FlexibleInstances    #-}
-{-# LANGUAGE InstanceSigs         #-}
 {-# LANGUAGE OverloadedLists      #-}
 {-# LANGUAGE OverloadedStrings    #-}
 {-# LANGUAGE ScopedTypeVariables  #-}
@@ -14,35 +16,34 @@ import Bayeux.Encode
 import Bayeux.Rtl (Rtl)
 import Bayeux.Signal
 import Bayeux.Width
-import Data.Array
+import Data.Finitary
 import Data.Finite
 import Data.String
+import Data.Vector.Sized (Vector)
 import Data.Word
+import GHC.Generics (Generic)
 import GHC.TypeNats
 
 class MonadBuffer m where
   buffer
-    :: Encode e
-    => Width e
+    :: Finitary e
     => KnownNat n
     => Sig (Maybe e)
-    -> m (Sig (Maybe (Array (Finite n) e)))
+    -> m (Sig (Maybe (Vector n e)))
 
   cobuffer
-    :: Encode e
-    => Width e
+    :: Finitary e
     => KnownNat n
-    => Sig (Maybe (Array (Finite n) e))
+    => Sig (Maybe (Vector n e))
     -> m (Sig (Maybe e))
 
 instance MonadBuffer Rtl where
   buffer
     :: forall e n
-     . Encode e
-    => Width e
+     . Finitary e
     => KnownNat n
     => Sig (Maybe e)
-    -> Rtl (Sig (Maybe (Array (Finite n) e)))
+    -> Rtl (Sig (Maybe (Vector n e)))
   buffer inp = do
     i <- process $ \i  -> do
       iPlusOne <- inc i
@@ -59,14 +60,14 @@ instance MonadBuffer Rtl where
       let shamt :: Word8
           shamt = fromIntegral w
       shiftedBuf <- shr b $ val shamt
-      let la = fromIntegral $ width (undefined :: Array (Finite n) e)
+      let la = fromIntegral $ width (undefined :: Vector n e)
           le = fromIntegral w
-          input' :: Sig (Array (Finite n) e)
+          input' :: Sig (Vector n e)
           input' = Sig $ mconcat
             [ spec $ sliceValue inp
             , fromString $ show (la - le) <> "'" <> replicate (la - le) '0'
             ]
-          mask :: Sig (Array (Finite n) e)
+          mask :: Sig (Vector n e)
           mask  = let zs = replicate le '0'
                       ones = replicate (la - le) '1'
                   in fromString $ show la <> "'" <> zs <> ones
@@ -84,15 +85,14 @@ instance MonadBuffer Rtl where
 
   cobuffer
     :: forall e n
-     . Encode e
-    => Width e
+     . Finitary e
     => KnownNat n
-    => Sig (Maybe (Array (Finite n) e))
+    => Sig (Maybe (Vector n e))
     -> Rtl (Sig (Maybe e))
   cobuffer a = fmap snd $ machine $ \s -> do
     let fsmSig = sliceFsm s
         ixSig  = sliceIx  s
-        bufSig = sliceBuf s :: Sig (Maybe (Array (Finite n) e))
+        bufSig = sliceBuf s :: Sig (Maybe (Vector n e))
     isIdle <- fsmSig === val Idle
     isBusy <- fsmSig === val Busy
     ixMax <- ixSig === val maxBound
@@ -122,38 +122,27 @@ instance MonadBuffer Rtl where
       aValid = sliceValid a
 
 data Fsm = Idle | Busy
-  deriving (Eq, Read, Show)
-
-instance Width Fsm where
-  width _ = 1
-
-instance Encode Fsm where
-  encode Idle = [B0]
-  encode Busy = [B1]
+  deriving stock (Eq, Generic, Read, Show)
+  deriving anyclass (Finitary)
 
 data Cobuf n e = Cobuf
   { fsm :: Fsm
   , ix  :: Finite n
-  , buf :: Maybe (Array (Finite n) e)
+  , buf :: Maybe (Vector n e)
   }
-  deriving (Eq, Read, Show)
+  deriving stock (Eq, Generic, Read, Show)
+  deriving anyclass (Finitary)
 
-instance (KnownNat n, Width e) => Width (Cobuf n e) where
-  width _ = width (undefined :: Fsm) + width (undefined :: Finite n) + width (undefined :: Maybe (Array (Finite n) e))
-
-instance (KnownNat n, Encode e, Width e) => Encode (Cobuf n e) where
-  encode s = encode (fsm s) <> encode (ix s) <> encode (buf s)
-
-sliceFsm :: KnownNat n => Width e => Sig (Cobuf n e) -> Sig Fsm
+sliceFsm :: KnownNat n => Finitary e => Sig (Cobuf n e) -> Sig Fsm
 sliceFsm s = slice (width s - 1) (width s - 1) s
 
-sliceIx :: forall n e. KnownNat n => Width e => Sig (Cobuf n e) -> Sig (Finite n)
-sliceIx s = slice (width s - 2) (width (undefined :: Maybe (Array (Finite n) e))) s
+sliceIx :: forall n e. KnownNat n => Finitary e => Sig (Cobuf n e) -> Sig (Finite n)
+sliceIx s = slice (width s - 2) (width (undefined :: Maybe (Vector n e))) s
 
 sliceBuf
   :: forall n e
    . KnownNat n
-  => Width e
+  => Finitary e
   => Sig (Cobuf n e)
-  -> Sig (Maybe (Array (Finite n) e))
-sliceBuf = slice (width (undefined :: Maybe (Array (Finite n) e)) - 1) 0
+  -> Sig (Maybe (Vector n e))
+sliceBuf = slice (width (undefined :: Maybe (Vector n e)) - 1) 0

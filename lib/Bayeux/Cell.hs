@@ -23,39 +23,38 @@ module Bayeux.Cell
   , patm, (~>), wildm
   ) where
 
-import Bayeux.Encode
 import Bayeux.Rtl hiding (at, binary, mux, shift, shr, unary)
 import Bayeux.Signal
-import Bayeux.Width
 import Control.Monad
+import Data.Finitary
 import Data.List.NonEmpty (NonEmpty(..), nonEmpty)
 import Data.Maybe
 import Prelude hiding (and, not, or)
 
 -- | increment
-inc :: Encode a => Width a => MonadSignal m => Sig a -> m (Sig a)
-inc a = binary addC a $ val True
+inc :: Finitary a => MonadSignal m => Sig a -> m (Sig a)
+inc a = binary addC a $ sig True
 
 logicNot :: MonadSignal m => Sig Bool -> m (Sig Bool)
 logicNot = unary logicNotC
 
-not :: Width a => MonadSignal m => Sig a -> m (Sig a)
+not :: Finitary a => MonadSignal m => Sig a -> m (Sig a)
 not = unary notC
 
-add :: Width a => MonadSignal m => Sig a -> Sig a -> m (Sig a)
+add :: Finitary a => MonadSignal m => Sig a -> Sig a -> m (Sig a)
 add = binary addC
 
-and :: Width a => MonadSignal m => Sig a -> Sig a -> m (Sig a)
+and :: Finitary a => MonadSignal m => Sig a -> Sig a -> m (Sig a)
 and = binary andC
 
-eq :: Width a => Monad m => MonadSignal m => Sig a -> Sig a -> m (Sig Bool)
+eq :: Finitary a => Monad m => MonadSignal m => Sig a -> Sig a -> m (Sig Bool)
 eq a = flip at 0 <=< eq' a
   where
-    eq' :: Width a => MonadSignal m => Sig a -> Sig a -> m (Sig a)
+    eq' :: Finitary a => MonadSignal m => Sig a -> Sig a -> m (Sig a)
     eq' = binary eqC
 
 infix 4 ===
-(===) :: Width a => Monad m => MonadSignal m => Sig a -> Sig a -> m (Sig Bool)
+(===) :: Finitary a => Monad m => MonadSignal m => Sig a -> Sig a -> m (Sig Bool)
 (===) = eq
 
 liftBin :: Monad m => (Sig a -> Sig b -> m (Sig c)) -> m (Sig a) -> m (Sig b) -> m (Sig c)
@@ -78,10 +77,10 @@ infixr 2 .||
 (.||) :: Monad m => MonadSignal m => m (Sig Bool) -> m (Sig Bool) -> m (Sig Bool)
 (.||) = liftBin logicOr
 
-or :: Width a => MonadSignal m => Sig a -> Sig a -> m (Sig a)
+or :: Finitary a => MonadSignal m => Sig a -> Sig a -> m (Sig a)
 or = binary orC
 
-shr :: Width a => Width b => MonadSignal m => Sig a -> Sig b -> m (Sig a)
+shr :: Finitary a => Finitary b => MonadSignal m => Sig a -> Sig b -> m (Sig a)
 shr = shift shrC
 
 data Cond a = Cond
@@ -89,7 +88,7 @@ data Cond a = Cond
   , result    :: Sig a
   }
 
-ifm :: Width a => Monad m => MonadSignal m => NonEmpty (Cond a) -> m (Sig a)
+ifm :: Finitary a => Monad m => MonadSignal m => NonEmpty (Cond a) -> m (Sig a)
 ifm (a :| bs) = case nonEmpty bs of
   Nothing   -> return $ result a
   Just rest -> flip (mux (fromJust $ condition a)) (result a) =<< ifm rest
@@ -113,8 +112,7 @@ wildm :: Sig r -> Pat p r
 wildm = Pat Nothing
 
 toCondition
-  :: Encode p
-  => Width p
+  :: Finitary p
   => Monad m
   => MonadSignal m
   => Sig p
@@ -123,16 +121,15 @@ toCondition
 toCondition s p = case pat p of
   Nothing -> return $ Cond Nothing $ patResult p
   Just v  -> do
-   isEq <- s === val v
+   isEq <- s === sig v
    return $ Cond
      { condition = Just isEq
      , result    = patResult p
      }
 
 patm
-  :: Encode p
-  => Width p
-  => Width r
+  :: Finitary p
+  => Finitary r
   => Monad m
   => MonadSignal m
   => Sig p

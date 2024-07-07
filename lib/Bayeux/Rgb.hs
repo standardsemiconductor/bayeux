@@ -1,6 +1,9 @@
-{-# LANGUAGE LambdaCase        #-}
-{-# LANGUAGE OverloadedLists   #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE DeriveAnyClass     #-}
+{-# LANGUAGE DeriveGeneric      #-}
+{-# LANGUAGE DerivingStrategies #-}
+{-# LANGUAGE LambdaCase         #-}
+{-# LANGUAGE OverloadedLists    #-}
+{-# LANGUAGE OverloadedStrings  #-}
 
 module Bayeux.Rgb
   ( MonadRgb(..)
@@ -11,12 +14,17 @@ module Bayeux.Rgb
 
 import Bayeux.Cell
 import qualified Bayeux.Cell as C
-import Bayeux.Encode
 import Bayeux.Rtl hiding (at, binary, process, mux, unary)
 import Bayeux.Signal
-import Bayeux.Width
 import Control.Monad.Writer
+import Data.Bits
+import Data.Bool
+import Data.Finite
+import Data.Finitary
+import Data.Proxy
 import Data.Word
+import GHC.Generics (Generic)
+import GHC.TypeLits
 
 -- | PWM inputs, width=1
 class MonadRgb m where
@@ -43,38 +51,30 @@ prog = do
   outputRgb $ Sig $ spec r <> spec g <> spec b
 
 data Color = Red | Green | Blue
-  deriving (Eq, Read, Show)
-
-instance Width Color where
-  width _ = 2
-
-instance Encode Color where
-  encode = \case
-    Red   -> [B0, B0]
-    Green -> [B0, B1]
-    Blue  -> [B1, B0]
+  deriving stock (Eq, Generic, Read, Show)
+  deriving anyclass (Finitary)
 
 cycleProg :: Monad m => MonadSignal m => MonadRgb m => m ()
 cycleProg = do
   t <- process $ \timer -> do
     t' <- inc timer
     patm timer
-      [ 12000000 ~> val (0 :: Word32)
+      [ 12000000 ~> sig (0 :: Word32)
       , wildm t'
       ]
   c <- process $ \color -> do
     c' <- inc color
     c'' <- patm color
-      [ Blue ~> val Red
+      [ Blue ~> sig Red
       , wildm c'
       ]
     patm t
       [ 12000000 ~> c''
       , wildm color
       ]
-  pwmR <- c === val Red
-  pwmG <- c === val Green
-  pwmB <- c === val Blue
+  pwmR <- c === sig Red
+  pwmG <- c === sig Green
+  pwmB <- c === sig Blue
   outputRgb $ Sig $ spec pwmR <> spec pwmG <> spec pwmB
 
 -- | Rgb driver with output wires \"red\", \"green\", and \"blue\".
