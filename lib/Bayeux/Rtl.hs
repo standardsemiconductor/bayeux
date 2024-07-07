@@ -94,6 +94,7 @@ module Bayeux.Rtl
   , -- *** Primitive cells
     sbRgbaDrv
   , sbLeddaIp
+  , sbSpi
   , -- ** Processes
     Process(..)
   , ProcStmt(..)
@@ -641,6 +642,43 @@ sbLeddaIp cs clk d7 d6 d5 d4 d3 d2 d1 d0 a3 a2 a1 a0 en exe o0 o1 o2 ledon = Cel
   , CellConnect "\\LEDDON" ledon
   ]
   CellEndStmt
+
+sbSpi
+  :: String  -- ^ busAddr
+  -> SigSpec -- ^ sbclki
+  -> SigSpec -- ^ sbrwi
+  -> SigSpec -- ^ sbstbi
+  -> SigSpec -- ^ sbadri7
+  -> SigSpec -- ^ sbadri6
+  -> SigSpec -- ^ sbadri5
+  -> SigSpec -- ^ sbadri4
+  -> SigSpec -- ^ sbadri3
+  -> SigSpec -- ^ sbadri2
+  -> SigSpec -- ^ sbadri1
+  -> SigSpec -- ^ sbadri0
+  -> SigSpec -- ^ sbdati7
+  -> SigSpec -- ^ sbdati6
+  -> SigSpec -- ^ sbdati5
+  -> SigSpec -- ^ sbdati4
+  -> SigSpec -- ^ sbadti3
+  -> SigSpec -- ^ sbdati2
+  -> SigSpec -- ^ sbdati1
+  -> SigSpec -- ^ sbdati0
+  -> SigSpec -- ^ bi
+  -> SigSpec -- ^ wi
+  -> SigSpec -- ^ wcki
+  -> SigSpec -- ^ wcsni
+  -> SigSpec -- ^ sbdato7
+  -> SigSpec -- ^ sbdato6
+  -> SigSpec -- ^ sbdato5
+  -> SigSpec -- ^ sbdato4
+  -> SigSpec -- ^ sbdato3
+  -> SigSpec -- ^ sbdato2
+  -> SigSpec -- ^ sbdato1
+  -> SigSpec -- ^ sbdato0
+  -> SigSpec -- ^ sbacko
+  -> Cell
+sbSpi a c wr stb a7 a6 a5 a4 a3 a2 a1 a0 d7 d6 d5 d4 d3 d2 d2 d1 d0 bi wi wck wcsni
 
 data Process = Process [AttrStmt] ProcStmt ProcessBody ProcEndStmt
   deriving (Eq, Read, Show)
