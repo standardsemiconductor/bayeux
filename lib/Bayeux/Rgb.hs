@@ -17,14 +17,9 @@ import qualified Bayeux.Cell as C
 import Bayeux.Rtl hiding (at, binary, process, mux, unary)
 import Bayeux.Signal
 import Control.Monad.Writer
-import Data.Bits
-import Data.Bool
-import Data.Finite
 import Data.Finitary
-import Data.Proxy
 import Data.Word
 import GHC.Generics (Generic)
-import GHC.TypeLits
 
 -- | PWM inputs, width=1
 class MonadRgb m where

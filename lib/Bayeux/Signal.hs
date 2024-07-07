@@ -15,10 +15,8 @@ module Bayeux.Signal
   , MonadSignal(..)
   ) where
 
-import Bayeux.Encode
 import Bayeux.Rtl hiding (mux)
 import qualified Bayeux.Rtl as Rtl
-import Bayeux.Width
 import Control.Monad
 import Control.Monad.Except
 import Control.Monad.Writer
@@ -35,10 +33,10 @@ sig v = Sig $ SigSpecConstant $ ConstantValue $ Value (width v) (encode v)
 -- | Slice a signal. @slice 7 0@ is equal to @[7:0]@, the first byte.
 slice
   :: Integer -- ^ end
-  -> Integer -- ^ start
+  -> Integer -- ^ begin
   -> Sig a
   -> Sig b
-slice end start s = Sig{ spec = SigSpecSlice (spec s) end (Just start) }
+slice e b s = Sig{ spec = SigSpecSlice (spec s) e (Just b) }
 
 toMaybeSig :: Sig Bool -> Sig a -> Sig (Maybe a)
 toMaybeSig validSig valueSig = Sig $ spec validSig <> spec valueSig
@@ -130,13 +128,15 @@ instance MonadSignal Rtl where
     tell [ModuleBodyWire $ Wire [] $ WireStmt [WireOptionInput i] wireId]
     return $ Sig $ SigSpecWireId wireId
 
-  output wireId sig = do
+  output wireId s = do
     i <- fresh
     tell
       [ ModuleBodyWire $ Wire [] $ WireStmt [WireOptionOutput i] wireId
-      , ModuleBodyConnStmt $ ConnStmt (SigSpecWireId wireId) $ spec sig
+      , ModuleBodyConnStmt $ ConnStmt (SigSpecWireId wireId) $ spec s
       ]
 
+  value = return . sig
+  
   process :: forall a. Finitary a => (Sig a -> Rtl (Sig a)) -> Rtl (Sig a)
   process f = do
     old <- freshWire $ width (undefined :: a)
