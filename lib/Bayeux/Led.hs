@@ -170,7 +170,7 @@ ledCtrl = do
   outputLed =<< patm s
     [ 0 ~> sig (Just (Cr0,  0x80))
     , 1 ~> sig (Just (Pwrr, 0xFF))
-    , wildm $ cmd
+    , wildm cmd
     ]
   where
     on  a = Just (a, 0xFF)

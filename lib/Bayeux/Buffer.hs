@@ -135,12 +135,12 @@ data Cobuf n e = Cobuf
   deriving anyclass (Finitary)
 -}
 sliceFsm :: forall n e. KnownNat n => Finitary e => Sig (Cobuf n e) -> Sig Fsm
-sliceFsm s = slice (w - 1) (w - 1) s
+sliceFsm = slice (w - 1) (w - 1)
   where
     w = width (undefined :: Cobuf n e)
 
 sliceIx :: forall n e. KnownNat n => Finitary e => Sig (Cobuf n e) -> Sig (Finite n)
-sliceIx s = slice (w - 2) (width (undefined :: Maybe (Vector n e))) s
+sliceIx = slice (w - 2) (width (undefined :: Maybe (Vector n e)))
   where
     w = width (undefined :: Cobuf n e)
 
