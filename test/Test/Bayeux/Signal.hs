@@ -36,7 +36,7 @@ sigEncoding =
   , sigTest (1 :: Finite 3) "2'01"
   , sigTest (7 :: Finite 8) "3'111"
   , sigTest (2 :: Finite 3, 7 :: Finite 8) "5'10111"
-  , sigTest (Just False, Just True) "4'1011"
+  , sigTest (Just False, Just True) "4'0101"
   , let a :: Vector 3 (Maybe Bool)
         a = fromTuple (Just True, Nothing, Just False)
     in sigTest a "6'110010"
