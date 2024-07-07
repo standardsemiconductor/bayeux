@@ -15,9 +15,8 @@ import qualified Bayeux.Cell as C
 import Bayeux.Rtl hiding (at, binary, mux, process, shift, shr, unary)
 import Bayeux.Signal
 import Control.Monad
-import Data.Array
 import Data.Bits hiding (shift)
-import Data.Finite
+import Data.Vector.Sized hiding (slice)
 import Data.Word
 
 class MonadUart m where
@@ -30,27 +29,27 @@ class MonadUart m where
 
 instance MonadUart Rtl where
   transmit baud byte = void $ process $ \txFsm -> do
-    isStart <- txFsm === val False
+    isStart <- txFsm === sig False
     txCtr <- process $ \txCtr -> do
-      ctrDone <- txCtr === val baud
+      ctrDone <- txCtr === sig baud
       txCtr' <- C.inc txCtr
-      ifm [ isStart `thenm` val 0
-          , ctrDone `thenm` val 0
+      ifm [ isStart `thenm` sig 0
+          , ctrDone `thenm` sig 0
           , elsem txCtr'
           ]
-    ctrDone <- txCtr === val baud
+    ctrDone <- txCtr === sig baud
     notDone <- C.logicNot ctrDone
     txIx <- process $ \txIx -> do
-      isEmpty <- txIx === val 9
+      isEmpty <- txIx === sig 9
       txIx'   <- C.inc txIx
       ifm [ notDone `thenm` txIx
-          , isEmpty `thenm` val (0 :: Word8)
+          , isEmpty `thenm` sig (0 :: Word8)
           , elsem txIx'
           ]
-    isStartFrame <- txIx === val 0
-    isEndFrame   <- txIx === val 9
+    isStartFrame <- txIx === sig 0
+    isEndFrame   <- txIx === sig 9
     buf <- process $ \buf -> do
-      buf' <- buf `C.shr` val True
+      buf' <- buf `C.shr` sig True
       ifm [ isStart      `thenm` sliceValue byte
           , isStartFrame `thenm` buf
           , notDone      `thenm` buf
@@ -58,24 +57,24 @@ instance MonadUart Rtl where
           ]
     e <- buf `at` 0
     output "\\tx" =<< ifm
-      [ isStart      `thenm` val True
-      , isStartFrame `thenm` val False
-      , isEndFrame   `thenm` val True
+      [ isStart      `thenm` sig True
+      , isStartFrame `thenm` sig False
+      , isEndFrame   `thenm` sig True
       , elsem e
       ]
     txFsm' <- C.logicNot =<< ctrDone `C.logicAnd` isEndFrame
     mux isStart txFsm' $ sliceValid byte
 
   receive baud rx = do
-    rxLow  <- rx === val False
+    rxLow  <- rx === sig False
     rxHigh <- C.logicNot rxLow
     fmap snd $ machine $ \s -> do
       isIdle  <- rxFsm s === idle
       isStart <- rxFsm s === start
       isRecv  <- rxFsm s === recv
-      isBaudHalf        <- rxCtr s === val (baud `shiftR` 1)
+      isBaudHalf        <- rxCtr s === sig (baud `shiftR` 1)
       isBaudHalfRxStart <- isBaudHalf `C.logicAnd` isStart
-      isBaud            <- rxCtr s === val baud
+      isBaud            <- rxCtr s === sig baud
       isBaudRxRecv      <- isBaud `C.logicAnd` isRecv
       buf <- buffer $ toMaybeSig isBaudRxRecv rx
       gotoRxStart <- rxLow `C.logicAnd` isIdle
@@ -92,30 +91,30 @@ instance MonadUart Rtl where
         ]
       rxCtr1 <- C.inc $ rxCtr s
       rxCtr' <- ifm
-        [ isIdle            `thenm` val 0
-        , isBaudHalfRxStart `thenm` val 0
-        , isBaud            `thenm` val 0
+        [ isIdle            `thenm` sig 0
+        , isBaudHalfRxStart `thenm` sig 0
+        , isBaud            `thenm` sig 0
         , elsem rxCtr1
         ]
       return (Sig{ spec = pad <> spec rxCtr' <> spec rxFsm' }, packMaybe buf)
     where
       pad = "8'00000000"
-      idle  = val 0
-      start = val 1
-      recv  = val 2
-      stop  = val 3
+      idle  = sig 0
+      start = sig 1
+      recv  = sig 2
+      stop  = sig 3
       rxFsm :: Sig Word32 -> Sig Word8
       rxFsm = slice 7 0
       rxCtr :: Sig Word32 -> Sig Word16
       rxCtr = slice 23 8
-      packMaybe :: Sig (Maybe (Array (Finite 8) Bool)) -> Sig (Maybe Word8)
+      packMaybe :: Sig (Maybe (Vector 8 Bool)) -> Sig (Maybe Word8)
       packMaybe = Sig . spec
 
 hello :: Monad m => MonadUart m => MonadSignal m => m (Sig Word32)
 hello = process $ \timer -> do
-  is5Sec <- timer === val 60000000
-  transmit 624 $ toMaybeSig is5Sec $ val 0x61
-  flip (mux is5Sec) (val 0) =<< C.inc timer
+  is5Sec <- timer === sig 60000000
+  transmit 624 $ toMaybeSig is5Sec $ sig 0x61
+  flip (mux is5Sec) (sig 0) =<< C.inc timer
 
 echo :: Monad m => MonadUart m => MonadSignal m => m ()
 echo = transmit 624 =<< receive 624 =<< input "\\rx"
@@ -125,7 +124,7 @@ bufEcho = do
   b <- buf =<< receive 624 =<< input "\\rx"
   transmit 624 =<< cobuf b
   where
-    buf :: MonadBuffer m => Sig (Maybe Word8) -> m (Sig (Maybe (Array (Finite 1) Word8)))
+    buf :: MonadBuffer m => Sig (Maybe Word8) -> m (Sig (Maybe (Vector 1 Word8)))
     buf = buffer
-    cobuf :: MonadBuffer m => Sig (Maybe (Array (Finite 1) Word8)) -> m (Sig (Maybe Word8))
+    cobuf :: MonadBuffer m => Sig (Maybe (Vector 1 Word8)) -> m (Sig (Maybe Word8))
     cobuf = cobuffer

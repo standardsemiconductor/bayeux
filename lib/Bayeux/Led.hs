@@ -1,8 +1,10 @@
 {-# LANGUAGE DataKinds           #-}
+{-# LANGUAGE InstanceSigs        #-}
 {-# LANGUAGE LambdaCase          #-}
 {-# LANGUAGE OverloadedLists     #-}
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeFamilies        #-}
 
 module Bayeux.Led
   ( MonadLed(..)
@@ -13,16 +15,15 @@ module Bayeux.Led
 
 import Bayeux.Buffer
 import Bayeux.Cell
-import Bayeux.Encode
 import Bayeux.Rgb
 import Bayeux.Rtl hiding (mux, process)
 import Bayeux.Signal
 import Bayeux.Uart
-import Bayeux.Width
 import Control.Monad
 import Control.Monad.Writer
-import Data.Array
+import Data.Finitary
 import Data.Finite
+import Data.Vector.Sized hiding (slice)
 import Data.Word
 
 -- | Registers
@@ -37,6 +38,34 @@ data Addr = Cr0  -- ^ Control 0
           | Pwrb -- ^ Pulse width for BLUE
   deriving (Eq, Read, Show)
 
+instance Finitary Addr where
+  type Cardinality Addr = 16
+
+  fromFinite :: Finite (Cardinality Addr) -> Addr
+  fromFinite = \case
+    8    -> Cr0
+    9    -> Br
+    10   -> Onr
+    11   -> Ofr
+    5    -> Bcrr
+    6    -> Bcfr
+    1    -> Pwrr
+    2    -> Pwrg
+    3    -> Pwrb
+    _    -> error "Not an Addr"
+
+  toFinite :: Addr -> Finite (Cardinality Addr)
+  toFinite = \case
+    Cr0  -> 8
+    Br   -> 9
+    Onr  -> 10
+    Ofr  -> 11
+    Bcrr -> 5
+    Bcfr -> 6
+    Pwrr -> 1
+    Pwrg -> 2
+    Pwrb -> 3
+{-
 instance Encode Addr where
   encode = \case
     Cr0  -> [B1, B0, B0, B0]
@@ -51,7 +80,7 @@ instance Encode Addr where
 
 instance Width Addr where
   width _ = 4
-
+-}
 class MonadLed m where
   led :: Sig (Maybe (Addr, Word8))
       -> m (Sig (Bool, Bool, Bool, Bool))
@@ -126,11 +155,10 @@ ledCtrl
 ledCtrl = do
   b <- receive 624 =<< input "\\rx"
   cmds <- patm (asChar b)
-    [ Just 'c' ~> val (Just $ listArray (0, 2) [Just (Cr0, 0x80), Nothing, Nothing])
-    , Just 'r' ~> val (Just $ listArray (0, 2) $ Just <$> [(Pwrr, 0xFF), (Pwrg, 0x00), (Pwrb, 0x00)])
-    , Just 'g' ~> val (Just $ listArray (0, 2) $ Just <$> [(Pwrr, 0x00), (Pwrg, 0xFF), (Pwrb, 0x00)])
-    , Just 'b' ~> val (Just $ listArray (0, 2) $ Just <$> [(Pwrr, 0x00), (Pwrg, 0x00), (Pwrb, 0xFF)])
-    , wildm $ val (Nothing :: Maybe (Array (Finite 3) (Maybe (Addr, Word8))))
+    [ Just 'r' ~> sig red
+    , Just 'g' ~> sig green
+    , Just 'b' ~> sig blue
+    , wildm $ sig (Nothing :: Maybe (Vector 3 (Maybe (Addr, Word8))))
     ]
   cmd <- joinMaybe =<< cobuffer cmds
   s <- process $ \s -> do
@@ -140,15 +168,21 @@ ledCtrl = do
       , wildm s'
       ]
   outputLed =<< patm s
-    [ 0 ~> val (Just (Cr0,  0x80))
-    , 1 ~> val (Just (Pwrr, 0xFF))
+    [ 0 ~> sig (Just (Cr0,  0x80))
+    , 1 ~> sig (Just (Pwrr, 0xFF))
     , wildm $ cmd
     ]
+  where
+    on  a = Just (a, 0xFF)
+    off a = Just (a, 0x00)
+    red   = Just $ fromTuple (on  Pwrr, off Pwrg, off Pwrb)
+    green = Just $ fromTuple (off Pwrr, on  Pwrg, off Pwrb)
+    blue  = Just $ fromTuple (off Pwrr, off Pwrg, on  Pwrb)
 
 asChar :: Sig (Maybe Word8) -> Sig (Maybe Char)
 asChar = Sig . spec
 
-joinMaybe :: Width a => Monad m => MonadSignal m => Sig (Maybe (Maybe a)) -> m (Sig (Maybe a))
+joinMaybe :: Finitary a => Monad m => MonadSignal m => Sig (Maybe (Maybe a)) -> m (Sig (Maybe a))
 joinMaybe s = do
   v <- sliceValid s `logicAnd` (sliceValid . sliceValue) s
   return $ Sig $ spec v <> (spec . sliceValue . sliceValue) s

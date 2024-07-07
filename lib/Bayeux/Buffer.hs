@@ -2,6 +2,7 @@
 {-# LANGUAGE DeriveGeneric        #-}
 {-# LANGUAGE DerivingStrategies   #-}
 {-# LANGUAGE FlexibleInstances    #-}
+{-# LANGUAGE InstanceSigs         #-}
 {-# LANGUAGE OverloadedLists      #-}
 {-# LANGUAGE OverloadedStrings    #-}
 {-# LANGUAGE ScopedTypeVariables  #-}
@@ -12,10 +13,8 @@ module Bayeux.Buffer
 
 import Bayeux.Cell
 import qualified Bayeux.Cell as C
-import Bayeux.Encode
-import Bayeux.Rtl (Rtl)
+import Bayeux.Rtl (Rtl, width)
 import Bayeux.Signal
-import Bayeux.Width
 import Data.Finitary
 import Data.Finite
 import Data.String
@@ -48,18 +47,18 @@ instance MonadBuffer Rtl where
     i <- process $ \i  -> do
       iPlusOne <- inc i
       i' <- patm i
-        [ maxBound ~> val (0 :: Finite n)
+        [ maxBound ~> sig (0 :: Finite n)
         , wildm iPlusOne
         ]
       patm (sliceValid inp)
         [ True ~> i'
         , wildm i
         ]
-    isFull <- i === val maxBound
+    isFull <- i === sig maxBound
     b <- process $ \b -> do
       let shamt :: Word8
           shamt = fromIntegral w
-      shiftedBuf <- shr b $ val shamt
+      shiftedBuf <- shr b $ sig shamt
       let la = fromIntegral $ width (undefined :: Vector n e)
           le = fromIntegral w
           input' :: Sig (Vector n e)
@@ -93,24 +92,24 @@ instance MonadBuffer Rtl where
     let fsmSig = sliceFsm s
         ixSig  = sliceIx  s
         bufSig = sliceBuf s :: Sig (Maybe (Vector n e))
-    isIdle <- fsmSig === val Idle
-    isBusy <- fsmSig === val Busy
-    ixMax <- ixSig === val maxBound
+    isIdle <- fsmSig === sig Idle
+    isBusy <- fsmSig === sig Busy
+    ixMax <- ixSig === sig maxBound
     gotoIdle <- isBusy `logicAnd` ixMax
     gotoBusy <- isIdle `logicAnd` aValid
     fsm' <- ifm
-      [ gotoIdle `thenm` val Idle
-      , gotoBusy `thenm` val Busy
+      [ gotoIdle `thenm` sig Idle
+      , gotoBusy `thenm` sig Busy
       , elsem fsmSig
       ]
     ix1 <- inc ixSig
-    ix' <- flip (mux gotoBusy) (val 0) =<< patm ixSig
-      [ maxBound ~> val (0 :: Finite n)
+    ix' <- flip (mux gotoBusy) (sig 0) =<< patm ixSig
+      [ maxBound ~> sig (0 :: Finite n)
       , wildm ix1
       ]
     let shamt = fromIntegral (width (undefined :: e)) :: Word8
-    bufValue' <- shr (sliceValue bufSig) $ val shamt
-    buf' <- flip (mux gotoIdle) (val Nothing) =<< patm fsmSig
+    bufValue' <- shr (sliceValue bufSig) $ sig shamt
+    buf' <- flip (mux gotoIdle) (sig Nothing) =<< patm fsmSig
       [ Idle ~> a
       , wildm $ Sig $ "1'1" <> spec bufValue'
       ]
@@ -125,6 +124,8 @@ data Fsm = Idle | Busy
   deriving stock (Eq, Generic, Read, Show)
   deriving anyclass (Finitary)
 
+type Cobuf n e = (Fsm, Finite n, Maybe (Vector n e))
+{-
 data Cobuf n e = Cobuf
   { fsm :: Fsm
   , ix  :: Finite n
@@ -132,12 +133,16 @@ data Cobuf n e = Cobuf
   }
   deriving stock (Eq, Generic, Read, Show)
   deriving anyclass (Finitary)
-
-sliceFsm :: KnownNat n => Finitary e => Sig (Cobuf n e) -> Sig Fsm
-sliceFsm s = slice (width s - 1) (width s - 1) s
+-}
+sliceFsm :: forall n e. KnownNat n => Finitary e => Sig (Cobuf n e) -> Sig Fsm
+sliceFsm s = slice (w - 1) (w - 1) s
+  where
+    w = width (undefined :: Cobuf n e)
 
 sliceIx :: forall n e. KnownNat n => Finitary e => Sig (Cobuf n e) -> Sig (Finite n)
-sliceIx s = slice (width s - 2) (width (undefined :: Maybe (Vector n e))) s
+sliceIx s = slice (w - 2) (width (undefined :: Maybe (Vector n e))) s
+  where
+    w = width (undefined :: Cobuf n e)
 
 sliceBuf
   :: forall n e
