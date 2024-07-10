@@ -25,6 +25,7 @@ library
                     , Bayeux.Rgb
                     , Bayeux.Rtl
                     , Bayeux.Signal
+                    , Bayeux.Spi
                     , Bayeux.Tableaux
                     , Bayeux.Uart
                     , Bayeux.Width
