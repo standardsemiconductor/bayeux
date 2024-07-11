@@ -5,8 +5,8 @@ module Bayeux (app) where
 import Bayeux.Cli
 import Bayeux.Flow
 import Bayeux.Ice40.Led
-import Bayeux.Lp
 import Bayeux.Ice40.Rgb
+import Bayeux.Lp
 import Bayeux.Rtl
 import Bayeux.Tableaux
 import Bayeux.Uart
