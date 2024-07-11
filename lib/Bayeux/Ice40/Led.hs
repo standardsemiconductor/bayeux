@@ -4,7 +4,7 @@
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Bayeux.Led
+module Bayeux.Ice40.Led
   ( MonadLed(..)
   , outputLed
   , slicePwm
@@ -14,7 +14,7 @@ module Bayeux.Led
 import Bayeux.Buffer
 import Bayeux.Cell
 import Bayeux.Encode
-import Bayeux.Rgb
+import Bayeux.Ice40.Rgb
 import Bayeux.Rtl hiding (mux, process)
 import Bayeux.Signal
 import Bayeux.Uart
