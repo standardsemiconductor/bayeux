@@ -20,6 +20,7 @@ library
                     , Bayeux.Cli
                     , Bayeux.Encode
                     , Bayeux.Flow
+                    , Bayeux.Ice40.IO
                     , Bayeux.Ice40.Led
                     , Bayeux.Ice40.Rgb
                     , Bayeux.Lp

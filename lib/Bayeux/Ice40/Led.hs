@@ -142,7 +142,7 @@ ledCtrl = do
   outputLed =<< patm s
     [ 0 ~> val (Just (Cr0,  0x80))
     , 1 ~> val (Just (Pwrr, 0xFF))
-    , wildm $ cmd
+    , wildm cmd
     ]
 
 asChar :: Sig (Maybe Word8) -> Sig (Maybe Char)
