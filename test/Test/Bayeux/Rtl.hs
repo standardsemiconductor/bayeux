@@ -2,6 +2,8 @@
 
 module Test.Bayeux.Rtl
   ( tests
+  , prettyTest
+  , synthTest
   ) where
 
 import Bayeux.Rtl
@@ -22,21 +24,12 @@ import Test.Tasty.Golden
 tests :: [TestTree]
 tests =
   [ testGroup "pretty"
-      [ prettyTest "led"       rtlLed
-      , prettyTest "sbRgbaDrv" $ sbRgbaDrv
-          (SigSpecWireId "\\pwm_r")
-          (SigSpecWireId "\\pwm_g")
-          (SigSpecWireId "\\pwm_b")
-          (SigSpecWireId "\\red")
-          (SigSpecWireId "\\green")
-          (SigSpecWireId "\\blue")
-      , prettyTest "fiatLux"   fiatLux
-      , prettyTest "add"     $ addC "\\adder" False 32 False 32 33 (SigSpecWireId "\\a") (SigSpecWireId "\\b") (SigSpecWireId "\\y")
-      , prettyTest "counter" $ counter 8 "\\old" "\\new" "$old" "$procStmt"
+      [ prettyTest' "led"       rtlLed
+      , prettyTest' "add"     $ addC "\\adder" False 32 False 32 33 (SigSpecWireId "\\a") (SigSpecWireId "\\b") (SigSpecWireId "\\y")
+      , prettyTest' "counter" $ counter 8 "\\old" "\\new" "$old" "$procStmt"
       ]
   , testGroup "synth"
       [ synthTest "led"     rtlLed
-      , synthTest "fiatLux" fiatLux
       ]
   ]
 
@@ -48,8 +41,8 @@ counter
   -> ProcStmt -- ^ update
   -> [ModuleBody]
 counter w old new addId procStmt =
-  [ ModuleBodyWire $ Wire [] $ WireStmt [WireOptionWidth w] old -- $ WireId $ "\\" <> old
-  , ModuleBodyWire $ Wire [] $ WireStmt [WireOptionWidth w] new -- $ WireId new
+  [ ModuleBodyWire $ Wire [] $ WireStmt [WireOptionWidth w] old
+  , ModuleBodyWire $ Wire [] $ WireStmt [WireOptionWidth w] new
   , ModuleBodyCell $ addC
       addId
       False
@@ -65,18 +58,19 @@ counter w old new addId procStmt =
       (SrcSigSpec  $ SigSpecWireId new)
   ]
 
-prettyTest :: Pretty a => TestName -> a -> TestTree
-prettyTest n = goldenVsString n (curDir </> n <.> "pretty")
-                 . return . fromString . T.unpack . render . pretty
+prettyTest :: Pretty a => FilePath -> TestName -> a -> TestTree
+prettyTest curDir n = goldenVsString n (curDir </> n <.> "pretty")
+                        . return . fromString . T.unpack . render . pretty
+
+prettyTest' :: Pretty a => TestName -> a -> TestTree
+prettyTest' = prettyTest $ "test" </> "Test" </> "Bayeux" </> "Rtl" </> "golden"
+
 
 synthTest :: TestName -> File -> TestTree
 synthTest n rtl = testCase n $ withTempFile $ \t -> do
   TIO.writeFile t $ render $ pretty rtl
   let c = "yosys -q -p \"synth_ice40\" -f rtlil " <> t
   (ExitSuccess @=?) =<< waitForProcess =<< spawnCommand c
-
-curDir :: FilePath
-curDir = "test" </> "Test" </> "Bayeux" </> "Rtl" </> "golden"
 
 rtlLed :: File
 rtlLed = File Nothing

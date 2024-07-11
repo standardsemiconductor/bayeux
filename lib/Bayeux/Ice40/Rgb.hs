@@ -3,7 +3,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module Bayeux.Ice40.Rgb
-  ( MonadRgb(..)
+  ( sbRgbaDrv
+  , fiatLux
+  , MonadRgb(..)
   , outputRgb
   , prog
   , cycleProg
@@ -17,6 +19,49 @@ import Bayeux.Signal
 import Bayeux.Width
 import Control.Monad.Writer
 import Data.Word
+
+sbRgbaDrv
+  :: SigSpec -- ^ red   pwm input
+  -> SigSpec -- ^ green pwm input
+  -> SigSpec -- ^ blue  pwm input
+  -> SigSpec -- ^ red   RGB0 output
+  -> SigSpec -- ^ green RGB1 output
+  -> SigSpec -- ^ blue  RGB2 output
+  -> Cell
+sbRgbaDrv pwmR pwmG pwmB red green blue = Cell
+  [AttrStmt "\\module_not_derived" $ ConstantInteger 1]
+  (CellStmt "\\SB_RGBA_DRV" "\\RGBA_DRIVER")
+  [ CellParameter Nothing "\\CURRENT_MODE" $ ConstantString "0b1"
+  , CellParameter Nothing "\\RGB0_CURRENT" $ ConstantString "0b111111"
+  , CellParameter Nothing "\\RGB1_CURRENT" $ ConstantString "0b111111"
+  , CellParameter Nothing "\\RGB2_CURRENT" $ ConstantString "0b111111"
+  , CellConnect "\\CURREN" $ SigSpecConstant $ ConstantValue $ Value 1 [B1]
+  , CellConnect "\\RGB0" red
+  , CellConnect "\\RGB0PWM" pwmR
+  , CellConnect "\\RGB1" green
+  , CellConnect "\\RGB1PWM" pwmG
+  , CellConnect "\\RGB2" blue
+  , CellConnect "\\RGB2PWM" pwmB
+  , CellConnect "\\RGBLEDEN" $ SigSpecConstant $ ConstantValue $ Value 1 [B1]
+  ]
+  CellEndStmt
+
+fiatLux :: File
+fiatLux = top $
+  [ ModuleBodyWire $ Wire [] $ WireStmt [WireOptionOutput 1] "\\red"
+  , ModuleBodyWire $ Wire [] $ WireStmt [WireOptionOutput 2] "\\green"
+  , ModuleBodyWire $ Wire [] $ WireStmt [WireOptionOutput 3] "\\blue"
+  ] <> initial "\\pwm_r" True
+    <> initial "\\pwm_g" False
+    <> initial "\\pwm_b" False
+    <> [ModuleBodyCell $ sbRgbaDrv
+          (SigSpecWireId "\\pwm_r")
+          (SigSpecWireId "\\pwm_g")
+          (SigSpecWireId "\\pwm_b")
+          (SigSpecWireId "\\red")
+          (SigSpecWireId "\\green")
+          (SigSpecWireId "\\blue")
+       ]
 
 -- | PWM inputs, width=1
 class MonadRgb m where

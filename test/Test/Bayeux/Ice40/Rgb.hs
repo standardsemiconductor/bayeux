@@ -1,31 +1,33 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Test.Bayeux.Ice40.Rgb
   ( tests
   ) where
 
 import Bayeux.Ice40.Rgb
 import Bayeux.Rtl
-import Data.String
-import Data.Text (Text)
-import qualified Data.Text as T
-import qualified Data.Text.IO as TIO
 import Prettyprinter
-import Prettyprinter.Render.Text
-import System.Exit
 import System.FilePath
-import System.IO.Extra
-import System.Process
+import Test.Bayeux.Rtl (prettyTest, synthTest)
 import Test.Tasty
-import Test.Tasty.HUnit
-import Test.Tasty.Golden
 
 tests :: [TestTree]
 tests =
   [ testGroup "pretty"
-      [ prettyTest "rgbcounter" $ handleErr $ compile prog
-      , prettyTest "rgbcycle"   $ handleErr $ compile cycleProg
+      [ prettyTest' "sbRgbaDrv" $ sbRgbaDrv
+          (SigSpecWireId "\\pwm_r")
+          (SigSpecWireId "\\pwm_g")
+          (SigSpecWireId "\\pwm_b")
+          (SigSpecWireId "\\red")
+          (SigSpecWireId "\\green")
+          (SigSpecWireId "\\blue")
+      , prettyTest' "fiatLux"   fiatLux
+      , prettyTest' "rgbcounter" $ handleErr $ compile prog
+      , prettyTest' "rgbcycle"   $ handleErr $ compile cycleProg
       ]
   , testGroup "synth"
-      [ synthTest "rgbcounter" $ handleErr $ compile prog
+      [ synthTest "fiatLux" fiatLux
+      , synthTest "rgbcounter" $ handleErr $ compile prog
       , synthTest "rgbcycle"   $ handleErr $ compile cycleProg
       ]
   ]
@@ -33,18 +35,5 @@ tests =
 handleErr :: Either Err File -> File
 handleErr = either (error . show) id
 
-prettyTest :: Pretty a => TestName -> a -> TestTree
-prettyTest n = goldenVsString n (curDir </> n <.> "pretty")
-                 . return . fromString . T.unpack . render . pretty
-
-synthTest :: TestName -> File -> TestTree
-synthTest n rtl = testCase n $ withTempFile $ \t -> do
-  TIO.writeFile t $ render $ pretty rtl
-  let c = "yosys -q -p \"synth_ice40\" -f rtlil " <> t
-  (ExitSuccess @=?) =<< waitForProcess =<< spawnCommand c
-
-curDir :: FilePath
-curDir = "test" </> "Test" </> "Bayeux" </> "Ice40" </> "Rgb" </> "golden"
-
-render :: Doc ann -> Text
-render = renderStrict . layoutSmart defaultLayoutOptions
+prettyTest' :: Pretty a => TestName -> a -> TestTree
+prettyTest' = prettyTest $ "test" </> "Test" </> "Bayeux" </> "Ice40" </> "Rgb" </> "golden"
