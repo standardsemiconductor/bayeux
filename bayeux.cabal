@@ -27,7 +27,6 @@ library
                     , Bayeux.Lp
                     , Bayeux.Rtl
                     , Bayeux.Signal
-                    , Bayeux.Spi
                     , Bayeux.Tableaux
                     , Bayeux.Uart
                     , Bayeux.Width
