@@ -23,6 +23,7 @@ library
                     , Bayeux.Ice40.IO
                     , Bayeux.Ice40.Led
                     , Bayeux.Ice40.Rgb
+                    , Bayeux.Ice40.Spi
                     , Bayeux.Lp
                     , Bayeux.Rtl
                     , Bayeux.Signal
