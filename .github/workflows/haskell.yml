@@ -99,4 +99,4 @@ jobs:
         sudo make install
 
     - name: test
-      run: cabal run test
+      run: cabal run test -- --no-create

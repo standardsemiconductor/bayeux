@@ -4,8 +4,9 @@
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Bayeux.Led
-  ( MonadLed(..)
+module Bayeux.Ice40.Led
+  ( sbLeddaIp
+  , MonadLed(..)
   , outputLed
   , slicePwm
   , ledCtrl
@@ -14,7 +15,7 @@ module Bayeux.Led
 import Bayeux.Buffer
 import Bayeux.Cell
 import Bayeux.Encode
-import Bayeux.Rgb
+import Bayeux.Ice40.Rgb
 import Bayeux.Rtl hiding (mux, process)
 import Bayeux.Signal
 import Bayeux.Uart
@@ -24,6 +25,54 @@ import Control.Monad.Writer
 import Data.Array
 import Data.Finite
 import Data.Word
+
+sbLeddaIp
+  :: SigSpec -- ^ leddcs
+  -> SigSpec -- ^ leddclk
+  -> SigSpec -- ^ leddat7
+  -> SigSpec -- ^ leddat6
+  -> SigSpec -- ^ leddat5
+  -> SigSpec -- ^ leddat4
+  -> SigSpec -- ^ leddat3
+  -> SigSpec -- ^ leddat2
+  -> SigSpec -- ^ leddat1
+  -> SigSpec -- ^ leddat0
+  -> SigSpec -- ^ leddaddr3
+  -> SigSpec -- ^ leddaddr2
+  -> SigSpec -- ^ leddaddr1
+  -> SigSpec -- ^ leddaddr0
+  -> SigSpec -- ^ ledden
+  -> SigSpec -- ^ leddexe
+  -> SigSpec -- ^ pwmout0
+  -> SigSpec -- ^ pwmout1
+  -> SigSpec -- ^ pwmout2
+  -> SigSpec -- ^ leddon out
+  -> Cell
+sbLeddaIp cs clk d7 d6 d5 d4 d3 d2 d1 d0 a3 a2 a1 a0 en exe o0 o1 o2 ledon = Cell
+  [AttrStmt "\\module_not_derived" $ ConstantInteger 1]
+  (CellStmt "\\SB_LEDDA_IP" "\\SB_LEDDA_IP_INST")
+  [ CellConnect "\\LEDDCS" cs
+  , CellConnect "\\LEDDCLK" clk
+  , CellConnect "\\LEDDDAT7" d7
+  , CellConnect "\\LEDDDAT6" d6
+  , CellConnect "\\LEDDDAT5" d5
+  , CellConnect "\\LEDDDAT4" d4
+  , CellConnect "\\LEDDDAT3" d3
+  , CellConnect "\\LEDDDAT2" d2
+  , CellConnect "\\LEDDDAT1" d1
+  , CellConnect "\\LEDDDAT0" d0
+  , CellConnect "\\LEDDADDR3" a3
+  , CellConnect "\\LEDDADDR2" a2
+  , CellConnect "\\LEDDADDR1" a1
+  , CellConnect "\\LEDDADDR0" a0
+  , CellConnect "\\LEDDDEN" en
+  , CellConnect "\\LEDDEXE" exe
+  , CellConnect "\\PWMOUT0" o0
+  , CellConnect "\\PWMOUT1" o1
+  , CellConnect "\\PWMOUT2" o2
+  , CellConnect "\\LEDDON" ledon
+  ]
+  CellEndStmt
 
 -- | Registers
 data Addr = Cr0  -- ^ Control 0
@@ -142,7 +191,7 @@ ledCtrl = do
   outputLed =<< patm s
     [ 0 ~> val (Just (Cr0,  0x80))
     , 1 ~> val (Just (Pwrr, 0xFF))
-    , wildm $ cmd
+    , wildm cmd
     ]
 
 asChar :: Sig (Maybe Word8) -> Sig (Maybe Char)

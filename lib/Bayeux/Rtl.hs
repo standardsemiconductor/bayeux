@@ -14,7 +14,6 @@ module Bayeux.Rtl
   , -- * File
     File(..)
   , top
-  , fiatLux
   , -- ** Autoindex statements
     AutoIdxStmt(..)
   , -- ** Modules
@@ -91,10 +90,6 @@ module Bayeux.Rtl
   , modFloorC
   , -- *** Multiplexers
     muxC
-  , -- *** Primitive cells
-    sbRgbaDrv
-  , sbLeddaIp
-  , sbSpi
   , -- ** Processes
     Process(..)
   , ProcStmt(..)
@@ -164,23 +159,6 @@ instance Pretty File where
 
 top :: [ModuleBody] -> File
 top body = File (Just 0) [Module [] "\\top" body ModuleEndStmt]
-
-fiatLux :: File
-fiatLux = top $
-  [ ModuleBodyWire $ Wire [] $ WireStmt [WireOptionOutput 1] "\\red"
-  , ModuleBodyWire $ Wire [] $ WireStmt [WireOptionOutput 2] "\\green"
-  , ModuleBodyWire $ Wire [] $ WireStmt [WireOptionOutput 3] "\\blue"
-  ] <> initial "\\pwm_r" True
-    <> initial "\\pwm_g" False
-    <> initial "\\pwm_b" False
-    <> [ModuleBodyCell $ sbRgbaDrv
-          (SigSpecWireId "\\pwm_r")
-          (SigSpecWireId "\\pwm_g")
-          (SigSpecWireId "\\pwm_b")
-          (SigSpecWireId "\\red")
-          (SigSpecWireId "\\green")
-          (SigSpecWireId "\\blue")
-       ]
 
 newtype AutoIdxStmt = AutoIdxStmt Integer
   deriving (Eq, Num, Read, Show)
@@ -566,187 +544,6 @@ muxC cellId w a b s y = Cell
   , CellConnect "\\B" b
   , CellConnect "\\S" s
   , CellConnect "\\Y" y
-  ]
-  CellEndStmt
-
-sbRgbaDrv
-  :: SigSpec -- ^ red   pwm input
-  -> SigSpec -- ^ green pwm input
-  -> SigSpec -- ^ blue  pwm input
-  -> SigSpec -- ^ red   RGB0 output
-  -> SigSpec -- ^ green RGB1 output
-  -> SigSpec -- ^ blue  RGB2 output
-  -> Cell
-sbRgbaDrv pwmR pwmG pwmB red green blue = Cell
-  [AttrStmt "\\module_not_derived" $ ConstantInteger 1]
-  (CellStmt "\\SB_RGBA_DRV" "\\RGBA_DRIVER")
-  [ CellParameter Nothing "\\CURRENT_MODE" $ ConstantString "0b1"
-  , CellParameter Nothing "\\RGB0_CURRENT" $ ConstantString "0b111111"
-  , CellParameter Nothing "\\RGB1_CURRENT" $ ConstantString "0b111111"
-  , CellParameter Nothing "\\RGB2_CURRENT" $ ConstantString "0b111111"
-  , CellConnect "\\CURREN" $ SigSpecConstant $ ConstantValue $ Value 1 [B1]
-  , CellConnect "\\RGB0" red
-  , CellConnect "\\RGB0PWM" pwmR
-  , CellConnect "\\RGB1" green
-  , CellConnect "\\RGB1PWM" pwmG
-  , CellConnect "\\RGB2" blue
-  , CellConnect "\\RGB2PWM" pwmB
-  , CellConnect "\\RGBLEDEN" $ SigSpecConstant $ ConstantValue $ Value 1 [B1]
-  ]
-  CellEndStmt
-
-sbLeddaIp
-  :: SigSpec -- ^ leddcs
-  -> SigSpec -- ^ leddclk
-  -> SigSpec -- ^ leddat7
-  -> SigSpec -- ^ leddat6
-  -> SigSpec -- ^ leddat5
-  -> SigSpec -- ^ leddat4
-  -> SigSpec -- ^ leddat3
-  -> SigSpec -- ^ leddat2
-  -> SigSpec -- ^ leddat1
-  -> SigSpec -- ^ leddat0
-  -> SigSpec -- ^ leddaddr3
-  -> SigSpec -- ^ leddaddr2
-  -> SigSpec -- ^ leddaddr1
-  -> SigSpec -- ^ leddaddr0
-  -> SigSpec -- ^ ledden
-  -> SigSpec -- ^ leddexe
-  -> SigSpec -- ^ pwmout0
-  -> SigSpec -- ^ pwmout1
-  -> SigSpec -- ^ pwmout2
-  -> SigSpec -- ^ leddon out
-  -> Cell
-sbLeddaIp cs clk d7 d6 d5 d4 d3 d2 d1 d0 a3 a2 a1 a0 en exe o0 o1 o2 ledon = Cell
-  [AttrStmt "\\module_not_derived" $ ConstantInteger 1]
-  (CellStmt "\\SB_LEDDA_IP" "\\SB_LEDDA_IP_INST")
-  [ CellConnect "\\LEDDCS" cs
-  , CellConnect "\\LEDDCLK" clk
-  , CellConnect "\\LEDDDAT7" d7
-  , CellConnect "\\LEDDDAT6" d6
-  , CellConnect "\\LEDDDAT5" d5
-  , CellConnect "\\LEDDDAT4" d4
-  , CellConnect "\\LEDDDAT3" d3
-  , CellConnect "\\LEDDDAT2" d2
-  , CellConnect "\\LEDDDAT1" d1
-  , CellConnect "\\LEDDDAT0" d0
-  , CellConnect "\\LEDDADDR3" a3
-  , CellConnect "\\LEDDADDR2" a2
-  , CellConnect "\\LEDDADDR1" a1
-  , CellConnect "\\LEDDADDR0" a0
-  , CellConnect "\\LEDDDEN" en
-  , CellConnect "\\LEDDEXE" exe
-  , CellConnect "\\PWMOUT0" o0
-  , CellConnect "\\PWMOUT1" o1
-  , CellConnect "\\PWMOUT2" o2
-  , CellConnect "\\LEDDON" ledon
-  ]
-  CellEndStmt
-
-sbSpi
-  :: CellId
-  -> Text    -- ^ busAddr
-  -> SigSpec -- ^ sbclki
-  -> SigSpec -- ^ sbrwi
-  -> SigSpec -- ^ sbstbi
-  -> SigSpec -- ^ sbadri7
-  -> SigSpec -- ^ sbadri6
-  -> SigSpec -- ^ sbadri5
-  -> SigSpec -- ^ sbadri4
-  -> SigSpec -- ^ sbadri3
-  -> SigSpec -- ^ sbadri2
-  -> SigSpec -- ^ sbadri1
-  -> SigSpec -- ^ sbadri0
-  -> SigSpec -- ^ sbdati7
-  -> SigSpec -- ^ sbdati6
-  -> SigSpec -- ^ sbdati5
-  -> SigSpec -- ^ sbdati4
-  -> SigSpec -- ^ sbadti3
-  -> SigSpec -- ^ sbdati2
-  -> SigSpec -- ^ sbdati1
-  -> SigSpec -- ^ sbdati0
-  -> SigSpec -- ^ bi
-  -> SigSpec -- ^ wi
-  -> SigSpec -- ^ wcki
-  -> SigSpec -- ^ wcsni
-  -> SigSpec -- ^ sbdato7
-  -> SigSpec -- ^ sbdato6
-  -> SigSpec -- ^ sbdato5
-  -> SigSpec -- ^ sbdato4
-  -> SigSpec -- ^ sbdato3
-  -> SigSpec -- ^ sbdato2
-  -> SigSpec -- ^ sbdato1
-  -> SigSpec -- ^ sbdato0
-  -> SigSpec -- ^ sbacko
-  -> SigSpec -- ^ spiirq
-  -> SigSpec -- ^ spiwkup
-  -> SigSpec -- ^ wo
-  -> SigSpec -- ^ woe
-  -> SigSpec -- ^ bo
-  -> SigSpec -- ^ boe
-  -> SigSpec -- ^ wcko
-  -> SigSpec -- ^ wckoe
-  -> SigSpec -- ^ bcsno3
-  -> SigSpec -- ^ bcsno2
-  -> SigSpec -- ^ bcsno1
-  -> SigSpec -- ^ bcsno0
-  -> SigSpec -- ^ bcsnoe3
-  -> SigSpec -- ^ bcsnoe2
-  -> SigSpec -- ^ bcsnoe1
-  -> SigSpec -- ^ bcsnoe0
-  -> Cell
-sbSpi name a c rw stb a7 a6 a5 a4 a3 a2 a1 a0 di7 di6 di5 di4 di3 di2 di1 di0 bi wi wcki wcsni do7 do6 do5 do4 do3 do2 do1 do0 acko irq wkup wo woe bo boe wcko wckoe bcsno3 bcsno2 bcsno1 bcsno0 bcsnoe3 bcsnoe2 bcsnoe1 bcsnoe0 = Cell
-  [AttrStmt "\\module_not_derived" $ ConstantInteger 1]
-  (CellStmt "\\SB_SPI" name)
-  [ CellParameter Nothing "\\BUS_ADDR74" $ ConstantString a
-  , CellConnect "\\SBCLKI" c
-  , CellConnect "\\SBRWI"  rw
-  , CellConnect "\\SBSTBI" stb
-  , CellConnect "\\SBADRI7" a7
-  , CellConnect "\\SBADRI6" a6
-  , CellConnect "\\SBADRI5" a5
-  , CellConnect "\\SBADRI4" a4
-  , CellConnect "\\SBADRI3" a3
-  , CellConnect "\\SBADRI2" a2
-  , CellConnect "\\SBADRI1" a1
-  , CellConnect "\\SBADRI0" a0
-  , CellConnect "\\SBDATI7" di7
-  , CellConnect "\\SBDATI6" di6
-  , CellConnect "\\SBDATI5" di5
-  , CellConnect "\\SBDATI4" di4
-  , CellConnect "\\SBDATI3" di3
-  , CellConnect "\\SBDATI2" di2
-  , CellConnect "\\SBDATI1" di1
-  , CellConnect "\\SBDATI0" di0
-  , CellConnect "\\MI"      bi
-  , CellConnect "\\SI"      wi
-  , CellConnect "\\SCKI"    wcki
-  , CellConnect "\\SCSNI"   wcsni
-  , CellConnect "\\SBDATO7" do7
-  , CellConnect "\\SBDATO6" do6
-  , CellConnect "\\SBDATO5" do5
-  , CellConnect "\\SBDATO4" do4
-  , CellConnect "\\SBDATO3" do3
-  , CellConnect "\\SBDATO2" do2
-  , CellConnect "\\SBDATO1" do1
-  , CellConnect "\\SBDATO0" do0
-  , CellConnect "\\SBACKO"  acko
-  , CellConnect "\\SPIIRQ"  irq
-  , CellConnect "\\SPIWKUP" wkup
-  , CellConnect "\\SO"      wo
-  , CellConnect "\\SOE"     woe
-  , CellConnect "\\MO"      bo
-  , CellConnect "\\MOE"     boe
-  , CellConnect "\\SCKO"    wcko
-  , CellConnect "\\SCKOE"   wckoe
-  , CellConnect "\\MCSNO3"  bcsno3
-  , CellConnect "\\MCSNO2"  bcsno2
-  , CellConnect "\\MCSNO1"  bcsno1
-  , CellConnect "\\MCSNO0"  bcsno0
-  , CellConnect "\\MCSNOE3" bcsnoe3
-  , CellConnect "\\MCSNOE2" bcsnoe2
-  , CellConnect "\\MCSNOE1" bcsnoe1
-  , CellConnect "\\MCSNOE0" bcsnoe0
   ]
   CellEndStmt
 

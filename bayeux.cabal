@@ -20,9 +20,11 @@ library
                     , Bayeux.Cli
                     , Bayeux.Encode
                     , Bayeux.Flow
-                    , Bayeux.Led
+                    , Bayeux.Ice40.IO
+                    , Bayeux.Ice40.Led
+                    , Bayeux.Ice40.Rgb
+                    , Bayeux.Ice40.Spi
                     , Bayeux.Lp
-                    , Bayeux.Rgb
                     , Bayeux.Rtl
                     , Bayeux.Signal
                     , Bayeux.Spi
@@ -63,9 +65,10 @@ test-suite test
     type:             exitcode-stdio-1.0
     hs-source-dirs:   test
     main-is:          Main.hs
-    other-modules:    Test.Bayeux.Led
+    other-modules:    Test.Bayeux.Ice40
+                    , Test.Bayeux.Ice40.Led
+                    , Test.Bayeux.Ice40.Rgb
                     , Test.Bayeux.Lp
-                    , Test.Bayeux.Rgb
                     , Test.Bayeux.Rtl
                     , Test.Bayeux.Signal
                     , Test.Bayeux.Uart
