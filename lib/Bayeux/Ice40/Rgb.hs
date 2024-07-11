@@ -2,7 +2,7 @@
 {-# LANGUAGE OverloadedLists   #-}
 {-# LANGUAGE OverloadedStrings #-}
 
-module Bayeux.Rgb
+module Bayeux.Ice40.Rgb
   ( MonadRgb(..)
   , outputRgb
   , prog

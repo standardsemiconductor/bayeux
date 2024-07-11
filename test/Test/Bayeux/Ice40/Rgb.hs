@@ -1,8 +1,8 @@
-module Test.Bayeux.Led
+module Test.Bayeux.Ice40.Rgb
   ( tests
   ) where
 
-import Bayeux.Led
+import Bayeux.Ice40.Rgb
 import Bayeux.Rtl
 import Data.String
 import Data.Text (Text)
@@ -21,10 +21,12 @@ import Test.Tasty.Golden
 tests :: [TestTree]
 tests =
   [ testGroup "pretty"
-      [ prettyTest "ledCtrl" $ handleErr $ compile ledCtrl
+      [ prettyTest "rgbcounter" $ handleErr $ compile prog
+      , prettyTest "rgbcycle"   $ handleErr $ compile cycleProg
       ]
   , testGroup "synth"
-      [ synthTest "ledCtrl" $ handleErr $ compile ledCtrl
+      [ synthTest "rgbcounter" $ handleErr $ compile prog
+      , synthTest "rgbcycle"   $ handleErr $ compile cycleProg
       ]
   ]
 
@@ -42,7 +44,7 @@ synthTest n rtl = testCase n $ withTempFile $ \t -> do
   (ExitSuccess @=?) =<< waitForProcess =<< spawnCommand c
 
 curDir :: FilePath
-curDir = "test" </> "Test" </> "Bayeux" </> "Led" </> "golden"
+curDir = "test" </> "Test" </> "Bayeux" </> "Ice40" </> "Rgb" </> "golden"
 
 render :: Doc ann -> Text
 render = renderStrict . layoutSmart defaultLayoutOptions
