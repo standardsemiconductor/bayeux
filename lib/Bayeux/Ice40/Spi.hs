@@ -175,3 +175,31 @@ sliceData = slice 7 0
 
 class MonadSpi m where
   spi :: Text -> Sig (Maybe Req) -> m (Sig (Maybe Word8))
+
+instance MonadSpi Rtl where
+  spi busAddr req = do
+    name <- fromString . ("\\SB_SPI_INST" <>) . show <$> fresh
+    let c   = SigSpecWireId "\\clk"
+        rw  = isW req
+        stb = isValid req
+        a7  = slice 7 7 $ sliceAddress req
+        a6  = slice 6 6 $ sliceAddress req
+        a5  = slice 5 5 $ sliceAddress req
+        a4  = slice 4 4 $ sliceAddress req
+        a3  = slice 3 3 $ sliceAddress req
+        a2  = slice 2 2 $ sliceAddress req
+        a1  = slice 1 1 $ sliceAddress req
+        a0  = slice 0 0 $ sliceAddress req
+        di7 = slice 7 7 $ sliceData    req
+        di6 = slice 6 6 $ sliceData    req
+        di5 = slice 5 5 $ sliceData    req
+        di4 = slice 4 4 $ sliceData    req
+        di3 = slice 3 3 $ sliceData    req
+        di2 = slice 2 2 $ sliceData    req
+        di1 = slice 1 1 $ sliceData    req
+        di0 = slice 0 0 $ sliceData    req
+    tell
+      [ ModuleBodyCell $
+          sbSpi name busAddr c rw stb a7 a6 a5 a4 a3 a2 a1 a0 di7 di6 di5 di4 di3 di2 di1 di0 bi wi wcki wcsni do7 do6 do5 do4 do3 do2 do1 do0 acko irq wkup wo woe bo boe wcko wckoe bcsno3 bcsno2 bcsno1 bcsno0 bcsnoe3 bcsnoe2 bcsnoe1 bcsnoe0
+      ]
+    return $ Sig $ acko <> do7 <> do6 <> do5 <> do4 <> do3 <> do2 <> do1 <> do0
