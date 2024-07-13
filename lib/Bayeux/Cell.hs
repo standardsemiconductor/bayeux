@@ -9,8 +9,13 @@ module Bayeux.Cell
   , -- * Binary
     add
   , and
+  , lt
+  , le
   , eq
   , (===)
+  , ne
+  , ge
+  , gt
   , logicAnd
   , (.&&)
   , logicOr
@@ -48,6 +53,18 @@ add = binary addC
 and :: Width a => MonadSignal m => Sig a -> Sig a -> m (Sig a)
 and = binary andC
 
+lt :: Width a => Monad m => MonadSignal m => Sig a -> Sig a -> m (Sig Bool)
+lt a = flip at 0 <=< lt' a
+  where
+    lt' :: Width a => MonadSignal m => Sig a -> Sig a -> m (Sig a)
+    lt' = binary ltC
+
+le :: Width a => Monad m => MonadSignal m => Sig a -> Sig a -> m (Sig Bool)
+le a = flip at 0 <=< le' a
+  where
+    le' :: Width a => MonadSignal m => Sig a -> Sig a -> m (Sig a)
+    le' = binary leC
+
 eq :: Width a => Monad m => MonadSignal m => Sig a -> Sig a -> m (Sig Bool)
 eq a = flip at 0 <=< eq' a
   where
@@ -57,6 +74,24 @@ eq a = flip at 0 <=< eq' a
 infix 4 ===
 (===) :: Width a => Monad m => MonadSignal m => Sig a -> Sig a -> m (Sig Bool)
 (===) = eq
+
+ne :: Width a => Monad m => MonadSignal m => Sig a -> Sig a -> m (Sig Bool)
+ne a = flip at 0 <=< ne' a
+  where
+    ne' :: Width a => MonadSignal m => Sig a -> Sig a -> m (Sig a)
+    ne' = binary neC
+
+ge :: Width a => Monad m => MonadSignal m => Sig a -> Sig a -> m (Sig Bool)
+ge a = flip at 0 <=< ge' a
+  where
+    ge' :: Width a => MonadSignal m => Sig a -> Sig a -> m (Sig a)
+    ge' = binary geC
+
+gt :: Width a => Monad m => MonadSignal m => Sig a -> Sig a -> m (Sig Bool)
+gt a = flip at 0 <=< gt' a
+  where
+    gt' :: Width a => MonadSignal m => Sig a -> Sig a -> m (Sig a)
+    gt' = binary gtC
 
 liftBin :: Monad m => (Sig a -> Sig b -> m (Sig c)) -> m (Sig a) -> m (Sig b) -> m (Sig c)
 liftBin f x y = do

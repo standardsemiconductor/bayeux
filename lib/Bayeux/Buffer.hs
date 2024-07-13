@@ -8,7 +8,7 @@ module Bayeux.Buffer
   ( MonadBuffer(..)
   ) where
 
-import Bayeux.Cell
+import Bayeux.Cell hiding (le)
 import qualified Bayeux.Cell as C
 import Bayeux.Encode
 import Bayeux.Rtl (Rtl)
