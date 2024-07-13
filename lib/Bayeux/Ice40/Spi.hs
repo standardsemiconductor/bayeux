@@ -1,3 +1,4 @@
+{-# LANGUAGE DataKinds         #-}
 {-# LANGUAGE LambdaCase        #-}
 {-# LANGUAGE OverloadedStrings #-}
 
@@ -10,9 +11,14 @@ module Bayeux.Ice40.Spi
   ) where
 
 import Bayeux.Encode
+import Bayeux.Ice40.IO
 import Bayeux.Rtl
 import Bayeux.Signal
 import Bayeux.Width
+import Control.Monad.Writer
+import Data.Array
+import Data.Finite
+import Data.String
 import Data.Text (Text)
 import Data.Word
 
@@ -180,24 +186,26 @@ instance MonadSpi Rtl where
   spi busAddr req = do
     name <- fromString . ("\\SB_SPI_INST" <>) . show <$> fresh
     let c   = SigSpecWireId "\\clk"
-        rw  = isW req
-        stb = isValid req
-        a7  = addr 7 busAddr -- slice 7 7 $ sliceAddr req
-        a6  = addr 6 busAddr -- slice 6 6 $ sliceAddr req
-        a5  = addr 5 busAddr -- slice 5 5 $ sliceAddr req
-        a4  = addr 4 busAddr -- slice 4 4 $ sliceAddr req
-        a3  = slice 3 3 $ sliceAddr req
-        a2  = slice 2 2 $ sliceAddr req
-        a1  = slice 1 1 $ sliceAddr req
-        a0  = slice 0 0 $ sliceAddr req
-        di7 = slice 7 7 $ sliceData req
-        di6 = slice 6 6 $ sliceData req
-        di5 = slice 5 5 $ sliceData req
-        di4 = slice 4 4 $ sliceData req
-        di3 = slice 3 3 $ sliceData req
-        di2 = slice 2 2 $ sliceData req
-        di1 = slice 1 1 $ sliceData req
-        di0 = slice 0 0 $ sliceData req
+        rw  = spec $ isW $ sliceValue req
+        stb = spec $ sliceValid req
+        reqAddr n = spec $ slice n n $ sliceAddr $ sliceValue req
+        reqData n = spec $ slice n n $ sliceData $ sliceValue req
+        a7  = SigSpecConstant $ ConstantValue $ Value 1 [B0] -- TODO: busAddr!
+        a6  = SigSpecConstant $ ConstantValue $ Value 1 [B0]
+        a5  = SigSpecConstant $ ConstantValue $ Value 1 [B0]
+        a4  = SigSpecConstant $ ConstantValue $ Value 1 [B0]
+        a3  = reqAddr 3
+        a2  = reqAddr 2
+        a1  = reqAddr 1
+        a0  = reqAddr 0
+        di7 = reqData 7
+        di6 = reqData 6
+        di5 = reqData 5
+        di4 = reqData 4
+        di3 = reqData 3
+        di2 = reqData 2
+        di1 = reqData 1
+        di0 = reqData 0
     bi      <- freshWire 1
     wi      <- freshWire 1
     wcki    <- freshWire 1
@@ -227,26 +235,36 @@ instance MonadSpi Rtl where
     bcsnoe2 <- freshWire 1
     bcsnoe1 <- freshWire 1
     bcsnoe0 <- freshWire 1
+    biwo    <- inout "\\spi_biwo"
+    bowi    <- inout "\\spi_bowi"
+    wck     <- inout "\\spi_wck"
+    cs      <- inout "\\spi_cs"
     tell
       [ ModuleBodyCell $
           sbSpi name busAddr c rw stb a7 a6 a5 a4 a3 a2 a1 a0 di7 di6 di5 di4 di3 di2 di1 di0 bi wi wcki wcsni do7 do6 do5 do4 do3 do2 do1 do0 acko irq wkup wo woe bo boe wcko wckoe bcsno3 bcsno2 bcsno1 bcsno0 bcsnoe3 bcsnoe2 bcsnoe1 bcsnoe0
       , ModuleBodyCell $ biwoIO biwo woe    wo    bi
       , ModuleBodyCell $ bowiIO bowi boe    bo    wi
       , ModuleBodyCell $ wckIO  wck  wckoe  wcko  wcki
-      , ModuleBodyCell $ csIO   cs   bcsnoe bcsno wcsni
+      , ModuleBodyCell $ csIO   cs   bcsnoe0 bcsno0 wcsni
       ]
     return $ Sig $ acko <> do7 <> do6 <> do5 <> do4 <> do3 <> do2 <> do1 <> do0
 
-biwo
+inout :: WireId -> Rtl SigSpec
+inout wireId = do
+  i <- fresh
+  tell [ModuleBodyWire $ Wire [] $ WireStmt [WireOptionInout i] wireId]
+  return $ SigSpecWireId wireId
+
+biwoIO
   :: SigSpec -- ^ package pin
   -> SigSpec -- ^ output enable
   -> SigSpec -- ^ D_OUT_0
   -> SigSpec -- ^ D_IN_0
   -> Cell
-biwo pp woe wo bi = sbIO
+biwoIO pp woe wo bi = sbIO
   "\\SB_IO_BIWO"
   (ConstantValue $ Value 6 [B0, B0, B0, B0, B0, B1]) -- pin type
-  (ConstantVlaue $ Value 1 [B0]) -- pullup
+  (ConstantValue $ Value 1 [B0]) -- pullup
   (ConstantValue $ Value 1 [B0]) -- neg trigger
   (ConstantString "SB_LVCMOS")
   pp
@@ -260,13 +278,13 @@ biwo pp woe wo bi = sbIO
   bi
   (SigSpecConstant $ ConstantValue $ Value 1 [B0])
 
-bowi
+bowiIO
   :: SigSpec -- ^ package pin
   -> SigSpec -- ^ output enable
   -> SigSpec -- ^ D_OUT_0
   -> SigSpec -- ^ D_IN_0
   -> Cell
-bowi pp boe bo wi = sbIO
+bowiIO pp boe bo wi = sbIO
   "\\SB_IO_BOWI"
   (ConstantValue $ Value 6 [B1, B0, B1, B0, B0, B1]) -- pin type
   (ConstantValue $ Value 1 [B0]) -- pullup
