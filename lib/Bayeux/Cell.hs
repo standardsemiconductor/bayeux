@@ -28,6 +28,8 @@ module Bayeux.Cell
   , ifm, thenm, elsem
   , pats, (~~>), wilds
   , patm, (~>), wildm
+  , -- * Data
+    joinMaybe
   ) where
 
 import Bayeux.Encode
@@ -237,3 +239,8 @@ patm
   -> NonEmpty (PatM p m r)
   -> m (Sig r)
 patm s = ifs <=< mapM (toConditionM s)
+
+joinMaybe :: Width a => Monad m => MonadSignal m => Sig (Maybe (Maybe a)) -> m (Sig (Maybe a))
+joinMaybe s = do
+  v <- sliceValid s `logicAnd` (sliceValid . sliceValue) s
+  return $ Sig $ spec v <> (spec . sliceValue . sliceValue) s

@@ -192,8 +192,3 @@ ledCtrl = do
     ]
   where
     w8 = fromIntegral . ord
-
-joinMaybe :: Width a => Monad m => MonadSignal m => Sig (Maybe (Maybe a)) -> m (Sig (Maybe a))
-joinMaybe s = do
-  v <- sliceValid s `logicAnd` (sliceValid . sliceValue) s
-  return $ Sig $ spec v <> (spec . sliceValue . sliceValue) s
