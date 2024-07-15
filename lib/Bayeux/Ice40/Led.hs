@@ -175,8 +175,7 @@ ledCtrl
 ledCtrl = do
   b <- receive 624 =<< input "\\rx"
   cmds <- pats (asChar b)
-    [ Just 'c' ~~> sig (Just $ listArray (0, 2) [Just (Cr0, 0x80), Nothing, Nothing])
-    , Just 'r' ~~> sig (Just $ listArray (0, 2) $ Just <$> [(Pwrr, 0xFF), (Pwrg, 0x00), (Pwrb, 0x00)])
+    [ Just 'r' ~~> sig (Just $ listArray (0, 2) $ Just <$> [(Pwrr, 0xFF), (Pwrg, 0x00), (Pwrb, 0x00)])
     , Just 'g' ~~> sig (Just $ listArray (0, 2) $ Just <$> [(Pwrr, 0x00), (Pwrg, 0xFF), (Pwrb, 0x00)])
     , Just 'b' ~~> sig (Just $ listArray (0, 2) $ Just <$> [(Pwrr, 0x00), (Pwrg, 0x00), (Pwrb, 0xFF)])
     , wilds $ sig (Nothing :: Maybe (Array (Finite 3) (Maybe (Addr, Word8))))
