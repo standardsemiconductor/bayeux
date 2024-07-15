@@ -175,12 +175,6 @@ ledCtrl
   => m ()
 ledCtrl = do
   b <- receive 624 =<< input "\\rx"
-  cmds <- pats b
-    [ Just (w8 'r') ~~> sig (Just $ listArray (0, 2) $ Just <$> [(Pwrr, 0xFF), (Pwrg, 0x00), (Pwrb, 0x00)])
-    , Just (w8 'g') ~~> sig (Just $ listArray (0, 2) $ Just <$> [(Pwrr, 0x00), (Pwrg, 0xFF), (Pwrb, 0x00)])
-    , Just (w8 'b') ~~> sig (Just $ listArray (0, 2) $ Just <$> [(Pwrr, 0x00), (Pwrg, 0x00), (Pwrb, 0xFF)])
-    , wilds $ sig (Nothing :: Maybe (Array (Finite 3) (Maybe (Addr, Word8))))
-    ]
   s <- process $ \s -> patm s
     [ (maxBound :: Finite 3) ~> pure s
     , wildm $ inc s
@@ -188,7 +182,16 @@ ledCtrl = do
   outputLed =<< patm s
     [ 0 ~> val (Just (Cr0,  0x80))
     , 1 ~> val (Just (Pwrr, 0xFF))
-    , wildm $ joinMaybe =<< cobuffer cmds
+    , wildm $ joinMaybe =<< cobuffer =<< pats b
+      [ Just (w8 'r') ~~> cmd red
+      , Just (w8 'g') ~~> cmd green
+      , Just (w8 'b') ~~> cmd blue
+      , wilds $ sig (Nothing :: Maybe (Array (Finite 3) (Maybe (Addr, Word8))))
+      ]
     ]
   where
+    cmd   = sig . Just . listArray (0, 2)
+    red   = Just <$> [(Pwrr, 0xFF), (Pwrg, 0x00), (Pwrb, 0x00)]
+    green = Just <$> [(Pwrr, 0x00), (Pwrg, 0xFF), (Pwrb, 0x00)]
+    blue  = Just <$> [(Pwrr, 0x00), (Pwrg, 0x00), (Pwrb, 0xFF)]
     w8 = fromIntegral . ord

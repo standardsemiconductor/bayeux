@@ -18,9 +18,9 @@ cycleProg = do
     ]
   c <- process $ \color -> patm t
     [ 12000000 ~> patm color
-        [ Blue ~> val Red
-        , wildm $ inc color
-        ]
+      [ Blue ~> val Red
+      , wildm $ inc color
+      ]
     , wildm $ pure color
     ]
   pwmR <- c === sig Red
