@@ -104,18 +104,18 @@ cycleProg = do
   t <- process $ \timer -> do
     t' <- inc timer
     pats timer
-      [ 12000000 ~> sig (0 :: Word32)
-      , wildm t'
+      [ 12000000 ~~> sig (0 :: Word32)
+      , wilds t'
       ]
   c <- process $ \color -> do
     c' <- inc color
     c'' <- pats color
-      [ Blue ~> sig Red
-      , wildm c'
+      [ Blue ~~> sig Red
+      , wilds c'
       ]
     pats t
-      [ 12000000 ~> c''
-      , wildm color
+      [ 12000000 ~~> c''
+      , wilds color
       ]
   pwmR <- c === sig Red
   pwmG <- c === sig Green

@@ -25,7 +25,8 @@ module Bayeux.Cell
     shr
   , -- * Control
     ifs, thens, elses
-  , pats, (~>), wildm
+  , pats, (~~>), wilds
+  , patm, (~>), wildm
   ) where
 
 import Bayeux.Encode
@@ -140,12 +141,12 @@ data Pat p r = Pat
   , patResult :: Sig r
   }
 
-infix 5 ~>
-(~>) :: p -> Sig r -> Pat p r
-(~>) p = Pat (Just p)
+infix 5 ~~>
+(~~>) :: p -> Sig r -> Pat p r
+(~~>) p = Pat (Just p)
 
-wildm :: Sig r -> Pat p r
-wildm = Pat Nothing
+wilds :: Sig r -> Pat p r
+wilds = Pat Nothing
 
 toCondition
   :: Encode p
@@ -174,3 +175,45 @@ pats
   -> NonEmpty (Pat p r)
   -> m (Sig r)
 pats s = ifs <=< mapM (toCondition s)
+
+data PatM p m r = PatM
+  { patCond   :: Maybe p
+  , runPat    :: m (Sig r)
+  }
+
+infix 5 ~>
+(~>) :: p -> m (Sig r) -> PatM p m r
+(~>) p = PatM (Just p)
+
+wildm :: m (Sig r) -> PatM p m r
+wildm = PatM Nothing
+
+toConditionM
+  :: Encode p
+  => Width p
+  => Monad m
+  => MonadSignal m
+  => Sig p
+  -> PatM p m r
+  -> m (Cond r)
+toConditionM s p = do
+  r <- runPat p
+  case patCond p of
+    Nothing -> return $ Cond Nothing r
+    Just v  -> do
+      isEq <- s === sig v
+      return $ Cond
+        { condition = Just isEq
+        , result    = r
+        }
+
+patm
+  :: Encode p
+  => Width p
+  => Width r
+  => Monad m
+  => MonadSignal m
+  => Sig p
+  -> NonEmpty (PatM p m r)
+  -> m (Sig r)
+patm s = ifs <=< mapM (toConditionM s)
