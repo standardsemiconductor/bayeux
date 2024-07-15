@@ -24,7 +24,7 @@ module Bayeux.Cell
   , -- ** Shift
     shr
   , -- * Control
-    ifs, thenm, elsem
+    ifs, thens, elses
   , pats, (~>), wildm
   ) where
 
@@ -129,11 +129,11 @@ ifs (a :| bs) = case nonEmpty bs of
   Nothing   -> return $ result a
   Just rest -> flip (mux (fromJust $ condition a)) (result a) =<< ifs rest
 
-thenm :: Sig Bool -> Sig a -> Cond a
-thenm s = Cond (Just s)
+thens :: Sig Bool -> Sig a -> Cond a
+thens s = Cond (Just s)
 
-elsem :: Sig a -> Cond a
-elsem = Cond Nothing
+elses :: Sig a -> Cond a
+elses = Cond Nothing
 
 data Pat p r = Pat
   { pat       :: Maybe p

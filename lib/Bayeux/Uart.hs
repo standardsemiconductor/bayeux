@@ -34,34 +34,34 @@ instance MonadUart Rtl where
     txCtr <- process $ \txCtr -> do
       ctrDone <- txCtr === sig baud
       txCtr' <- C.inc txCtr
-      ifs [ isStart `thenm` sig 0
-          , ctrDone `thenm` sig 0
-          , elsem txCtr'
+      ifs [ isStart `thens` sig 0
+          , ctrDone `thens` sig 0
+          , elses txCtr'
           ]
     ctrDone <- txCtr === sig baud
     notDone <- C.logicNot ctrDone
     txIx <- process $ \txIx -> do
       isEmpty <- txIx === sig 9
       txIx'   <- C.inc txIx
-      ifs [ notDone `thenm` txIx
-          , isEmpty `thenm` sig (0 :: Word8)
-          , elsem txIx'
+      ifs [ notDone `thens` txIx
+          , isEmpty `thens` sig (0 :: Word8)
+          , elses txIx'
           ]
     isStartFrame <- txIx === sig 0
     isEndFrame   <- txIx === sig 9
     buf <- process $ \buf -> do
       buf' <- buf `C.shr` sig True
-      ifs [ isStart      `thenm` sliceValue byte
-          , isStartFrame `thenm` buf
-          , notDone      `thenm` buf
-          , elsem buf'
+      ifs [ isStart      `thens` sliceValue byte
+          , isStartFrame `thens` buf
+          , notDone      `thens` buf
+          , elses buf'
           ]
     e <- buf `at` 0
     output "\\tx" =<< ifs
-      [ isStart      `thenm` sig True
-      , isStartFrame `thenm` sig False
-      , isEndFrame   `thenm` sig True
-      , elsem e
+      [ isStart      `thens` sig True
+      , isStartFrame `thens` sig False
+      , isEndFrame   `thens` sig True
+      , elses e
       ]
     txFsm' <- C.logicNot =<< ctrDone `C.logicAnd` isEndFrame
     mux isStart txFsm' $ sliceValid byte
@@ -76,26 +76,26 @@ instance MonadUart Rtl where
       isBaudHalf        <- rxCtr s === sig (baud `shiftR` 1)
       isBaudHalfRxStart <- isBaudHalf `C.logicAnd` isStart
       isBaud            <- rxCtr s === sig baud
-      isBaudRxRecv      <- isBaud `C.logicAnd` isRecv
+      isBaudRxRecv      <- isBaud `logicAnd` isRecv
       buf <- buffer $ toMaybeSig isBaudRxRecv rx
-      gotoRxStart <- rxLow `C.logicAnd` isIdle
-      gotoRxRecv  <- rxLow `C.logicAnd` isBaudHalfRxStart
+      gotoRxStart <- rxLow `logicAnd` isIdle
+      gotoRxRecv  <- rxLow `logicAnd` isBaudHalfRxStart
       gotoRxStop  <- sliceValid buf `logicAnd` isRecv
       gotoRxIdle  <- (rxHigh `logicAnd` isBaudHalfRxStart)
                        .|| (pure isBaud .&& rxFsm s === stop)
       rxFsm' <- ifs
-        [ gotoRxStart `thenm` start
-        , gotoRxRecv  `thenm` recv
-        , gotoRxStop  `thenm` stop
-        , gotoRxIdle  `thenm` idle
-        , elsem $ rxFsm s
+        [ gotoRxStart `thens` start
+        , gotoRxRecv  `thens` recv
+        , gotoRxStop  `thens` stop
+        , gotoRxIdle  `thens` idle
+        , elses $ rxFsm s
         ]
       rxCtr1 <- C.inc $ rxCtr s
       rxCtr' <- ifs
-        [ isIdle            `thenm` sig 0
-        , isBaudHalfRxStart `thenm` sig 0
-        , isBaud            `thenm` sig 0
-        , elsem rxCtr1
+        [ isIdle            `thens` sig 0
+        , isBaudHalfRxStart `thens` sig 0
+        , isBaud            `thens` sig 0
+        , elses rxCtr1
         ]
       return (Sig{ spec = pad <> spec rxCtr' <> spec rxFsm' }, packMaybe buf)
     where

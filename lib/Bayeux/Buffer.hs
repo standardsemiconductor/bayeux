@@ -99,9 +99,9 @@ instance MonadBuffer Rtl where
     gotoIdle <- isBusy `logicAnd` ixMax
     gotoBusy <- isIdle `logicAnd` aValid
     fsm' <- ifs
-      [ gotoIdle `thenm` sig Idle
-      , gotoBusy `thenm` sig Busy
-      , elsem fsmSig
+      [ gotoIdle `thens` sig Idle
+      , gotoBusy `thens` sig Busy
+      , elses fsmSig
       ]
     ix1 <- inc ixSig
     ix' <- flip (mux gotoBusy) (sig 0) =<< pats ixSig
