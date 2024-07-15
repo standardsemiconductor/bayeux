@@ -65,6 +65,7 @@ sliceSnd = slice (width (undefined :: b) - 1) 0
 class MonadSignal m where
   input   :: WireId -> m (Sig Bool)
   output  :: WireId -> Sig Bool -> m ()
+  val     :: Encode a => Width a => a -> m (Sig a)
   process :: Width a => (Sig a -> m (Sig a)) -> m (Sig a)
   machine :: Width s => Width o => (Sig s -> m (Sig s, Sig o)) -> m (Sig s, Sig o)
   at      :: Width a => Sig a -> Integer -> m (Sig Bool)
@@ -128,12 +129,14 @@ instance MonadSignal Rtl where
     tell [ModuleBodyWire $ Wire [] $ WireStmt [WireOptionInput i] wireId]
     return $ Sig $ SigSpecWireId wireId
 
-  output wireId sig = do
+  output wireId s = do
     i <- fresh
     tell
       [ ModuleBodyWire $ Wire [] $ WireStmt [WireOptionOutput i] wireId
-      , ModuleBodyConnStmt $ ConnStmt (SigSpecWireId wireId) $ spec sig
+      , ModuleBodyConnStmt $ ConnStmt (SigSpecWireId wireId) $ spec s
       ]
+
+  val = return . sig
 
   process :: forall a. Width a => (Sig a -> Rtl (Sig a)) -> Rtl (Sig a)
   process f = do
