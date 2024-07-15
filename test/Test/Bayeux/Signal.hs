@@ -9,6 +9,7 @@ import Bayeux.Encode
 import Bayeux.Signal
 import Bayeux.Width
 import Data.Array
+import Data.Char
 import Data.Finite
 import Data.Word
 import Prettyprinter
@@ -43,7 +44,9 @@ sigEncoding =
   , let a :: Maybe (Array (Finite 2) (Maybe Word8))
         a = Just $ listArray (0, 1) [Just 0x38, Just 0x02]
     in sigTest a "19'1100111000100000010"
-  , sigTest 'r' "8'01110010"
+  , let w8 :: Char -> Word8
+        w8 = fromIntegral . ord
+    in sigTest (w8 'r') "8'01110010"
   , let a :: Maybe (Array (Finite 1) Word8)
         a = Just $ listArray (0, 0) [0xFE]
     in sigTest a "9'111111110"

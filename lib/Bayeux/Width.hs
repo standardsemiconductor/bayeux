@@ -18,9 +18,6 @@ instance Width Bool where
 instance Width Word8 where
   width _ = 8
 
-instance Width Char where
-  width _ = 8
-
 instance Width Word16 where
   width _ = 16
 

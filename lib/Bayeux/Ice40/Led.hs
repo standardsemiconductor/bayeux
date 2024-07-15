@@ -23,6 +23,7 @@ import Bayeux.Width
 import Control.Monad
 import Control.Monad.Writer
 import Data.Array
+import Data.Char
 import Data.Finite
 import Data.Word
 
@@ -174,27 +175,23 @@ ledCtrl
   => m ()
 ledCtrl = do
   b <- receive 624 =<< input "\\rx"
-  cmds <- pats (asChar b)
-    [ Just 'r' ~~> sig (Just $ listArray (0, 2) $ Just <$> [(Pwrr, 0xFF), (Pwrg, 0x00), (Pwrb, 0x00)])
-    , Just 'g' ~~> sig (Just $ listArray (0, 2) $ Just <$> [(Pwrr, 0x00), (Pwrg, 0xFF), (Pwrb, 0x00)])
-    , Just 'b' ~~> sig (Just $ listArray (0, 2) $ Just <$> [(Pwrr, 0x00), (Pwrg, 0x00), (Pwrb, 0xFF)])
+  cmds <- pats b
+    [ Just (w8 'r') ~~> sig (Just $ listArray (0, 2) $ Just <$> [(Pwrr, 0xFF), (Pwrg, 0x00), (Pwrb, 0x00)])
+    , Just (w8 'g') ~~> sig (Just $ listArray (0, 2) $ Just <$> [(Pwrr, 0x00), (Pwrg, 0xFF), (Pwrb, 0x00)])
+    , Just (w8 'b') ~~> sig (Just $ listArray (0, 2) $ Just <$> [(Pwrr, 0x00), (Pwrg, 0x00), (Pwrb, 0xFF)])
     , wilds $ sig (Nothing :: Maybe (Array (Finite 3) (Maybe (Addr, Word8))))
     ]
-  cmd <- joinMaybe =<< cobuffer cmds
-  s <- process $ \s -> do
-    s' <- inc s
-    pats s
-      [ (maxBound :: Finite 3) ~~> s
-      , wilds s'
-      ]
-  outputLed =<< pats s
-    [ 0 ~~> sig (Just (Cr0,  0x80))
-    , 1 ~~> sig (Just (Pwrr, 0xFF))
-    , wilds cmd
+  s <- process $ \s -> patm s
+    [ (maxBound :: Finite 3) ~> pure s
+    , wildm $ inc s
     ]
-
-asChar :: Sig (Maybe Word8) -> Sig (Maybe Char)
-asChar = Sig . spec
+  outputLed =<< patm s
+    [ 0 ~> val (Just (Cr0,  0x80))
+    , 1 ~> val (Just (Pwrr, 0xFF))
+    , wildm $ joinMaybe =<< cobuffer cmds
+    ]
+  where
+    w8 = fromIntegral . ord
 
 joinMaybe :: Width a => Monad m => MonadSignal m => Sig (Maybe (Maybe a)) -> m (Sig (Maybe a))
 joinMaybe s = do
