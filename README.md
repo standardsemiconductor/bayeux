@@ -12,23 +12,21 @@ Build your chip
 ```haskell
 cycleProg :: Monad m => MonadSignal m => MonadRgb m => m ()
 cycleProg = do
-  let zero = val (0 :: Word32)
-  t <- process $ \timer -> do
-    t1Sec <- timer === val 12000000
-    timer' <- inc timer
-    mux t1Sec timer' zero
-  tNEqZ <- logicNot =<< t === zero
-  c <- process $ \color -> do
-    cEqBlue <- color === val Blue
-    c' <- inc color
-    ifm [ tNEqZ   `thenm` color
-        , cEqBlue `thenm` val Red
-        , elsem c'
+  t <- process $ \timer -> patm timer
+    [ 12000000 ~> val (0 :: Word32)
+    , wildm $ inc timer
+    ]
+  c <- process $ \color -> patm t
+    [ 12000000 ~> patm color
+        [ Blue ~> val Red
+        , wildm $ inc color
         ]
-  pwmR <- c === val Red
-  pwmG <- c === val Green
-  pwmB <- c === val Blue
-  outputRgb pwmR pwmG pwmB
+    , wildm $ pure color
+    ]
+  pwmR <- c === sig Red
+  pwmG <- c === sig Green
+  pwmB <- c === sig Blue
+  outputRgb $ Sig $ spec pwmR <> spec pwmG <> spec pwmB
 ```
 
 or synthesize a demo

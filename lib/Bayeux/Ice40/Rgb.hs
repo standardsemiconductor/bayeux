@@ -101,22 +101,17 @@ instance Encode Color where
 
 cycleProg :: Monad m => MonadSignal m => MonadRgb m => m ()
 cycleProg = do
-  t <- process $ \timer -> do
-    t' <- inc timer
-    pats timer
-      [ 12000000 ~~> sig (0 :: Word32)
-      , wilds t'
-      ]
-  c <- process $ \color -> do
-    c' <- inc color
-    c'' <- pats color
-      [ Blue ~~> sig Red
-      , wilds c'
-      ]
-    pats t
-      [ 12000000 ~~> c''
-      , wilds color
-      ]
+  t <- process $ \timer -> patm timer
+    [ 12000000 ~> val (0 :: Word32)
+    , wildm $ inc timer
+    ]
+  c <- process $ \color -> patm t
+    [ 12000000 ~> patm color
+        [ Blue ~> val Red
+        , wildm $ inc color
+        ]
+    , wildm $ pure color
+    ]
   pwmR <- c === sig Red
   pwmG <- c === sig Green
   pwmB <- c === sig Blue
