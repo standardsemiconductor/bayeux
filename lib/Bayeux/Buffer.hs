@@ -46,11 +46,11 @@ instance MonadBuffer Rtl where
   buffer inp = do
     i <- process $ \i  -> do
       iPlusOne <- inc i
-      i' <- patm i
+      i' <- pats i
         [ maxBound ~> sig (0 :: Finite n)
         , wildm iPlusOne
         ]
-      patm (sliceValid inp)
+      pats (sliceValid inp)
         [ True ~> i'
         , wildm i
         ]
@@ -72,7 +72,7 @@ instance MonadBuffer Rtl where
                   in fromString $ show la <> "'" <> zs <> ones
       maskedBuf <- shiftedBuf `C.and` mask
       buf' <- input' `C.or` maskedBuf
-      patm (sliceValid inp)
+      pats (sliceValid inp)
         [ True ~> buf'
         , wildm b
         ]
@@ -98,19 +98,19 @@ instance MonadBuffer Rtl where
     ixMax <- ixSig === sig maxBound
     gotoIdle <- isBusy `logicAnd` ixMax
     gotoBusy <- isIdle `logicAnd` aValid
-    fsm' <- ifm
+    fsm' <- ifs
       [ gotoIdle `thenm` sig Idle
       , gotoBusy `thenm` sig Busy
       , elsem fsmSig
       ]
     ix1 <- inc ixSig
-    ix' <- flip (mux gotoBusy) (sig 0) =<< patm ixSig
+    ix' <- flip (mux gotoBusy) (sig 0) =<< pats ixSig
       [ maxBound ~> sig (0 :: Finite n)
       , wildm ix1
       ]
     let shamt = fromIntegral (width (undefined :: e)) :: Word8
     bufValue' <- shr (sliceValue bufSig) $ sig shamt
-    buf' <- flip (mux gotoIdle) (sig Nothing) =<< patm fsmSig
+    buf' <- flip (mux gotoIdle) (sig Nothing) =<< pats fsmSig
       [ Idle ~> a
       , wildm $ Sig $ "1'1" <> spec bufValue'
       ]

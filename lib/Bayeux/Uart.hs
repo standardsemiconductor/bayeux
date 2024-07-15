@@ -34,7 +34,7 @@ instance MonadUart Rtl where
     txCtr <- process $ \txCtr -> do
       ctrDone <- txCtr === sig baud
       txCtr' <- C.inc txCtr
-      ifm [ isStart `thenm` sig 0
+      ifs [ isStart `thenm` sig 0
           , ctrDone `thenm` sig 0
           , elsem txCtr'
           ]
@@ -43,7 +43,7 @@ instance MonadUart Rtl where
     txIx <- process $ \txIx -> do
       isEmpty <- txIx === sig 9
       txIx'   <- C.inc txIx
-      ifm [ notDone `thenm` txIx
+      ifs [ notDone `thenm` txIx
           , isEmpty `thenm` sig (0 :: Word8)
           , elsem txIx'
           ]
@@ -51,13 +51,13 @@ instance MonadUart Rtl where
     isEndFrame   <- txIx === sig 9
     buf <- process $ \buf -> do
       buf' <- buf `C.shr` sig True
-      ifm [ isStart      `thenm` sliceValue byte
+      ifs [ isStart      `thenm` sliceValue byte
           , isStartFrame `thenm` buf
           , notDone      `thenm` buf
           , elsem buf'
           ]
     e <- buf `at` 0
-    output "\\tx" =<< ifm
+    output "\\tx" =<< ifs
       [ isStart      `thenm` sig True
       , isStartFrame `thenm` sig False
       , isEndFrame   `thenm` sig True
@@ -83,7 +83,7 @@ instance MonadUart Rtl where
       gotoRxStop  <- sliceValid buf `logicAnd` isRecv
       gotoRxIdle  <- (rxHigh `logicAnd` isBaudHalfRxStart)
                        .|| (pure isBaud .&& rxFsm s === stop)
-      rxFsm' <- ifm
+      rxFsm' <- ifs
         [ gotoRxStart `thenm` start
         , gotoRxRecv  `thenm` recv
         , gotoRxStop  `thenm` stop
@@ -91,7 +91,7 @@ instance MonadUart Rtl where
         , elsem $ rxFsm s
         ]
       rxCtr1 <- C.inc $ rxCtr s
-      rxCtr' <- ifm
+      rxCtr' <- ifs
         [ isIdle            `thenm` sig 0
         , isBaudHalfRxStart `thenm` sig 0
         , isBaud            `thenm` sig 0

@@ -174,7 +174,7 @@ ledCtrl
   => m ()
 ledCtrl = do
   b <- receive 624 =<< input "\\rx"
-  cmds <- patm (asChar b)
+  cmds <- pats (asChar b)
     [ Just 'c' ~> sig (Just $ listArray (0, 2) [Just (Cr0, 0x80), Nothing, Nothing])
     , Just 'r' ~> sig (Just $ listArray (0, 2) $ Just <$> [(Pwrr, 0xFF), (Pwrg, 0x00), (Pwrb, 0x00)])
     , Just 'g' ~> sig (Just $ listArray (0, 2) $ Just <$> [(Pwrr, 0x00), (Pwrg, 0xFF), (Pwrb, 0x00)])
@@ -184,11 +184,11 @@ ledCtrl = do
   cmd <- joinMaybe =<< cobuffer cmds
   s <- process $ \s -> do
     s' <- inc s
-    patm s
+    pats s
       [ (maxBound :: Finite 3) ~> s
       , wildm s'
       ]
-  outputLed =<< patm s
+  outputLed =<< pats s
     [ 0 ~> sig (Just (Cr0,  0x80))
     , 1 ~> sig (Just (Pwrr, 0xFF))
     , wildm cmd

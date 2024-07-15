@@ -24,8 +24,8 @@ module Bayeux.Cell
   , -- ** Shift
     shr
   , -- * Control
-    ifm, thenm, elsem
-  , patm, (~>), wildm
+    ifs, thenm, elsem
+  , pats, (~>), wildm
   ) where
 
 import Bayeux.Encode
@@ -124,10 +124,10 @@ data Cond a = Cond
   , result    :: Sig a
   }
 
-ifm :: Width a => Monad m => MonadSignal m => NonEmpty (Cond a) -> m (Sig a)
-ifm (a :| bs) = case nonEmpty bs of
+ifs :: Width a => Monad m => MonadSignal m => NonEmpty (Cond a) -> m (Sig a)
+ifs (a :| bs) = case nonEmpty bs of
   Nothing   -> return $ result a
-  Just rest -> flip (mux (fromJust $ condition a)) (result a) =<< ifm rest
+  Just rest -> flip (mux (fromJust $ condition a)) (result a) =<< ifs rest
 
 thenm :: Sig Bool -> Sig a -> Cond a
 thenm s = Cond (Just s)
@@ -164,7 +164,7 @@ toCondition s p = case pat p of
      , result    = patResult p
      }
 
-patm
+pats
   :: Encode p
   => Width p
   => Width r
@@ -173,4 +173,4 @@ patm
   => Sig p
   -> NonEmpty (Pat p r)
   -> m (Sig r)
-patm s = ifm <=< mapM (toCondition s)
+pats s = ifs <=< mapM (toCondition s)

@@ -103,17 +103,17 @@ cycleProg :: Monad m => MonadSignal m => MonadRgb m => m ()
 cycleProg = do
   t <- process $ \timer -> do
     t' <- inc timer
-    patm timer
+    pats timer
       [ 12000000 ~> sig (0 :: Word32)
       , wildm t'
       ]
   c <- process $ \color -> do
     c' <- inc color
-    c'' <- patm color
+    c'' <- pats color
       [ Blue ~> sig Red
       , wildm c'
       ]
-    patm t
+    pats t
       [ 12000000 ~> c''
       , wildm color
       ]
