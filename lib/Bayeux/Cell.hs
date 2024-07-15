@@ -25,6 +25,7 @@ module Bayeux.Cell
     shr
   , -- * Control
     ifs, thens, elses
+  , ifm, thenm, elsem
   , pats, (~~>), wilds
   , patm, (~>), wildm
   ) where
@@ -135,6 +136,25 @@ thens s = Cond (Just s)
 
 elses :: Sig a -> Cond a
 elses = Cond Nothing
+
+data CondM m a = CondM
+  { conditionM :: Maybe (m (Sig Bool))
+  , resultM    :: m (Sig a)
+  }
+
+ifm :: Width a => Monad m => MonadSignal m => NonEmpty (CondM m a) -> m (Sig a)
+ifm (a :| bs) = do
+  c <- fromJust $ conditionM a
+  r <- resultM a
+  case nonEmpty bs of
+    Nothing -> return r
+    Just rest -> flip (mux c) r =<< ifm rest
+
+thenm :: m (Sig Bool) -> m (Sig a) -> CondM m a
+thenm s = CondM (Just s)
+
+elsem :: m (Sig a) -> CondM m a
+elsem = CondM Nothing
 
 data Pat p r = Pat
   { pat       :: Maybe p
