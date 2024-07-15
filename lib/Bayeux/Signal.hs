@@ -4,7 +4,7 @@
 
 module Bayeux.Signal
   ( Sig(..)
-  , val
+  , sig
   , slice
   , toMaybeSig
   , fromMaybeSig
@@ -31,8 +31,8 @@ newtype Sig a = Sig{ spec :: SigSpec }
 instance Width a => Width (Sig a) where
   width _ = width (undefined :: a)
 
-val :: Encode a => Width a => a -> Sig a
-val v = Sig $ SigSpecConstant $ ConstantValue $ Value (width v) (encode v)
+sig :: Encode a => Width a => a -> Sig a
+sig v = Sig $ SigSpecConstant $ ConstantValue $ Value (width v) (encode v)
 
 -- | Slice a signal. @slice 7 0@ is equal to @[7:0]@, the first byte.
 slice

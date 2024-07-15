@@ -39,7 +39,7 @@ import Prelude hiding (and, not, or)
 
 -- | increment
 inc :: Encode a => Width a => MonadSignal m => Sig a -> m (Sig a)
-inc a = binary addC a $ val True
+inc a = binary addC a $ sig True
 
 logicNot :: MonadSignal m => Sig Bool -> m (Sig Bool)
 logicNot = unary logicNotC
@@ -158,7 +158,7 @@ toCondition
 toCondition s p = case pat p of
   Nothing -> return $ Cond Nothing $ patResult p
   Just v  -> do
-   isEq <- s === val v
+   isEq <- s === sig v
    return $ Cond
      { condition = Just isEq
      , result    = patResult p

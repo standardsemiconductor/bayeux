@@ -104,22 +104,22 @@ cycleProg = do
   t <- process $ \timer -> do
     t' <- inc timer
     patm timer
-      [ 12000000 ~> val (0 :: Word32)
+      [ 12000000 ~> sig (0 :: Word32)
       , wildm t'
       ]
   c <- process $ \color -> do
     c' <- inc color
     c'' <- patm color
-      [ Blue ~> val Red
+      [ Blue ~> sig Red
       , wildm c'
       ]
     patm t
       [ 12000000 ~> c''
       , wildm color
       ]
-  pwmR <- c === val Red
-  pwmG <- c === val Green
-  pwmB <- c === val Blue
+  pwmR <- c === sig Red
+  pwmG <- c === sig Green
+  pwmB <- c === sig Blue
   outputRgb $ Sig $ spec pwmR <> spec pwmG <> spec pwmB
 
 -- | Rgb driver with output wires \"red\", \"green\", and \"blue\".
