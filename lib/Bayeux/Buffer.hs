@@ -44,16 +44,13 @@ instance MonadBuffer Rtl where
     => Sig (Maybe e)
     -> Rtl (Sig (Maybe (Array (Finite n) e)))
   buffer inp = do
-    i <- process $ \i  -> do
-      iPlusOne <- inc i
-      i' <- pats i
-        [ maxBound ~~> sig (0 :: Finite n)
-        , wilds iPlusOne
+    i <- process $ \(i :: Sig (Finite n)) -> ifm
+      [ (pure . sliceValid) inp `thenm` patm i
+        [ maxBound ~> val 0
+        , wildm $ inc i
         ]
-      pats (sliceValid inp)
-        [ True ~~> i'
-        , wilds i
-        ]
+      , elsem $ pure i
+      ]
     isFull <- i === sig maxBound
     b <- process $ \b -> do
       let shamt :: Word8
