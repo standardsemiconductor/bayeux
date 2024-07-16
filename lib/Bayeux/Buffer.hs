@@ -69,11 +69,10 @@ instance MonadBuffer Rtl where
                   in fromString $ show la <> "'" <> zs <> ones
       maskedBuf <- shiftedBuf `C.and` mask
       buf' <- input' `C.or` maskedBuf
-      pats (sliceValid inp)
-        [ True ~~> buf'
-        , wilds b
-        ]
-    isValid' <- process $ const $ isFull `C.logicAnd` sliceValid inp
+      ifs [ sliceValid inp `thens` buf'
+          , elses b
+          ]
+    isValid' <- process $ const $ isFull `logicAnd` sliceValid inp
     return $ Sig $ spec isValid' <> spec b
     where
       w :: Integer
@@ -100,10 +99,9 @@ instance MonadBuffer Rtl where
       , gotoBusy `thens` sig Busy
       , elses fsmSig
       ]
-    ix1 <- inc ixSig
-    ix' <- flip (mux gotoBusy) (sig 0) =<< pats ixSig
-      [ maxBound ~~> sig (0 :: Finite n)
-      , wilds ix1
+    ix' <- ifm
+      [ (pure gotoBusy .|| ixSig === sig maxBound) `thenm` val (0 :: Finite n)
+      , elsem $ inc ixSig
       ]
     let shamt = fromIntegral (width (undefined :: e)) :: Word8
     bufValue' <- shr (sliceValue bufSig) $ sig shamt
