@@ -44,16 +44,13 @@ instance MonadBuffer Rtl where
     => Sig (Maybe e)
     -> Rtl (Sig (Maybe (Array (Finite n) e)))
   buffer inp = do
-    i <- process $ \i  -> do
-      iPlusOne <- inc i
-      i' <- pats i
-        [ maxBound ~~> sig (0 :: Finite n)
-        , wilds iPlusOne
+    i <- process $ \(i :: Sig (Finite n)) -> ifm
+      [ (pure . sliceValid) inp `thenm` patm i
+        [ maxBound ~> val 0
+        , wildm $ inc i
         ]
-      pats (sliceValid inp)
-        [ True ~~> i'
-        , wilds i
-        ]
+      , elsem $ pure i
+      ]
     isFull <- i === sig maxBound
     b <- process $ \b -> do
       let shamt :: Word8
@@ -72,11 +69,10 @@ instance MonadBuffer Rtl where
                   in fromString $ show la <> "'" <> zs <> ones
       maskedBuf <- shiftedBuf `C.and` mask
       buf' <- input' `C.or` maskedBuf
-      pats (sliceValid inp)
-        [ True ~~> buf'
-        , wilds b
-        ]
-    isValid' <- process $ const $ isFull `C.logicAnd` sliceValid inp
+      ifs [ sliceValid inp `thens` buf'
+          , elses b
+          ]
+    isValid' <- process $ const $ isFull `logicAnd` sliceValid inp
     return $ Sig $ spec isValid' <> spec b
     where
       w :: Integer
@@ -103,10 +99,9 @@ instance MonadBuffer Rtl where
       , gotoBusy `thens` sig Busy
       , elses fsmSig
       ]
-    ix1 <- inc ixSig
-    ix' <- flip (mux gotoBusy) (sig 0) =<< pats ixSig
-      [ maxBound ~~> sig (0 :: Finite n)
-      , wilds ix1
+    ix' <- ifm
+      [ (pure gotoBusy .|| ixSig === sig maxBound) `thenm` val (0 :: Finite n)
+      , elsem $ inc ixSig
       ]
     let shamt = fromIntegral (width (undefined :: e)) :: Word8
     bufValue' <- shr (sliceValue bufSig) $ sig shamt

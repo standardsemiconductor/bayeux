@@ -146,7 +146,7 @@ data CondM m a = CondM
 
 ifm :: Width a => Monad m => MonadSignal m => NonEmpty (CondM m a) -> m (Sig a)
 ifm (a :| bs) = do
-  c <- fromJust $ conditionM a
+  c <- fromMaybe (val True) $ conditionM a
   r <- resultM a
   case nonEmpty bs of
     Nothing -> return r
