@@ -1,5 +1,4 @@
 {-# LANGUAGE DataKinds           #-}
-{-# LANGUAGE LambdaCase          #-}
 {-# LANGUAGE OverloadedLists     #-}
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -13,7 +12,6 @@ module Bayeux.Uart
 
 import Bayeux.Buffer
 import Bayeux.Cell
-import qualified Bayeux.Cell as C
 import Bayeux.Encode
 import Bayeux.Rtl hiding (at, binary, mux, process, shift, shr, unary)
 import Bayeux.Signal
@@ -22,6 +20,7 @@ import Control.Monad
 import Data.Array
 import Data.Bits hiding (shift)
 import Data.Finite
+import Data.Proxy
 import Data.Word
 
 class MonadUart m where
@@ -33,17 +32,13 @@ class MonadUart m where
           -> m (Sig (Maybe Word8))
 
 data Fsm = Idle | Start | Recv | Stop
-  deriving (Eq, Read, Show)
+  deriving (Enum, Eq, Read, Show)
 
 instance Width Fsm where
   width _ = 2
 
 instance Encode Fsm where
-  encode = \case
-    Idle  -> [B0, B0]
-    Start -> [B0, B1]
-    Recv  -> [B1, B0]
-    Stop  -> [B1, B1]
+  encode = encode . finiteProxy (Proxy :: Proxy 4) . fromIntegral . fromEnum
 
 instance MonadUart Rtl where
   transmit baud byte = void $ process $ \txFsm -> do
@@ -62,7 +57,7 @@ instance MonadUart Rtl where
     isStartFrame <- txIx === sig 0
     isEndFrame   <- txIx === sig 9
     buf <- process $ \buf -> do
-      buf' <- buf `C.shr` sig True
+      buf' <- buf `shr` sig True
       ifs [ isStart      `thens` sliceValue byte
           , isStartFrame `thens` buf
           , notDone      `thens` buf
@@ -117,7 +112,7 @@ hello :: Monad m => MonadUart m => MonadSignal m => m (Sig Word32)
 hello = process $ \timer -> do
   is5Sec <- timer === sig 60000000
   transmit 624 $ toMaybeSig is5Sec $ sig 0x61
-  flip (mux is5Sec) (sig 0) =<< C.inc timer
+  flip (mux is5Sec) (sig 0) =<< inc timer
 
 echo :: Monad m => MonadUart m => MonadSignal m => m ()
 echo = transmit 624 =<< receive 624 =<< input "\\rx"
