@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds           #-}
 {-# LANGUAGE OverloadedLists     #-}
 {-# LANGUAGE OverloadedStrings   #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Bayeux.Uart
   ( MonadUart(..)
@@ -11,13 +12,15 @@ module Bayeux.Uart
 
 import Bayeux.Buffer
 import Bayeux.Cell
-import qualified Bayeux.Cell as C
+import Bayeux.Encode
 import Bayeux.Rtl hiding (at, binary, mux, process, shift, shr, unary)
 import Bayeux.Signal
+import Bayeux.Width
 import Control.Monad
 import Data.Array
 import Data.Bits hiding (shift)
 import Data.Finite
+import Data.Proxy
 import Data.Word
 
 class MonadUart m where
@@ -28,29 +31,33 @@ class MonadUart m where
           -> Sig Bool -- ^ rx
           -> m (Sig (Maybe Word8))
 
+data Fsm = Idle | Start | Recv | Stop
+  deriving (Enum, Eq, Read, Show)
+
+instance Width Fsm where
+  width _ = 2
+
+instance Encode Fsm where
+  encode = encode . finiteProxy (Proxy :: Proxy 4) . fromIntegral . fromEnum
+
 instance MonadUart Rtl where
   transmit baud byte = void $ process $ \txFsm -> do
     isStart <- txFsm === sig False
-    txCtr <- process $ \txCtr -> do
-      ctrDone <- txCtr === sig baud
-      txCtr' <- C.inc txCtr
-      ifs [ isStart `thens` sig 0
-          , ctrDone `thens` sig 0
-          , elses txCtr'
-          ]
+    txCtr <- process $ \txCtr -> ifm
+      [ (pure isStart .|| txCtr === sig baud) `thenm` val 0
+      , elsem $ inc txCtr
+      ]
     ctrDone <- txCtr === sig baud
-    notDone <- C.logicNot ctrDone
-    txIx <- process $ \txIx -> do
-      isEmpty <- txIx === sig 9
-      txIx'   <- C.inc txIx
-      ifs [ notDone `thens` txIx
-          , isEmpty `thens` sig (0 :: Word8)
-          , elses txIx'
-          ]
+    notDone <- logicNot ctrDone
+    txIx <- process $ \(txIx :: Sig Word8) -> ifm
+      [ pure notDone     `thenm` pure txIx
+      , (txIx === sig 9) `thenm` val 0
+      , elsem $ inc txIx
+      ]
     isStartFrame <- txIx === sig 0
     isEndFrame   <- txIx === sig 9
     buf <- process $ \buf -> do
-      buf' <- buf `C.shr` sig True
+      buf' <- buf `shr` sig True
       ifs [ isStart      `thens` sliceValue byte
           , isStartFrame `thens` buf
           , notDone      `thens` buf
@@ -63,51 +70,41 @@ instance MonadUart Rtl where
       , isEndFrame   `thens` sig True
       , elses e
       ]
-    txFsm' <- C.logicNot =<< ctrDone `C.logicAnd` isEndFrame
+    txFsm' <- logicNot =<< ctrDone `logicAnd` isEndFrame
     mux isStart txFsm' $ sliceValid byte
 
   receive baud rx = do
     rxLow  <- rx === sig False
-    rxHigh <- C.logicNot rxLow
-    fmap snd $ machine $ \s -> do
-      isIdle  <- rxFsm s === idle
-      isStart <- rxFsm s === start
-      isRecv  <- rxFsm s === recv
-      isBaudHalf        <- rxCtr s === sig (baud `shiftR` 1)
-      isBaudHalfRxStart <- isBaudHalf `C.logicAnd` isStart
-      isBaud            <- rxCtr s === sig baud
+    rxHigh <- logicNot rxLow
+    fmap snd $ machine $ \(s :: Sig (Word16, Fsm)) -> do
+      let rxCtr = sliceFst s
+          rxFsm = sliceSnd s
+      isIdle  <- rxFsm === sig Idle
+      isStart <- rxFsm === sig Start
+      isRecv  <- rxFsm === sig Recv
+      isBaudHalf        <- rxCtr === sig (baud `shiftR` 1)
+      isBaudHalfRxStart <- isBaudHalf `logicAnd` isStart
+      isBaud            <- rxCtr === sig baud
       isBaudRxRecv      <- isBaud `logicAnd` isRecv
       buf <- buffer $ toMaybeSig isBaudRxRecv rx
       gotoRxStart <- rxLow `logicAnd` isIdle
       gotoRxRecv  <- rxLow `logicAnd` isBaudHalfRxStart
       gotoRxStop  <- sliceValid buf `logicAnd` isRecv
       gotoRxIdle  <- (rxHigh `logicAnd` isBaudHalfRxStart)
-                       .|| (pure isBaud .&& rxFsm s === stop)
+                       .|| (pure isBaud .&& rxFsm === sig Stop)
       rxFsm' <- ifs
-        [ gotoRxStart `thens` start
-        , gotoRxRecv  `thens` recv
-        , gotoRxStop  `thens` stop
-        , gotoRxIdle  `thens` idle
-        , elses $ rxFsm s
+        [ gotoRxStart `thens` sig Start
+        , gotoRxRecv  `thens` sig Recv
+        , gotoRxStop  `thens` sig Stop
+        , gotoRxIdle  `thens` sig Idle
+        , elses rxFsm
         ]
-      rxCtr1 <- C.inc $ rxCtr s
-      rxCtr' <- ifs
-        [ isIdle            `thens` sig 0
-        , isBaudHalfRxStart `thens` sig 0
-        , isBaud            `thens` sig 0
-        , elses rxCtr1
+      rxCtr' <- ifm
+        [ ((isIdle `logicOr` isBaudHalfRxStart) .|| pure isBaud) `thenm` val 0
+        , elsem $ inc rxCtr
         ]
-      return (Sig{ spec = pad <> spec rxCtr' <> spec rxFsm' }, packMaybe buf)
+      return (Sig{ spec = spec rxCtr' <> spec rxFsm' }, packMaybe buf)
     where
-      pad = "8'00000000"
-      idle  = sig 0
-      start = sig 1
-      recv  = sig 2
-      stop  = sig 3
-      rxFsm :: Sig Word32 -> Sig Word8
-      rxFsm = slice 7 0
-      rxCtr :: Sig Word32 -> Sig Word16
-      rxCtr = slice 23 8
       packMaybe :: Sig (Maybe (Array (Finite 8) Bool)) -> Sig (Maybe Word8)
       packMaybe = Sig . spec
 
@@ -115,7 +112,7 @@ hello :: Monad m => MonadUart m => MonadSignal m => m (Sig Word32)
 hello = process $ \timer -> do
   is5Sec <- timer === sig 60000000
   transmit 624 $ toMaybeSig is5Sec $ sig 0x61
-  flip (mux is5Sec) (sig 0) =<< C.inc timer
+  flip (mux is5Sec) (sig 0) =<< inc timer
 
 echo :: Monad m => MonadUart m => MonadSignal m => m ()
 echo = transmit 624 =<< receive 624 =<< input "\\rx"
