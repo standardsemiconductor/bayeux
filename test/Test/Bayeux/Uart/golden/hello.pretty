@@ -50,9 +50,22 @@ module \top
 
   wire width 1 \wire15
   connect \wire15 \wire13 [0]
-  wire width 16 \wire16
+  wire width 1 \wire16
 
-  cell $add $cell17
+  cell $logic_or $cell17
+    parameter \A_SIGNED 0
+    parameter \A_WIDTH 1
+    parameter \B_SIGNED 0
+    parameter \B_WIDTH 1
+    parameter \Y_WIDTH 1
+    connect \A \wire10
+    connect \B \wire15
+    connect \Y \wire16
+  end
+
+  wire width 16 \wire18
+
+  cell $add $cell19
     parameter \A_SIGNED 0
     parameter \A_WIDTH 16
     parameter \B_SIGNED 0
@@ -60,16 +73,6 @@ module \top
     parameter \Y_WIDTH 16
     connect \A \wire11
     connect \B 1'1
-    connect \Y \wire16
-  end
-
-  wire width 16 \wire18
-
-  cell $mux $cell19
-    parameter \WIDTH 16
-    connect \A \wire16
-    connect \B 16'0000000000000000
-    connect \S \wire15
     connect \Y \wire18
   end
 
@@ -79,7 +82,7 @@ module \top
     parameter \WIDTH 16
     connect \A \wire18
     connect \B 16'0000000000000000
-    connect \S \wire10
+    connect \S \wire16
     connect \Y \wire20
   end
 
