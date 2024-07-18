@@ -7,6 +7,8 @@ module Bayeux.Cpu
   ( Instr(..)
   , Prog(..)
   , soc
+  , prog
+  , run
   ) where
 
 import Bayeux.Buffer
@@ -15,10 +17,14 @@ import Bayeux.Encode
 import Bayeux.Signal
 import Bayeux.Uart
 import Bayeux.Width
+import Control.Concurrent.Async
+import Control.Monad
 import Data.Array
 import Data.Char
 import Data.Finite
 import Data.Word
+import System.Hardware.Serialport
+import System.IO
 
 data Instr = Out Word8
            | Halt
@@ -64,6 +70,22 @@ soc = transmit 624 =<< cpu =<< fmap cast . buffer =<< receive 624 =<< input "\\r
 
 prog :: Prog
 prog = Prog $ Out . fromIntegral . ord <$> "Hello World!"
+
+run :: Prog -> IO ()
+run (Prog instrs) = hWithSerial "/dev/ttyUSB0" serialPortSettings $ \hndl -> do
+  hSetBuffering stdin  NoBuffering
+  hSetBuffering stdout NoBuffering
+  concurrently_ (readUart hndl) (writeUart hndl)
+  where
+    readUart  hndl = forever $ putChar =<< hGetChar hndl
+    writeUart hndl = mapM_ (hPutChar hndl) $ toChars =<< instrs
+      where
+        toChars = \case -- todo, use encode, then binary digits to chars
+          Out b -> [chr 1, (chr . fromIntegral) b]
+          Halt  -> [chr 0, chr 0]
+
+serialPortSettings :: SerialPortSettings
+serialPortSettings = defaultSerialSettings{ commSpeed = CS19200 }
 {-
 embed :: Prog -> Array (Finite 12) Instr
 embed (Prog instrs) = listArray (0, 11) instrs
