@@ -9,6 +9,7 @@ module Bayeux.Cli
 data Cmd = Prog
          | Synth
          | Clean
+         | Run
   deriving (Eq, Read, Show)
 
 data Cli = CliDemo Cmd Demo
@@ -23,6 +24,7 @@ data Demo = FiatLux
           | Echo
           | LedCtrl
           | BufEcho
+          | Soc
   deriving (Eq, Read, Show)
 
 data Prove = Prove

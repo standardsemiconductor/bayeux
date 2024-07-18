@@ -26,6 +26,7 @@ parseCmd = asum
   [ flag' Prog  $ long "program"    <> short 'p' <> help "Program VELDT FPGA"
   , flag' Synth $ long "synthesize" <> short 's' <> help "Synthesize demo"
   , flag' Clean $ long "clean"      <> short 'c' <> help "Clean demo"
+  , flag' Run   $ long "run"        <> short 'r' <> help "Run serialport"
   ]
 
 parseDemo :: Parser Demo
@@ -37,6 +38,7 @@ parseDemo = asum
   , flag' Echo $ long "Echo" <> help "Echo demo"
   , flag' LedCtrl $ long "LedCtrl" <> help "Control Led IP through UART"
   , flag' BufEcho $ long "BufEcho" <> help "BufEcho demo"
+  , flag' Soc $ long "Soc" <> help "Soc demo"
   ]
 
 parseProve :: Parser Prove
