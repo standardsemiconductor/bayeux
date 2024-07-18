@@ -78,7 +78,9 @@ run (Prog instrs) = hWithSerial "/dev/ttyUSB0" serialPortSettings $ \hndl -> do
   concurrently_ (readUart hndl) (writeUart hndl)
   where
     readUart  hndl = forever $ putChar =<< hGetChar hndl
-    writeUart hndl = mapM_ (hPutChar hndl) $ toChars =<< instrs
+    writeUart hndl = do
+      mapM_ (hPutChar hndl) $ toChars =<< instrs
+      forever $ return () --forever $ mapM_ (hPutChar hndl) $ toChars Halt
       where
         toChars = \case -- todo, use encode, then binary digits to chars
           Out b -> [chr 1, (chr . fromIntegral) b]
