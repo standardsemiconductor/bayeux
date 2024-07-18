@@ -18,6 +18,7 @@ library
                     , Bayeux.Buffer
                     , Bayeux.Cell
                     , Bayeux.Cli
+                    , Bayeux.Cpu
                     , Bayeux.Encode
                     , Bayeux.Flow
                     , Bayeux.Ice40.IO
