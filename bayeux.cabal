@@ -68,6 +68,7 @@ test-suite test
     other-modules:    Test.Bayeux.Ice40
                     , Test.Bayeux.Ice40.Led
                     , Test.Bayeux.Ice40.Rgb
+                    , Test.Bayeux.Ice40.Spram
                     , Test.Bayeux.Lp
                     , Test.Bayeux.Rtl
                     , Test.Bayeux.Signal

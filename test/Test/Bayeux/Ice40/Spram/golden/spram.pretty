@@ -1,0 +1,20 @@
+autoidx 0
+
+module \top
+  wire input 1 \clk
+  wire width 16 \wire2
+  attribute \module_not_derived 1
+  cell \SB_SPRAM256KA \SB_SPRAM256KA_INST1
+    connect \ADDRESS 14'00000000000000
+    connect \DATAIN 16'0000000000000000
+    connect \MASKWREN 4'0000
+    connect \WREN 1'0
+    connect \CHIPSELECT 1'0
+    connect \CLOCK \clk
+    connect \STANDBY 1'0
+    connect \SLEEP 1'0
+    connect \POWEROFF 1'0
+    connect \DATAOUT \wire2
+  end
+
+end
