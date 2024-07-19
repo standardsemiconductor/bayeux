@@ -24,15 +24,6 @@ tests =
         (sig False)
         (sig False)
         (sig False)
---  spram :: Sig (Array (Finite 14) Bool) -- ^ address
---        -> Sig Word16                  -- ^ data in
---        -> Sig (Array (Finite 4) Bool) -- ^ mask write enable
---        -> Sig Bool                    -- ^ write enable
---        -> Sig Bool                    -- ^ chip select
---        -> Sig Bool                    -- ^ stand by
---        -> Sig Bool                    -- ^ sleep
---        -> Sig Bool                    -- ^ poweroff
---        -> m (Sig Word16)              -- ^ data out
       ]
   ]
 
