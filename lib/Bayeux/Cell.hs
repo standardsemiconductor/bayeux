@@ -22,7 +22,8 @@ module Bayeux.Cell
   , (.||)
   , or
   , -- ** Shift
-    shr
+    shr, sshr
+  , shl
   , -- * Control
     ifs, thens, elses
   , ifm, thenm, elsem
@@ -33,7 +34,7 @@ module Bayeux.Cell
   ) where
 
 import Bayeux.Encode
-import Bayeux.Rtl hiding (at, binary, mux, shift, shr, unary)
+import Bayeux.Rtl hiding (at, binary, mux, shift, shr, sshr, shl, unary)
 import Bayeux.Signal
 import Bayeux.Width
 import Control.Monad
@@ -122,6 +123,12 @@ or = binary orC
 
 shr :: Width a => Width b => MonadSignal m => Sig a -> Sig b -> m (Sig a)
 shr = shift shrC
+
+sshr :: Width a => Width b => MonadSignal m => Sig a -> Sig b -> m (Sig a)
+sshr = shift sshrC
+
+shl :: Width a => Width b => MonadSignal m => Sig a -> Sig b -> m (Sig a)
+shl = shift shlC
 
 data Cond a = Cond
   { condition :: Maybe (Sig Bool)
