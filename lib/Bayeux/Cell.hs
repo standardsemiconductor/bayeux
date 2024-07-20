@@ -7,8 +7,21 @@ module Bayeux.Cell
   , logicNot
   , not
   , -- * Binary
-    add
-  , and
+    and
+  , or
+  , xor
+  , xnor
+  , -- ** Shift
+    shl
+  , shr, sshr
+  , -- ** Logical
+    logicAnd
+  , (.&&)
+  , logicOr
+  , (.||)
+  , -- ** Compare
+    eqx
+  , nex
   , lt
   , le
   , eq
@@ -16,14 +29,15 @@ module Bayeux.Cell
   , ne
   , ge
   , gt
-  , logicAnd
-  , (.&&)
-  , logicOr
-  , (.||)
-  , or
-  , -- ** Shift
-    shr, sshr
-  , shl
+  , -- ** Numeric
+    add
+  , sub
+  , mul
+  , div
+  , mod
+  , divFloor
+  , modFloor
+  , pow
   , -- * Control
     ifs, thens, elses
   , ifm, thenm, elsem
@@ -40,7 +54,7 @@ import Bayeux.Width
 import Control.Monad
 import Data.List.NonEmpty (NonEmpty(..), nonEmpty)
 import Data.Maybe
-import Prelude hiding (and, not, or)
+import Prelude hiding (and, div, mod, not, or)
 
 -- | increment
 inc :: Encode a => Width a => MonadSignal m => Sig a -> m (Sig a)
@@ -52,11 +66,43 @@ logicNot = unary logicNotC
 not :: Width a => MonadSignal m => Sig a -> m (Sig a)
 not = unary notC
 
-add :: Width a => MonadSignal m => Sig a -> Sig a -> m (Sig a)
-add = binary addC
-
 and :: Width a => MonadSignal m => Sig a -> Sig a -> m (Sig a)
 and = binary andC
+
+or :: Width a => MonadSignal m => Sig a -> Sig a -> m (Sig a)
+or = binary orC
+
+xor :: Width a => MonadSignal m => Sig a -> Sig a -> m (Sig a)
+xor = binary xorC
+
+xnor :: Width a => MonadSignal m => Sig a -> Sig a -> m (Sig a)
+xnor = binary xnorC
+
+logicAnd :: MonadSignal m => Sig Bool -> Sig Bool -> m (Sig Bool)
+logicAnd = binary logicAndC
+
+infixr 3 .&&
+(.&&) :: Monad m => MonadSignal m => m (Sig Bool) -> m (Sig Bool) -> m (Sig Bool)
+(.&&) = liftBin logicAnd
+
+logicOr :: MonadSignal m => Sig Bool -> Sig Bool -> m (Sig Bool)
+logicOr = binary logicOrC
+
+infixr 2 .||
+(.||) :: Monad m => MonadSignal m => m (Sig Bool) -> m (Sig Bool) -> m (Sig Bool)
+(.||) = liftBin logicOr
+
+eqx :: Width a => Monad m => MonadSignal m => Sig a -> Sig a -> m (Sig Bool)
+eqx a = flip at 0 <=< eqx' a
+  where
+    eqx' :: Width a => MonadSignal m => Sig a -> Sig a -> m (Sig Bool)
+    eqx' = binary eqxC
+
+nex :: Width a => Monad m => MonadSignal m => Sig a -> Sig a -> m (Sig Bool)
+nex a = flip at 0 <=< nex' a
+  where
+    nex' :: Width a => Monad m => MonadSignal m => Sig a -> Sig a -> m (Sig Bool)
+    nex' = binary nexC
 
 lt :: Width a => Monad m => MonadSignal m => Sig a -> Sig a -> m (Sig Bool)
 lt a = flip at 0 <=< lt' a
@@ -104,23 +150,6 @@ liftBin f x y = do
   y' <- y
   f x' y'
 
-logicAnd :: MonadSignal m => Sig Bool -> Sig Bool -> m (Sig Bool)
-logicAnd = binary logicAndC
-
-infixr 3 .&&
-(.&&) :: Monad m => MonadSignal m => m (Sig Bool) -> m (Sig Bool) -> m (Sig Bool)
-(.&&) = liftBin logicAnd
-
-logicOr :: MonadSignal m => Sig Bool -> Sig Bool -> m (Sig Bool)
-logicOr = binary logicOrC
-
-infixr 2 .||
-(.||) :: Monad m => MonadSignal m => m (Sig Bool) -> m (Sig Bool) -> m (Sig Bool)
-(.||) = liftBin logicOr
-
-or :: Width a => MonadSignal m => Sig a -> Sig a -> m (Sig a)
-or = binary orC
-
 shr :: Width a => Width b => MonadSignal m => Sig a -> Sig b -> m (Sig a)
 shr = shift shrC
 
@@ -129,6 +158,30 @@ sshr = shift sshrC
 
 shl :: Width a => Width b => MonadSignal m => Sig a -> Sig b -> m (Sig a)
 shl = shift shlC
+
+add :: Width a => MonadSignal m => Sig a -> Sig a -> m (Sig a)
+add = binary addC
+
+sub :: Width a => MonadSignal m => Sig a -> Sig a -> m (Sig a)
+sub = binary subC
+
+mul :: Width a => MonadSignal m => Sig a -> Sig a -> m (Sig a)
+mul = binary mulC
+
+div :: Width a => MonadSignal m => Sig a -> Sig a -> m (Sig a)
+div = binary divC
+
+mod :: Width a => MonadSignal m => Sig a -> Sig a -> m (Sig a)
+mod = binary modC
+
+divFloor :: Width a => MonadSignal m => Sig a -> Sig a -> m (Sig a)
+divFloor = binary divFloorC
+
+modFloor :: Width a => MonadSignal m => Sig a -> Sig a -> m (Sig a)
+modFloor = binary modFloorC
+
+pow :: Width a => MonadSignal m => Sig a -> Sig a -> m (Sig a)
+pow = binary powC
 
 data Cond a = Cond
   { condition :: Maybe (Sig Bool)
