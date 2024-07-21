@@ -49,7 +49,7 @@ getDemo = \case
   Hello      -> handleErr $ compile hello
   Echo       -> handleErr $ compile echo
   LedCtrl    -> handleErr $ compile ledCtrl
-  BufEcho    -> handleErr $ compile bufEcho
+  BufEcho    -> handleErr $ compile echoLine
 
 rgbCounter :: File
 rgbCounter = handleErr $ compile prog

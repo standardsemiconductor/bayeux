@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds           #-}
+{-# LANGUAGE FlexibleContexts    #-}
 {-# LANGUAGE OverloadedLists     #-}
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -7,29 +8,33 @@ module Bayeux.Uart
   ( MonadUart(..)
   , hello
   , echo
-  , bufEcho
+  , echoLine
   ) where
 
 import Bayeux.Buffer
 import Bayeux.Cell
 import Bayeux.Encode
+import Bayeux.Ice40.Spram
 import Bayeux.Rtl hiding (at, binary, mux, process, shift, shr, unary)
 import Bayeux.Signal
 import Bayeux.Width
 import Control.Monad
+import Control.Monad.Writer
 import Data.Array
 import Data.Bits hiding (shift)
+import Data.Char
 import Data.Finite
 import Data.Proxy
 import Data.Word
 
 class MonadUart m where
-  transmit :: Word16 -- ^ baud
+  transmit :: Word16                -- ^ baud
            -> Sig (Maybe Word8)
-           -> m ()
-  receive :: Word16   -- ^ baud
-          -> Sig Bool -- ^ rx
-          -> m (Sig (Maybe Word8))
+           -> m (Sig Bool)          -- ^ busy=True, idle=False
+
+  receive  :: Word16                -- ^ baud
+           -> Sig Bool              -- ^ rx
+           -> m (Sig (Maybe Word8))
 
 data Fsm = Idle | Start | Recv | Stop
   deriving (Enum, Eq, Read, Show)
@@ -41,7 +46,7 @@ instance Encode Fsm where
   encode = encode . finiteProxy (Proxy :: Proxy 4) . fromIntegral . fromEnum
 
 instance MonadUart Rtl where
-  transmit baud byte = void $ process $ \txFsm -> do
+  transmit baud byte = process $ \txFsm -> do
     isStart <- txFsm === sig False
     txCtr <- process $ \txCtr -> ifm
       [ (pure isStart .|| txCtr === sig baud) `thenm` val 0
@@ -111,37 +116,103 @@ instance MonadUart Rtl where
 hello :: Monad m => MonadUart m => MonadSignal m => m (Sig Word32)
 hello = process $ \timer -> do
   is5Sec <- timer === sig 60000000
-  transmit 624 $ toMaybeSig is5Sec $ sig 0x61
+  _ <- transmit 624 $ toMaybeSig is5Sec $ sig 0x61
   flip (mux is5Sec) (sig 0) =<< inc timer
 
-echo :: Monad m => MonadUart m => MonadSignal m => m ()
+echo :: Monad m => MonadUart m => MonadSignal m => m (Sig Bool)
 echo = transmit 624 =<< receive 624 =<< input "\\rx"
+
+data ELFsm = Buffering | Cobuffering
+  deriving (Eq, Read, Show)
+
+instance Width ELFsm where
+  width _ = 1
+
+instance Encode ELFsm where
+  encode Buffering   = [B0]
+  encode Cobuffering = [B1]
+
+data EchoLine = EchoLine
+  { rwAddr :: Word14
+  , elFsm  :: ELFsm
+  }
+  deriving (Eq, Read, Show)
+
+instance Width EchoLine where
+  width _ = 15
+
+instance Encode EchoLine where
+  encode el = encode (rwAddr el) <> encode (elFsm el)
+
+sliceRWAddr :: Sig EchoLine -> Sig Word14
+sliceRWAddr = slice 14 1
+
+sliceELFsm :: Sig EchoLine -> Sig ELFsm
+sliceELFsm = slice 0 0
 
 echoLine
   :: Monad       m
   => MonadBuffer m
+  => MonadRtl    m
   => MonadSignal m
   => MonadSpram  m
   => MonadUart   m
-  => m EchoLine
+  => MonadWriter [ModuleBody] m
+  => m (Sig EchoLine)
 echoLine = do
   wM <- receive 624 =<< input "\\rx"
-  process $ \s -> do
-    let fsm = sliceFsm s
+  process $ \(s :: Sig EchoLine) -> do
+    let fsm = sliceELFsm s
+        rwAddrSig = sliceRWAddr s
     fsm' <- patm fsm
       [ Buffering ~> patm wM
         [ (Just . fromIntegral . ord) '\n' ~> val Cobuffering
         , wildm $ pure fsm
         ]
-      , Cobuffering ~> ifs
-        [ isEmpty `thens` sig Buffering
-        , elses fsm
+      , Cobuffering ~> ifm
+        [ (sliceRWAddr s === (slice 13 0 . sig) (0 :: Word16)) `thenm` val Buffering
+        , elsem $ pure fsm
         ]
       ]
-    transmit 624 =<< mem req
-    return $ Sig undefined
-  where
-    buf :: MonadBuffer m => Sig (Maybe Word8) -> m (Sig (Maybe (Array (Finite 1) Word8)))
-    buf = buffer
-    cobuf :: MonadBuffer m => Sig (Maybe (Array (Finite 1) Word8)) -> m (Sig (Maybe Word8))
-    cobuf = cobuffer
+    txBusy <- (\txBusy -> do
+      txIdle <- logicNot txBusy
+      pats fsm
+        [ Buffering ~~> toMaybeSig
+          (sliceValid wM)
+          (wSig
+            rwAddrSig
+            (Sig $ "8'00000000" <> (spec . sliceValue) wM)
+            (Sig "4'0011")
+          )
+        , Cobuffering ~~> toMaybeSig txIdle (rSig rwAddrSig)
+        ]) >-< (transmit 624 . slice 7 0 <=< memory)
+    txIdle <- logicNot txBusy
+    rwAddrSig' <- patm fsm
+      [ Buffering ~> ifm
+        [ (pure . sliceValid) wM `thenm` inc rwAddrSig
+        , elsem $ pure rwAddrSig
+        ]
+      , Cobuffering ~> ifm
+        [ pure txIdle `thenm` dec rwAddrSig
+        , elsem $ pure rwAddrSig
+        ]
+      ]
+    return $ Sig $ spec rwAddrSig' <> spec fsm'
+
+-- | Interconnect. Create a `Sig a`. Apply it to the first argument. Apply the result
+-- to the second argument. Connect the result to the `Sig a`.
+(>-<)
+  :: forall m a b
+   . Monad       m
+  => MonadRtl    m
+  => MonadSignal m
+  => MonadWriter [ModuleBody] m
+  => Width a
+  => (Sig a -> m (Sig b))
+  -> (Sig b -> m (Sig a))
+  -> m (Sig a)
+f >-< g = do
+  a  <- freshWire (width (undefined :: a))
+  a' <- g =<< f (Sig a)
+  tell [ModuleBodyConnStmt $ ConnStmt a (spec a')]
+  return $ Sig a
