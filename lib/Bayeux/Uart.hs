@@ -117,10 +117,29 @@ hello = process $ \timer -> do
 echo :: Monad m => MonadUart m => MonadSignal m => m ()
 echo = transmit 624 =<< receive 624 =<< input "\\rx"
 
-bufEcho :: Monad m => MonadBuffer m => MonadSignal m => MonadUart m => m ()
-bufEcho = do
-  b <- buf =<< receive 624 =<< input "\\rx"
-  transmit 624 =<< cobuf b
+echoLine
+  :: Monad       m
+  => MonadBuffer m
+  => MonadSignal m
+  => MonadSpram  m
+  => MonadUart   m
+  => m EchoLine
+echoLine = do
+  wM <- receive 624 =<< input "\\rx"
+  process $ \s -> do
+    let fsm = sliceFsm s
+    fsm' <- patm fsm
+      [ Buffering ~> patm wM
+        [ (Just . fromIntegral . ord) '\n' ~> val Cobuffering
+        , wildm $ pure fsm
+        ]
+      , Cobuffering ~> ifs
+        [ isEmpty `thens` sig Buffering
+        , elses fsm
+        ]
+      ]
+    transmit 624 =<< mem req
+    return $ Sig undefined
   where
     buf :: MonadBuffer m => Sig (Maybe Word8) -> m (Sig (Maybe (Array (Finite 1) Word8)))
     buf = buffer
