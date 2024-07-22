@@ -117,7 +117,7 @@ rSig :: Sig Word14 -> Sig Req
 rSig a = Sig $ (spec . sig) False <> spec a <> fromString ("20'" <> replicate 20 '0')
 
 wSig :: Sig Word14 -> Sig Word16 -> Sig Word4 -> Sig Req
-wSig a d m = Sig $ spec a <> spec d <> spec m
+wSig a d m = Sig $ (spec . sig) True <> spec a <> spec d <> spec m
 
 memory
   :: Monad       m

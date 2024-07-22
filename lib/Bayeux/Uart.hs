@@ -161,19 +161,9 @@ echoLine
   => m (Sig EchoLine)
 echoLine = do
   wM <- receive 624 =<< input "\\rx"
-  process $ \(s :: Sig EchoLine) -> do
-    let fsm = sliceELFsm s
-        rwAddrSig = sliceRWAddr s
-    fsm' <- patm fsm
-      [ Buffering ~> patm wM
-        [ (Just . fromIntegral . ord) '\n' ~> val Cobuffering
-        , wildm $ pure fsm
-        ]
-      , Cobuffering ~> ifm
-        [ (sliceRWAddr s === (slice 13 0 . sig) (0 :: Word16)) `thenm` val Buffering
-        , elsem $ pure fsm
-        ]
-      ]
+  process $ \s -> do
+    let rwAddrSig = sliceRWAddr s
+        fsm = sliceELFsm s
     txBusy <- (\txBusy -> do
       txIdle <- logicNot txBusy
       pats fsm
@@ -185,7 +175,7 @@ echoLine = do
             (Sig "4'0011")
           )
         , Cobuffering ~~> toMaybeSig txIdle (rSig rwAddrSig)
-        ]) >-< (transmit 624 . slice 7 0 <=< memory)
+        ]) >-< (transmit 624 . repack <=< memory)
     txIdle <- logicNot txBusy
     rwAddrSig' <- patm fsm
       [ Buffering ~> ifm
@@ -197,7 +187,20 @@ echoLine = do
         , elsem $ pure rwAddrSig
         ]
       ]
+    fsm' <- patm fsm
+      [ Buffering ~> patm wM
+        [ (Just . fromIntegral . ord) '\n' ~> val Cobuffering
+        , wildm $ pure fsm
+        ]
+      , Cobuffering ~> ifm
+        [ ((rwAddrSig === (slice 13 0 . sig) (0 :: Word16)) .&& pure txIdle) `thenm` val Buffering
+        , elsem $ pure fsm
+        ]
+      ]
     return $ Sig $ spec rwAddrSig' <> spec fsm'
+  where
+    repack :: Sig (Maybe Word16) -> Sig (Maybe Word8)
+    repack s = Sig $ (spec . sliceValid) s <> (spec . slice 7 0 . sliceValue) s
 
 -- | Interconnect. Create a `Sig a`. Apply it to the first argument. Apply the result
 -- to the second argument. Connect the result to the `Sig a`.
