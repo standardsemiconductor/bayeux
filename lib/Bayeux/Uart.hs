@@ -23,7 +23,7 @@ import Control.Monad.Writer
 import Data.Array
 import Data.Bits hiding (shift)
 import Data.Char
-import Data.Finite
+import Data.Finite hiding (sub)
 import Data.Proxy
 import Data.Word
 
@@ -161,31 +161,40 @@ echoLine
   => m (Sig EchoLine)
 echoLine = do
   wM <- receive 624 =<< input "\\rx"
+  isNewline <- (sig . fromIntegral . ord) '\n' === sliceValue wM
+  notNewline <- logicNot isNewline
   process $ \s -> do
     let rwAddrSig = sliceRWAddr s
         fsm = sliceELFsm s
-    isEmpty <- rwAddrSig === (Sig "14'00000000000000")
-    notEmpty <- logicNot isEmpty
+    rAddr <- rwAddrSig `sub` Sig "14'00000000000001"
+    isEmpty <- rAddr === (Sig "14'00000000000000")
+--    notEmpty <- logicNot isEmpty
     txBusy <- (\txBusy -> do
       txIdle <- logicNot txBusy
+--      txBusy' <- process $ const $ pure txBusy
+--      isRead <- txIdle `logicAnd` txBusy'
+      isWrite <- sliceValid wM `logicAnd` notNewline
+--      rAddr <- rwAddrSig `sub` sig True
       pats fsm
         [ Buffering ~~> toMaybeSig
-          (sliceValid wM)
+          isWrite
           (wSig
             rwAddrSig
             (Sig $ "8'00000000" <> (spec . sliceValue) wM)
             (Sig "4'0011")
           )
-        , Cobuffering ~~> toMaybeSig txIdle (rSig rwAddrSig)
+        , Cobuffering ~~> toMaybeSig txIdle (rSig {-rwAddrSig-}rAddr)
         ]) >-< (transmit 624 . repack <=< memory)
-    txIdle <- logicNot txBusy
+    txIdle' <- process $ const $ logicNot txBusy
+    isWrite <- sliceValid wM `logicAnd` notNewline
+    isRead <- txBusy `logicAnd` txIdle' -- from idle to busy
     rwAddrSig' <- patm fsm
       [ Buffering ~> ifm
-        [ (pure . sliceValid) wM `thenm` (inc rwAddrSig)
+        [ pure isWrite `thenm` (inc rwAddrSig)
         , elsem $ pure rwAddrSig
         ]
       , Cobuffering ~> ifm
-        [ (txIdle `logicAnd` notEmpty) `thenm` (dec rwAddrSig)
+        [ pure isRead `thenm` (dec rwAddrSig)
         , elsem $ pure rwAddrSig
         ]
       ]
@@ -195,7 +204,7 @@ echoLine = do
         , wildm $ pure fsm
         ]
       , Cobuffering ~> ifm
-        [ (txIdle `logicAnd` isEmpty) `thenm` val Buffering
+        [ (isRead `logicAnd` isEmpty) `thenm` val Buffering
         , elsem $ pure fsm
         ]
       ]
