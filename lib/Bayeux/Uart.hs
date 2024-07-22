@@ -164,6 +164,8 @@ echoLine = do
   process $ \s -> do
     let rwAddrSig = sliceRWAddr s
         fsm = sliceELFsm s
+    isEmpty <- rwAddrSig === (Sig "14'00000000000000")
+    notEmpty <- logicNot isEmpty
     txBusy <- (\txBusy -> do
       txIdle <- logicNot txBusy
       pats fsm
@@ -179,11 +181,11 @@ echoLine = do
     txIdle <- logicNot txBusy
     rwAddrSig' <- patm fsm
       [ Buffering ~> ifm
-        [ (pure . sliceValid) wM `thenm` inc rwAddrSig
+        [ (pure . sliceValid) wM `thenm` (inc rwAddrSig)
         , elsem $ pure rwAddrSig
         ]
       , Cobuffering ~> ifm
-        [ pure txIdle `thenm` dec rwAddrSig
+        [ (txIdle `logicAnd` notEmpty) `thenm` (dec rwAddrSig)
         , elsem $ pure rwAddrSig
         ]
       ]
@@ -193,7 +195,7 @@ echoLine = do
         , wildm $ pure fsm
         ]
       , Cobuffering ~> ifm
-        [ ((rwAddrSig === (slice 13 0 . sig) (0 :: Word16)) .&& pure txIdle) `thenm` val Buffering
+        [ (txIdle `logicAnd` isEmpty) `thenm` val Buffering
         , elsem $ pure fsm
         ]
       ]
