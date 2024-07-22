@@ -36,7 +36,7 @@ parseDemo = asum
   , flag' Hello $ long "Hello" <> help "Hello demo"
   , flag' Echo $ long "Echo" <> help "Echo demo"
   , flag' LedCtrl $ long "LedCtrl" <> help "Control Led IP through UART"
-  , flag' BufEcho $ long "BufEcho" <> help "BufEcho demo"
+  , flag' EchoLine $ long "EchoLine" <> help "EchoLine demo"
   ]
 
 parseProve :: Parser Prove
