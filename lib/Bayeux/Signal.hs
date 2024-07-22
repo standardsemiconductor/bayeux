@@ -10,6 +10,7 @@ module Bayeux.Signal
   , fromMaybeSig
   , sliceValid
   , sliceValue
+  , mapMaybeSig
   , sliceFst
   , sliceSnd
   , MonadSignal(..)
@@ -55,6 +56,9 @@ sliceValid = fst . fromMaybeSig
 
 sliceValue :: Width a => Sig (Maybe a) -> Sig a
 sliceValue = snd . fromMaybeSig
+
+mapMaybeSig :: Width a => (Sig a -> Sig b) -> Sig (Maybe a) -> Sig (Maybe b)
+mapMaybeSig f a = Sig $ (spec . sliceValid) a <> (spec . f . sliceValue) a
 
 sliceFst :: forall a b. Width a => Width b => Sig (a, b) -> Sig a
 sliceFst s = slice (width s - 1) (width (undefined :: b)) s
