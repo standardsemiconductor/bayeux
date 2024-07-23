@@ -4,6 +4,7 @@
 module Bayeux.Cell
   ( -- * Unary
     inc
+  , dec
   , logicNot
   , not
   , -- * Binary
@@ -59,6 +60,9 @@ import Prelude hiding (and, div, mod, not, or)
 -- | increment
 inc :: Encode a => Width a => MonadSignal m => Sig a -> m (Sig a)
 inc a = binary addC a $ sig True
+
+dec :: Encode a => Width a => MonadSignal m => Sig a -> m (Sig a)
+dec a = binary subC a $ sig True
 
 logicNot :: MonadSignal m => Sig Bool -> m (Sig Bool)
 logicNot = unary logicNotC

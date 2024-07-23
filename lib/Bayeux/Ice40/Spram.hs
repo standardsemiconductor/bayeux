@@ -5,9 +5,12 @@
 
 module Bayeux.Ice40.Spram
   ( spramC
-  , Addr14(..)
+  , Word14(..)
   , Word4(..)
   , MonadSpram(..)
+  , Req(..)
+  , rSig
+  , wSig
   , memory
   ) where
 
@@ -51,14 +54,14 @@ spramC name a din maskWrEn wren cs clk sb slp pwrOff dout = Cell
   ]
   CellEndStmt
 
-newtype Addr14 = Addr14{ unAddr14 :: Array (Finite 14) Bool }
+newtype Word14 = Word14{ unWord14 :: Array (Finite 14) Bool }
   deriving (Encode, Eq, Read, Show, Width)
 
 newtype Word4 = Word4{ unWord4 :: Array (Finite 4) Bool }
   deriving (Encode, Eq, Read, Show, Width)
 
 class MonadSpram m where
-  spram :: Sig Addr14     -- ^ address
+  spram :: Sig Word14     -- ^ address
         -> Sig Word16     -- ^ data in
         -> Sig Word4      -- ^ mask write enable
         -> Sig Bool       -- ^ write enable
@@ -86,8 +89,8 @@ instance MonadSpram Rtl where
       dout]
     return $ Sig dout
 
-data Req = R Addr14
-         | W Addr14 Word16 Word4
+data Req = R Word14
+         | W Word14 Word16 Word4
   deriving (Eq, Read, Show)
 
 instance Width Req where
@@ -101,7 +104,7 @@ instance Encode Req where
 sliceWrEn :: Sig Req -> Sig Bool
 sliceWrEn = slice 34 34
 
-sliceAddr :: Sig Req -> Sig Addr14
+sliceAddr :: Sig Req -> Sig Word14
 sliceAddr = slice 33 20
 
 sliceDataIn :: Sig Req -> Sig Word16
@@ -109,6 +112,12 @@ sliceDataIn = slice 19 4
 
 sliceMaskWrEn :: Sig Req -> Sig Word4
 sliceMaskWrEn = slice 3 0
+
+rSig :: Sig Word14 -> Sig Req
+rSig a = Sig $ (spec . sig) False <> spec a <> fromString ("20'" <> replicate 20 '0')
+
+wSig :: Sig Word14 -> Sig Word16 -> Sig Word4 -> Sig Req
+wSig a d m = Sig $ (spec . sig) True <> spec a <> spec d <> spec m
 
 memory
   :: Monad       m

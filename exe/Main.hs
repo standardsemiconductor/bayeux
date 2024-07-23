@@ -36,7 +36,11 @@ parseDemo = asum
   , flag' Hello $ long "Hello" <> help "Hello demo"
   , flag' Echo $ long "Echo" <> help "Echo demo"
   , flag' LedCtrl $ long "LedCtrl" <> help "Control Led IP through UART"
-  , flag' BufEcho $ long "BufEcho" <> help "BufEcho demo"
+  , flag' SpramReverse $ mconcat
+    [ long "SpramReverse"
+    , help "SpramReverse demo: Send bytes to UART, buffer them in SPRAM, then \
+           \read the bytes LIFO."
+    ]
   ]
 
 parseProve :: Parser Prove
