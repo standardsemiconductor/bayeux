@@ -23,7 +23,7 @@ data Demo = FiatLux
           | Hello
           | Echo
           | LedCtrl
-          | BufEcho
+          | SpramReverse
           | Soc
   deriving (Eq, Read, Show)
 

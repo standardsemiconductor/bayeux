@@ -62,7 +62,7 @@ cpu instrM = ifm
 justSig :: Sig a -> Sig (Maybe a)
 justSig s = Sig $ (spec . sig) True <> spec s
 
-soc :: Monad m => MonadBuffer m => MonadSignal m => MonadUart m => m ()
+soc :: Monad m => MonadBuffer m => MonadSignal m => MonadUart m => m (Sig Bool)
 soc = transmit 624 =<< cpu =<< fmap cast . buffer =<< receive 624 =<< input "\\rx"
   where 
     cast :: Sig (Maybe (Array (Finite 2) Word8)) -> Sig (Maybe Instr)
