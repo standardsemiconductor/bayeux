@@ -167,7 +167,7 @@ spramReverse = do
     let rwAddrSig = sliceRWAddr s
         fsm = sliceELFsm s
     rAddr <- rwAddrSig `sub` Sig "14'00000000000001"
-    isEmpty <- rAddr === (Sig "14'00000000000000")
+    isEmpty <- rAddr === Sig "14'00000000000000"
     txBusy <- (\txBusy -> do
       txIdle <- logicNot txBusy
       isWrite <- sliceValid wM `logicAnd` notNewline
@@ -180,17 +180,17 @@ spramReverse = do
             (Sig "4'0011")
           )
         , Cobuffering ~~> toMaybeSig txIdle (rSig rAddr)
-        ]) >-< (transmit 624 . repack <=< memory)
+        ]) >-< (transmit 624 . mapMaybeSig (slice 7 0) <=< memory)
     txIdle' <- process $ const $ logicNot txBusy
     isWrite <- sliceValid wM `logicAnd` notNewline
     isRead <- txBusy `logicAnd` txIdle' -- from idle to busy
     rwAddrSig' <- patm fsm
       [ Buffering ~> ifm
-        [ pure isWrite `thenm` (inc rwAddrSig)
+        [ pure isWrite `thenm` inc rwAddrSig
         , elsem $ pure rwAddrSig
         ]
       , Cobuffering ~> ifm
-        [ pure isRead `thenm` (dec rwAddrSig)
+        [ pure isRead `thenm` dec rwAddrSig
         , elsem $ pure rwAddrSig
         ]
       ]
@@ -205,9 +205,6 @@ spramReverse = do
         ]
       ]
     return $ Sig $ spec rwAddrSig' <> spec fsm'
-  where
-    repack :: Sig (Maybe Word16) -> Sig (Maybe Word8)
-    repack s = Sig $ (spec . sliceValid) s <> (spec . slice 7 0 . sliceValue) s
 
 -- | Interconnect. Create a `Sig a`. Apply it to the first argument. Apply the result
 -- to the second argument. Connect the result to the `Sig a`.
