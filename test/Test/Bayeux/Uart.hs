@@ -23,12 +23,12 @@ tests =
   [ testGroup "pretty"
       [ prettyTest "hello" $ handleErr $ compile hello
       , prettyTest "echo"  $ handleErr $ compile echo
-      , prettyTest "echoLine" $ handleErr $ compile echoLine
+      , prettyTest "spramReverse" $ handleErr $ compile spramReverse
       ]
   , testGroup "synth"
       [ synthTest "hello" $ handleErr $ compile hello
       , synthTest "echo"  $ handleErr $ compile echo
-      , synthTest "echoLine" $ handleErr $ compile echoLine
+      , synthTest "spramReverse" $ handleErr $ compile spramReverse
       ]
   ]
 

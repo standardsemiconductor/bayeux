@@ -43,13 +43,13 @@ app = \case
 
 getDemo :: Demo -> File
 getDemo = \case
-  FiatLux    -> fiatLux
-  RgbCounter -> rgbCounter
-  RgbCycle   -> rgbCycle
-  Hello      -> handleErr $ compile hello
-  Echo       -> handleErr $ compile echo
-  LedCtrl    -> handleErr $ compile ledCtrl
-  EchoLine   -> handleErr $ compile echoLine
+  FiatLux      -> fiatLux
+  RgbCounter   -> rgbCounter
+  RgbCycle     -> rgbCycle
+  Hello        -> handleErr $ compile hello
+  Echo         -> handleErr $ compile echo
+  LedCtrl      -> handleErr $ compile ledCtrl
+  SpramReverse -> handleErr $ compile spramReverse
 
 rgbCounter :: File
 rgbCounter = handleErr $ compile prog

@@ -8,7 +8,7 @@ module Bayeux.Uart
   ( MonadUart(..)
   , hello
   , echo
-  , echoLine
+  , spramReverse
   ) where
 
 import Bayeux.Buffer
@@ -150,7 +150,7 @@ sliceRWAddr = slice 14 1
 sliceELFsm :: Sig EchoLine -> Sig ELFsm
 sliceELFsm = slice 0 0
 
-echoLine
+spramReverse
   :: Monad       m
   => MonadBuffer m
   => MonadRtl    m
@@ -159,7 +159,7 @@ echoLine
   => MonadUart   m
   => MonadWriter [ModuleBody] m
   => m (Sig EchoLine)
-echoLine = do
+spramReverse = do
   wM <- receive 624 =<< input "\\rx"
   isNewline <- (sig . fromIntegral . ord) '\n' === sliceValue wM
   notNewline <- logicNot isNewline
@@ -168,13 +168,9 @@ echoLine = do
         fsm = sliceELFsm s
     rAddr <- rwAddrSig `sub` Sig "14'00000000000001"
     isEmpty <- rAddr === (Sig "14'00000000000000")
---    notEmpty <- logicNot isEmpty
     txBusy <- (\txBusy -> do
       txIdle <- logicNot txBusy
---      txBusy' <- process $ const $ pure txBusy
---      isRead <- txIdle `logicAnd` txBusy'
       isWrite <- sliceValid wM `logicAnd` notNewline
---      rAddr <- rwAddrSig `sub` sig True
       pats fsm
         [ Buffering ~~> toMaybeSig
           isWrite
@@ -183,7 +179,7 @@ echoLine = do
             (Sig $ "8'00000000" <> (spec . sliceValue) wM)
             (Sig "4'0011")
           )
-        , Cobuffering ~~> toMaybeSig txIdle (rSig {-rwAddrSig-}rAddr)
+        , Cobuffering ~~> toMaybeSig txIdle (rSig rAddr)
         ]) >-< (transmit 624 . repack <=< memory)
     txIdle' <- process $ const $ logicNot txBusy
     isWrite <- sliceValid wM `logicAnd` notNewline

@@ -22,7 +22,7 @@ data Demo = FiatLux
           | Hello
           | Echo
           | LedCtrl
-          | EchoLine
+          | SpramReverse
   deriving (Eq, Read, Show)
 
 data Prove = Prove
