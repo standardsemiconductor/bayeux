@@ -90,6 +90,8 @@ module Bayeux.Rtl
   , modFloorC
   , -- *** Multiplexers
     muxC
+  , -- *** Memories
+    memInitV2C
   , -- ** Processes
     Process(..)
   , ProcStmt(..)
@@ -544,6 +546,29 @@ muxC cellId w a b s y = Cell
   , CellConnect "\\B" b
   , CellConnect "\\S" s
   , CellConnect "\\Y" y
+  ]
+  CellEndStmt
+
+memInitV2C
+  :: CellId
+  -> Constant -- ^ MEMID
+  -> Constant -- ^ ABITS
+  -> Constant -- ^ WIDTH
+  -> Constant -- ^ WORDS
+  -> Constant -- ^ PRIORITY
+  -> SigSpec  -- ^ ADDR
+  -> SigSpec  -- ^ DATA
+  -> Cell
+memInitV2C cellId memId aBits w wrds p a d= Cell
+  []
+  (CellStmt "$meminit_v2" cellId)
+  [ CellParameter Nothing "\\MEMID"    memId
+  , CellParameter Nothing "\\ABITS"    aBits
+  , CellParameter Nothing "\\WIDTH"    w
+  , CellParameter Nothing "\\WORDS"    wrds
+  , CellParameter Nothing "\\PRIORITY" p
+  , CellConnect "\\ADDR" a
+  , CellConnect "\\DATA" d
   ]
   CellEndStmt
 
