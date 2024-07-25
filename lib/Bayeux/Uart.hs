@@ -26,6 +26,7 @@ import Data.Char
 import Data.Finite hiding (sub)
 import Data.Proxy
 import Data.Word
+import Yosys.Rtl
 
 class MonadUart m where
   transmit :: Word16                -- ^ baud

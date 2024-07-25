@@ -2,13 +2,13 @@ module Bayeux.Flow
   ( flow
   ) where
 
-import Bayeux.Rtl
 import Development.Shake
 import Development.Shake.FilePath
 import Data.Text (Text)
 import qualified Data.Text.IO as TIO
 import Prettyprinter
 import Prettyprinter.Render.Text
+import Yosys.Rtl
 
 flow :: Bool -> Bool -> String -> File -> FilePath -> IO ()
 flow prog clean name designFile pcfFile = shake shakeOptions{ shakeFiles = "_build" </> name } $ do

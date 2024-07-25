@@ -21,6 +21,7 @@ import Data.Finite
 import Data.String
 import Data.Text (Text)
 import Data.Word
+import Yosys.Rtl
 
 sbSpi
   :: CellId

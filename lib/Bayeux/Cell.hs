@@ -49,13 +49,13 @@ module Bayeux.Cell
   ) where
 
 import Bayeux.Encode
-import Bayeux.Rtl hiding (at, binary, mux, shift, shr, sshr, shl, unary)
 import Bayeux.Signal
 import Bayeux.Width
 import Control.Monad
 import Data.List.NonEmpty (NonEmpty(..), nonEmpty)
 import Data.Maybe
 import Prelude hiding (and, div, mod, not, or)
+import Yosys.Rtl
 
 -- | increment
 inc :: Encode a => Width a => MonadSignal m => Sig a -> m (Sig a)

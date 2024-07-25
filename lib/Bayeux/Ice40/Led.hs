@@ -26,6 +26,7 @@ import Data.Array
 import Data.Char
 import Data.Finite
 import Data.Word
+import Yosys.Rtl
 
 sbLeddaIp
   :: SigSpec -- ^ leddcs

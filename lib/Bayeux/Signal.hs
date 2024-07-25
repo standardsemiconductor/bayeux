@@ -26,6 +26,7 @@ import Control.Monad.Except
 import Control.Monad.Writer
 import Data.String
 import Prettyprinter hiding (width)
+import Yosys.Rtl
 
 newtype Sig a = Sig{ spec :: SigSpec }
   deriving (Eq, IsString, Pretty, Read, Show)
