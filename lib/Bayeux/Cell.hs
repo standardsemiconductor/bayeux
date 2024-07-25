@@ -49,7 +49,6 @@ module Bayeux.Cell
   ) where
 
 import Bayeux.Encode
-import Bayeux.Rtl hiding (at, binary, mux, shift, shr, sshr, shl, unary)
 import Bayeux.Signal
 import Bayeux.Width
 import Control.Monad

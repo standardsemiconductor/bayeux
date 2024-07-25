@@ -4,7 +4,6 @@ module Bayeux.Ice40.IO
   ( sbIO
   ) where
 
-import Bayeux.Rtl
 import Yosys.Rtl
 
 sbIO
