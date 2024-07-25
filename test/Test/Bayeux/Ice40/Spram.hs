@@ -11,6 +11,7 @@ import Prettyprinter
 import System.FilePath
 import Test.Bayeux.Rtl (prettyTest)
 import Test.Tasty
+import Yosys.Rtl
 
 tests :: [TestTree]
 tests =

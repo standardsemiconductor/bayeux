@@ -47,6 +47,7 @@ library
                     , serialport
                     , shake
                     , text
+                    , yosys-rtl
     hs-source-dirs:   lib
     default-language: Haskell2010
 
@@ -88,3 +89,4 @@ test-suite test
                     , tasty-hedgehog
                     , tasty-hunit
                     , text
+                    , yosys-rtl

@@ -56,6 +56,7 @@ import Control.Monad
 import Data.List.NonEmpty (NonEmpty(..), nonEmpty)
 import Data.Maybe
 import Prelude hiding (and, div, mod, not, or)
+import Yosys.Rtl
 
 -- | increment
 inc :: Encode a => Width a => MonadSignal m => Sig a -> m (Sig a)

@@ -5,6 +5,7 @@ module Bayeux.Ice40.IO
   ) where
 
 import Bayeux.Rtl
+import Yosys.Rtl
 
 sbIO
   :: CellId

@@ -19,6 +19,7 @@ import Data.Finite
 import Data.String
 import Data.Word
 import GHC.TypeNats
+import Yosys.Rtl
 
 class MonadBuffer m where
   buffer

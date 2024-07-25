@@ -24,6 +24,7 @@ import Data.Array
 import Data.Finite
 import Data.String
 import Data.Word
+import Yosys.Rtl
 
 spramC
   :: CellId
