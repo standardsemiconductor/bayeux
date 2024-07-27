@@ -65,7 +65,17 @@ sigSlicing =
   , testCase "sliceSnd" $ (sliceSnd . sig) (False, True) @?= slice 0 0 (sig (False, True))
   , testCase "sliceValid" $ (sliceValid . sig) (Nothing :: Maybe Word8) @?= (slice 8 8 . sig) (Nothing :: Maybe Word8)
   , testCase "sliceValue" $ (sliceValue . sig) (Just 0x34 :: Maybe Word8) @?= (slice 7 0 . sig) (Just 0x34 :: Maybe Word8)
+  , testCase "sliceIx0" $ sliceIx 0 byteArrSig @?= slice 7  0  byteArrSig
+  , testCase "sliceIx1" $ sliceIx 1 byteArrSig @?= slice 15 8  byteArrSig
+  , testCase "sliceIx2" $ sliceIx 2 byteArrSig @?= slice 23 16 byteArrSig
+  , testCase "sliceIx0Bool" $ sliceIx 0 boolArrSig @?= slice 0 0 boolArrSig
+  , testCase "sliceIx1Bool" $ sliceIx 1 boolArrSig @?= slice 1 1 boolArrSig
   ]
+  where
+    byteArrSig :: Sig (Array (Finite 3) Word8)
+    byteArrSig = sig $ listArray (0, 2) [2, 1, 0]
+    boolArrSig :: Sig (Array (Finite 2) Bool)
+    boolArrSig = sig $ listArray (0, 1) [True, False]
 
 renderPretty :: Pretty a => a -> String
 renderPretty = renderString . layoutPretty defaultLayoutOptions . pretty

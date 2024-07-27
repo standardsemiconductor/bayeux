@@ -12,7 +12,7 @@ import Bayeux.Cell hiding (le)
 import qualified Bayeux.Cell as C
 import Bayeux.Encode
 import Bayeux.Rtl (Rtl)
-import Bayeux.Signal
+import Bayeux.Signal hiding (sliceIx)
 import Bayeux.Width
 import Data.Array
 import Data.Finite

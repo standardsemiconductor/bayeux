@@ -14,6 +14,7 @@ module Bayeux.Signal
   , mapMaybeSig
   , sliceFst
   , sliceSnd
+  , sliceIx
   , MonadSignal(..)
   ) where
 
@@ -24,7 +25,10 @@ import Bayeux.Width
 import Control.Monad
 import Control.Monad.Except
 import Control.Monad.Writer
+import Data.Array
+import Data.Finite
 import Data.String
+import GHC.TypeLits
 import Prettyprinter hiding (width)
 import Yosys.Rtl
 
@@ -70,6 +74,17 @@ sliceFst s = slice (width s - 1) (width (undefined :: b)) s
 
 sliceSnd :: forall a b. Width b => Sig (a, b) -> Sig b
 sliceSnd = slice (width (undefined :: b) - 1) 0
+
+sliceIx
+  :: forall n e
+   . KnownNat n
+  => Width e
+  => Finite n
+  -> Sig (Array (Finite n) e)
+  -> Sig e
+sliceIx i = slice ((getFinite i + 1)*w - 1) (getFinite i * w)
+  where
+    w = width (undefined :: e)
 
 class MonadSignal m where
   input   :: WireId -> m (Sig Bool)
