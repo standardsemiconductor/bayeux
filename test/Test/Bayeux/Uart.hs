@@ -17,6 +17,7 @@ import System.Process
 import Test.Tasty
 import Test.Tasty.HUnit
 import Test.Tasty.Golden
+import Yosys.Rtl
 
 tests :: [TestTree]
 tests =

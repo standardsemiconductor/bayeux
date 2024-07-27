@@ -19,6 +19,7 @@ import Bayeux.Signal
 import Bayeux.Width
 import Control.Monad.Writer
 import Data.Word
+import Yosys.Rtl
 
 sbRgbaDrv
   :: SigSpec -- ^ red   pwm input

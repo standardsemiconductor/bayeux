@@ -10,36 +10,10 @@ import Data.Array
 import Data.Bits
 import Data.Bool
 import Data.Finite
-import Data.String
 import Data.Word
 import GHC.TypeLits
-import Prettyprinter hiding (width)
+import Yosys.Rtl
 
-data BinaryDigit = B0
-                 | B1
-                 | X
-                 | Z
-                 | M
-                 | D
-  deriving (Eq, Read, Show)
-
-instance Pretty BinaryDigit where
-  pretty = \case
-    B0 -> "0"
-    B1 -> "1"
-    X  -> "x"
-    Z  -> "z"
-    M  -> "m"
-    D  -> "-"
-
-instance IsString BinaryDigit where
-  fromString = \case
-    "0" -> B0
-    "1" -> B1
-    "x" -> X
-    "z" -> Z
-    "m" -> M
-    _   -> D
 class Encode a where
   encode :: a -> [BinaryDigit]
 

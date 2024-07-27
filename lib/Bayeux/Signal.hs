@@ -7,6 +7,7 @@ module Bayeux.Signal
   , sig
   , slice
   , toMaybeSig
+  , justSig
   , fromMaybeSig
   , sliceValid
   , sliceValue
@@ -25,6 +26,7 @@ import Control.Monad.Except
 import Control.Monad.Writer
 import Data.String
 import Prettyprinter hiding (width)
+import Yosys.Rtl
 
 newtype Sig a = Sig{ spec :: SigSpec }
   deriving (Eq, IsString, Pretty, Read, Show)
@@ -45,6 +47,9 @@ slice end start s = Sig{ spec = SigSpecSlice (spec s) end (Just start) }
 
 toMaybeSig :: Sig Bool -> Sig a -> Sig (Maybe a)
 toMaybeSig validSig valueSig = Sig $ spec validSig <> spec valueSig
+
+justSig :: Sig a -> Sig (Maybe a)
+justSig = toMaybeSig $ sig True
 
 fromMaybeSig :: Width a => Sig (Maybe a) -> (Sig Bool, Sig a)
 fromMaybeSig s = (slice (w - 1) (w - 1) s, slice (w - 2) 0 s)

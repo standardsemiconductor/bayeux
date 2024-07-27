@@ -22,6 +22,7 @@ import System.FilePath
 import System.Hardware.Serialport
 import System.IO
 import Text.Megaparsec hiding (parse)
+import Yosys.Rtl
 
 app :: Cli -> IO ()
 app = \case
