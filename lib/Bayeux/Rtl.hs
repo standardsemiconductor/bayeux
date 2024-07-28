@@ -5,8 +5,7 @@
 
 -- | Yosys [RTLIL](https://yosyshq.readthedocs.io/projects/yosys/en/latest/yosys_internals/formats/rtlil_text.html)
 module Bayeux.Rtl
-  ( binaryDigits
-  , binaryValue
+  ( binaryValue
   , top
   , initial
   , freshWireId
