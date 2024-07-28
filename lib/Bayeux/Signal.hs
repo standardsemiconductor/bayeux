@@ -15,6 +15,8 @@ module Bayeux.Signal
   , sliceFst
   , sliceSnd
   , sliceIx
+  , sliceRange
+  , sliceReverse
   , MonadSignal(..)
   ) where
 
@@ -27,6 +29,7 @@ import Control.Monad.Except
 import Control.Monad.Writer
 import Data.Array
 import Data.Finite
+import Data.Proxy
 import Data.String
 import GHC.TypeLits
 import Prettyprinter hiding (width)
@@ -75,6 +78,7 @@ sliceFst s = slice (width s - 1) (width (undefined :: b)) s
 sliceSnd :: forall a b. Width b => Sig (a, b) -> Sig b
 sliceSnd = slice (width (undefined :: b) - 1) 0
 
+-- | Slice element @i@ from an 'Array'.
 sliceIx
   :: forall n e
    . KnownNat n
@@ -85,6 +89,25 @@ sliceIx
 sliceIx i = slice ((getFinite i + 1)*w - 1) (getFinite i * w)
   where
     w = width (undefined :: e)
+
+-- | Slice a range of elements from 'Sig' 'Array' inclusive. Indexing starts at
+-- zero from the right.
+sliceRange
+  :: forall n m e
+   . KnownNat n
+  => KnownNat m
+  => Width e
+  => Finite n -- ^ end
+  -> Finite n -- ^ begin
+  -> Sig (Array (Finite n) e)
+  -> Sig (Array (Finite m) e)
+sliceRange e b arr = Sig $ flip foldMap (reverse [b..e]) $ \i -> spec $ sliceIx i arr
+
+-- | Reverse the elements of a 'Sig' 'Array'.
+sliceReverse :: forall n e. KnownNat n => Width e => Sig (Array (Finite n) e) -> Sig (Array (Finite n) e)
+sliceReverse arr = Sig $ flip foldMap [0..n - 1] $ \i -> spec $ sliceIx i arr
+  where
+    n = finite $ natVal (Proxy :: Proxy n)
 
 class MonadSignal m where
   input   :: WireId -> m (Sig Bool)
