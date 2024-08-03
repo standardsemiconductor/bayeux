@@ -17,6 +17,7 @@ module Bayeux.Signal
   , sliceIx
   , sliceRange
   , sliceReverse
+  , sliceRotate
   , MonadSignal(..)
   ) where
 
@@ -108,6 +109,11 @@ sliceReverse :: forall n e. KnownNat n => Width e => Sig (Array (Finite n) e) ->
 sliceReverse arr = Sig $ flip foldMap [0..n - 1] $ \i -> spec $ sliceIx i arr
   where
     n = finite $ natVal (Proxy :: Proxy n)
+
+sliceRotate :: Int -> Sig (Array Finite n) e) -> Sig (Array (Finite n) e)
+sliceRotate n arr = undefined
+  where
+    rotateL xs n = take (length xs) $ drop (length xs + n) $ cycle xs
 
 class MonadSignal m where
   input   :: WireId -> m (Sig Bool)
