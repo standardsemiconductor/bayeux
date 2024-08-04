@@ -110,10 +110,28 @@ sliceReverse arr = Sig $ flip foldMap [0..n - 1] $ \i -> spec $ sliceIx i arr
   where
     n = finite $ natVal (Proxy :: Proxy n)
 
-sliceRotate :: Int -> Sig (Array Finite n) e) -> Sig (Array (Finite n) e)
-sliceRotate n arr = undefined
+sliceRotate
+  :: forall n e
+   . KnownNat n
+  => Width e
+  => Int -- ^ Negative values rotate left, positive right.
+  -> Sig (Array (Finite n) e)
+  -> Sig (Array (Finite n) e)
+sliceRotate m arr
+  | m < 0     = Sig $ foldMap spec $ rotateL m' slices
+  | otherwise = Sig $ foldMap spec $ rotateR m  slices
   where
-    rotateL xs n = take (length xs) $ drop (length xs + n) $ cycle xs
+    m' = abs m
+    ixs :: [Finite n]
+    ixs = finite . fromIntegral <$> reverse [0..natVal (Proxy :: Proxy n) - 1]
+    slices :: [Sig e]
+    slices = flip sliceIx arr <$> ixs
+
+rotateL :: Int -> [a] -> [a]
+rotateL n xs = take (length xs) $ drop (length xs + n) $ cycle xs
+
+rotateR :: Int -> [a] -> [a]
+rotateR n xs = rotateL (length xs - n) xs
 
 class MonadSignal m where
   input   :: WireId -> m (Sig Bool)
