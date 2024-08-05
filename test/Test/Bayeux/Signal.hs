@@ -16,6 +16,7 @@ import Prettyprinter
 import Prettyprinter.Render.String
 import Test.Tasty
 import Test.Tasty.HUnit
+import Yosys.Rtl
 
 tests :: [TestTree]
 tests =
@@ -70,6 +71,11 @@ sigSlicing =
   , testCase "sliceIx2" $ sliceIx 2 byteArrSig @?= slice 23 16 byteArrSig
   , testCase "sliceIx0Bool" $ sliceIx 0 boolArrSig @?= slice 0 0 boolArrSig
   , testCase "sliceIx1Bool" $ sliceIx 1 boolArrSig @?= slice 1 1 boolArrSig
+  , let expected = SigSpecCat
+          [ SigSpecSlice "2'10" 1 $ Just 1
+          , SigSpecSlice "2'10" 0 $ Just 0
+          ]
+    in testCase "sliceRotateBool0" $ sliceRotate 0 boolArrSig @?= Sig expected
   ]
   where
     byteArrSig :: Sig (Array (Finite 3) Word8)
