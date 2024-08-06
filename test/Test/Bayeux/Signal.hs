@@ -72,16 +72,36 @@ sigSlicing =
   , testCase "sliceIx0Bool" $ sliceIx 0 boolArrSig @?= slice 0 0 boolArrSig
   , testCase "sliceIx1Bool" $ sliceIx 1 boolArrSig @?= slice 1 1 boolArrSig
   , let expected = SigSpecCat
-          [ SigSpecSlice "2'10" 1 $ Just 1
-          , SigSpecSlice "2'10" 0 $ Just 0
+          [ SigSpecSlice boolArrSpec 1 $ Just 1
+          , SigSpecSlice boolArrSpec 0 $ Just 0
           ]
     in testCase "sliceRotateBool0" $ sliceRotate 0 boolArrSig @?= Sig expected
+  , let expected = SigSpecCat
+          [ SigSpecSlice boolArrSpec 0 $ Just 0
+          , SigSpecSlice boolArrSpec 1 $ Just 1
+          ]
+    in testCase "sliceRotateBool1" $ sliceRotate 1 boolArrSig @?= Sig expected
+  , let expected = SigSpecCat
+          [ SigSpecSlice byteArrSpec 15 $ Just 8
+          , SigSpecSlice byteArrSpec 7  $ Just 0
+          , SigSpecSlice byteArrSpec 23 $ Just 16
+          ]
+    in testCase "sliceRotateByte2" $ sliceRotate 2 byteArrSig @?= Sig expected
+  , let expected = SigSpecCat
+          [ SigSpecSlice byteArrSpec 7  $ Just 0
+          , SigSpecSlice byteArrSpec 23 $ Just 16
+          , SigSpecSlice byteArrSpec 15 $ Just 8
+          ]
+    in testCase "sliceRotateByte-2" $ sliceRotate (-2) byteArrSig @?= Sig expected
   ]
   where
-    byteArrSig :: Sig (Array (Finite 3) Word8)
-    byteArrSig = sig $ listArray (0, 2) [2, 1, 0]
-    boolArrSig :: Sig (Array (Finite 2) Bool)
-    boolArrSig = sig $ listArray (0, 1) [True, False]
+    byteArrSig  :: Sig (Array (Finite 3) Word8)
+    byteArrSig  =  sig $ listArray (0, 2) [2, 1, 0]
+    byteArrSpec =  spec byteArrSig
+
+    boolArrSig  :: Sig (Array (Finite 2) Bool)
+    boolArrSig  =  sig $ listArray (0, 1) [True, False]
+    boolArrSpec =  spec boolArrSig
 
 renderPretty :: Pretty a => a -> String
 renderPretty = renderString . layoutPretty defaultLayoutOptions . pretty
