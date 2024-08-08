@@ -206,51 +206,38 @@ module \top
   wire width 8 \wire42
   wire width 8 \wire44
 
-  cell $shr $cell45
+  cell $and $cell45
     parameter \A_SIGNED 0
     parameter \A_WIDTH 8
     parameter \B_SIGNED 0
     parameter \B_WIDTH 8
     parameter \Y_WIDTH 8
-    connect \A \wire42
-    connect \B 8'00000001
+    connect \A { \wire42 [0:0] \wire42 [7:7] \wire42 [6:6] \wire42 [5:5] \wire42 [4:4] \wire42 [3:3] \wire42 [2:2] \wire42 [1:1] }
+    connect \B 8'01111111
     connect \Y \wire44
   end
 
   wire width 8 \wire46
 
-  cell $and $cell47
-    parameter \A_SIGNED 0
-    parameter \A_WIDTH 8
-    parameter \B_SIGNED 0
-    parameter \B_WIDTH 8
-    parameter \Y_WIDTH 8
-    connect \A \wire44
-    connect \B 8'01111111
-    connect \Y \wire46
-  end
-
-  wire width 8 \wire48
-
-  cell $or $cell49
+  cell $or $cell47
     parameter \A_SIGNED 0
     parameter \A_WIDTH 8
     parameter \B_SIGNED 0
     parameter \B_WIDTH 8
     parameter \Y_WIDTH 8
     connect \A { { \wire26 \rx } [0:0] 7'0000000 }
-    connect \B \wire46
-    connect \Y \wire48
+    connect \B \wire44
+    connect \Y \wire46
   end
 
-  wire width 8 \wire50
+  wire width 8 \wire48
 
-  cell $mux $cell51
+  cell $mux $cell49
     parameter \WIDTH 8
     connect \A \wire42
-    connect \B \wire48
+    connect \B \wire46
     connect \S { \wire26 \rx } [1:1]
-    connect \Y \wire50
+    connect \Y \wire48
   end
 
 
@@ -259,10 +246,32 @@ module \top
 
 
     sync posedge \clk
-      update \wire42 \wire50
+      update \wire42 \wire48
   end
 
+  wire width 1 \wire50
   wire width 1 \wire52
+
+  cell $logic_and $cell53
+    parameter \A_SIGNED 0
+    parameter \A_WIDTH 1
+    parameter \B_SIGNED 0
+    parameter \B_WIDTH 1
+    parameter \Y_WIDTH 1
+    connect \A \wire41
+    connect \B { \wire26 \rx } [1:1]
+    connect \Y \wire52
+  end
+
+
+  process $proc51
+    
+
+
+    sync posedge \clk
+      update \wire50 \wire52
+  end
+
   wire width 1 \wire54
 
   cell $logic_and $cell55
@@ -271,18 +280,9 @@ module \top
     parameter \B_SIGNED 0
     parameter \B_WIDTH 1
     parameter \Y_WIDTH 1
-    connect \A \wire41
-    connect \B { \wire26 \rx } [1:1]
+    connect \A \wire4
+    connect \B \wire11
     connect \Y \wire54
-  end
-
-
-  process $proc53
-    
-
-
-    sync posedge \clk
-      update \wire52 \wire54
   end
 
   wire width 1 \wire56
@@ -294,7 +294,7 @@ module \top
     parameter \B_WIDTH 1
     parameter \Y_WIDTH 1
     connect \A \wire4
-    connect \B \wire11
+    connect \B \wire21
     connect \Y \wire56
   end
 
@@ -306,8 +306,8 @@ module \top
     parameter \B_SIGNED 0
     parameter \B_WIDTH 1
     parameter \Y_WIDTH 1
-    connect \A \wire4
-    connect \B \wire21
+    connect \A { \wire50 \wire42 } [8:8]
+    connect \B \wire17
     connect \Y \wire58
   end
 
@@ -319,27 +319,14 @@ module \top
     parameter \B_SIGNED 0
     parameter \B_WIDTH 1
     parameter \Y_WIDTH 1
-    connect \A { \wire52 \wire42 } [8:8]
-    connect \B \wire17
+    connect \A \wire5
+    connect \B \wire21
     connect \Y \wire60
   end
 
-  wire width 1 \wire62
+  wire width 2 \wire62
 
-  cell $logic_and $cell63
-    parameter \A_SIGNED 0
-    parameter \A_WIDTH 1
-    parameter \B_SIGNED 0
-    parameter \B_WIDTH 1
-    parameter \Y_WIDTH 1
-    connect \A \wire5
-    connect \B \wire21
-    connect \Y \wire62
-  end
-
-  wire width 2 \wire64
-
-  cell $eq $cell65
+  cell $eq $cell63
     parameter \A_SIGNED 0
     parameter \A_WIDTH 2
     parameter \B_SIGNED 0
@@ -347,34 +334,44 @@ module \top
     parameter \Y_WIDTH 2
     connect \A \wire7 [1:0]
     connect \B 2'11
-    connect \Y \wire64
+    connect \Y \wire62
   end
 
-  wire width 1 \wire66
-  connect \wire66 \wire64 [0]
-  wire width 1 \wire67
+  wire width 1 \wire64
+  connect \wire64 \wire62 [0]
+  wire width 1 \wire65
 
-  cell $logic_and $cell68
+  cell $logic_and $cell66
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \B_SIGNED 0
     parameter \B_WIDTH 1
     parameter \Y_WIDTH 1
     connect \A \wire25
-    connect \B \wire66
-    connect \Y \wire67
+    connect \B \wire64
+    connect \Y \wire65
   end
 
-  wire width 1 \wire69
+  wire width 1 \wire67
 
-  cell $logic_or $cell70
+  cell $logic_or $cell68
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \B_SIGNED 0
     parameter \B_WIDTH 1
     parameter \Y_WIDTH 1
-    connect \A \wire62
-    connect \B \wire67
+    connect \A \wire60
+    connect \B \wire65
+    connect \Y \wire67
+  end
+
+  wire width 2 \wire69
+
+  cell $mux $cell70
+    parameter \WIDTH 2
+    connect \A \wire7 [1:0]
+    connect \B 2'00
+    connect \S \wire67
     connect \Y \wire69
   end
 
@@ -382,9 +379,9 @@ module \top
 
   cell $mux $cell72
     parameter \WIDTH 2
-    connect \A \wire7 [1:0]
-    connect \B 2'00
-    connect \S \wire69
+    connect \A \wire69
+    connect \B 2'11
+    connect \S \wire58
     connect \Y \wire71
   end
 
@@ -393,8 +390,8 @@ module \top
   cell $mux $cell74
     parameter \WIDTH 2
     connect \A \wire71
-    connect \B 2'11
-    connect \S \wire60
+    connect \B 2'10
+    connect \S \wire56
     connect \Y \wire73
   end
 
@@ -403,18 +400,21 @@ module \top
   cell $mux $cell76
     parameter \WIDTH 2
     connect \A \wire73
-    connect \B 2'10
-    connect \S \wire58
+    connect \B 2'01
+    connect \S \wire54
     connect \Y \wire75
   end
 
-  wire width 2 \wire77
+  wire width 1 \wire77
 
-  cell $mux $cell78
-    parameter \WIDTH 2
-    connect \A \wire75
-    connect \B 2'01
-    connect \S \wire56
+  cell $logic_or $cell78
+    parameter \A_SIGNED 0
+    parameter \A_WIDTH 1
+    parameter \B_SIGNED 0
+    parameter \B_WIDTH 1
+    parameter \Y_WIDTH 1
+    connect \A \wire11
+    connect \B \wire21
     connect \Y \wire77
   end
 
@@ -426,27 +426,14 @@ module \top
     parameter \B_SIGNED 0
     parameter \B_WIDTH 1
     parameter \Y_WIDTH 1
-    connect \A \wire11
-    connect \B \wire21
+    connect \A \wire77
+    connect \B \wire25
     connect \Y \wire79
   end
 
-  wire width 1 \wire81
+  wire width 16 \wire81
 
-  cell $logic_or $cell82
-    parameter \A_SIGNED 0
-    parameter \A_WIDTH 1
-    parameter \B_SIGNED 0
-    parameter \B_WIDTH 1
-    parameter \Y_WIDTH 1
-    connect \A \wire79
-    connect \B \wire25
-    connect \Y \wire81
-  end
-
-  wire width 16 \wire83
-
-  cell $add $cell84
+  cell $add $cell82
     parameter \A_SIGNED 0
     parameter \A_WIDTH 16
     parameter \B_SIGNED 0
@@ -454,17 +441,17 @@ module \top
     parameter \Y_WIDTH 16
     connect \A \wire7 [17:2]
     connect \B 1'1
-    connect \Y \wire83
+    connect \Y \wire81
   end
 
-  wire width 16 \wire85
+  wire width 16 \wire83
 
-  cell $mux $cell86
+  cell $mux $cell84
     parameter \WIDTH 16
-    connect \A \wire83
+    connect \A \wire81
     connect \B 16'0000000000000000
-    connect \S \wire81
-    connect \Y \wire85
+    connect \S \wire79
+    connect \Y \wire83
   end
 
 
@@ -473,139 +460,149 @@ module \top
 
 
     sync posedge \clk
-      update \wire7 { \wire85 \wire77 }
+      update \wire7 { \wire83 \wire75 }
   end
 
+  wire width 2 \wire85
   wire width 2 \wire87
-  wire width 2 \wire89
 
-  cell $eq $cell90
+  cell $eq $cell88
     parameter \A_SIGNED 0
     parameter \A_WIDTH 2
     parameter \B_SIGNED 0
     parameter \B_WIDTH 2
     parameter \Y_WIDTH 2
-    connect \A \wire87
+    connect \A \wire85
     connect \B 2'10
-    connect \Y \wire89
+    connect \Y \wire87
   end
 
-  wire width 1 \wire91
-  connect \wire91 \wire89 [0]
-  wire width 2 \wire92
+  wire width 1 \wire89
+  connect \wire89 \wire87 [0]
+  wire width 2 \wire90
 
-  cell $add $cell93
+  cell $add $cell91
     parameter \A_SIGNED 0
     parameter \A_WIDTH 2
     parameter \B_SIGNED 0
     parameter \B_WIDTH 1
     parameter \Y_WIDTH 2
-    connect \A \wire87
+    connect \A \wire85
     connect \B 1'1
+    connect \Y \wire90
+  end
+
+  wire width 2 \wire92
+
+  cell $mux $cell93
+    parameter \WIDTH 2
+    connect \A \wire90
+    connect \B \wire85
+    connect \S \wire89
     connect \Y \wire92
   end
 
-  wire width 2 \wire94
 
-  cell $mux $cell95
-    parameter \WIDTH 2
-    connect \A \wire92
-    connect \B \wire87
-    connect \S \wire91
-    connect \Y \wire94
-  end
-
-
-  process $proc88
+  process $proc86
     
 
 
     sync posedge \clk
-      update \wire87 \wire94
+      update \wire85 \wire92
   end
 
-  wire width 2 \wire96
+  wire width 2 \wire94
 
-  cell $eq $cell97
+  cell $eq $cell95
     parameter \A_SIGNED 0
     parameter \A_WIDTH 2
     parameter \B_SIGNED 0
     parameter \B_WIDTH 2
     parameter \Y_WIDTH 2
-    connect \A \wire87
+    connect \A \wire85
     connect \B 2'00
-    connect \Y \wire96
+    connect \Y \wire94
   end
 
-  wire width 1 \wire98
-  connect \wire98 \wire96 [0]
-  wire width 2 \wire99
+  wire width 1 \wire96
+  connect \wire96 \wire94 [0]
+  wire width 2 \wire97
 
-  cell $eq $cell100
+  cell $eq $cell98
     parameter \A_SIGNED 0
     parameter \A_WIDTH 2
     parameter \B_SIGNED 0
     parameter \B_WIDTH 2
     parameter \Y_WIDTH 2
-    connect \A \wire87
+    connect \A \wire85
     connect \B 2'01
-    connect \Y \wire99
+    connect \Y \wire97
   end
 
-  wire width 1 \wire101
-  connect \wire101 \wire99 [0]
-  wire width 9 \wire102
+  wire width 1 \wire99
+  connect \wire99 \wire97 [0]
+  wire width 9 \wire100
 
-  cell $eq $cell103
+  cell $eq $cell101
     parameter \A_SIGNED 0
     parameter \A_WIDTH 9
     parameter \B_SIGNED 0
     parameter \B_WIDTH 9
     parameter \Y_WIDTH 9
-    connect \A { \wire52 \wire42 }
+    connect \A { \wire50 \wire42 }
     connect \B 9'101110010
-    connect \Y \wire102
+    connect \Y \wire100
   end
 
-  wire width 1 \wire104
-  connect \wire104 \wire102 [0]
-  wire width 9 \wire105
+  wire width 1 \wire102
+  connect \wire102 \wire100 [0]
+  wire width 9 \wire103
 
-  cell $eq $cell106
+  cell $eq $cell104
     parameter \A_SIGNED 0
     parameter \A_WIDTH 9
     parameter \B_SIGNED 0
     parameter \B_WIDTH 9
     parameter \Y_WIDTH 9
-    connect \A { \wire52 \wire42 }
+    connect \A { \wire50 \wire42 }
     connect \B 9'101100111
-    connect \Y \wire105
+    connect \Y \wire103
   end
 
-  wire width 1 \wire107
-  connect \wire107 \wire105 [0]
-  wire width 9 \wire108
+  wire width 1 \wire105
+  connect \wire105 \wire103 [0]
+  wire width 9 \wire106
 
-  cell $eq $cell109
+  cell $eq $cell107
     parameter \A_SIGNED 0
     parameter \A_WIDTH 9
     parameter \B_SIGNED 0
     parameter \B_WIDTH 9
     parameter \Y_WIDTH 9
-    connect \A { \wire52 \wire42 }
+    connect \A { \wire50 \wire42 }
     connect \B 9'101100010
-    connect \Y \wire108
+    connect \Y \wire106
   end
 
-  wire width 1 \wire110
-  connect \wire110 \wire108 [0]
+  wire width 1 \wire108
+  connect \wire108 \wire106 [0]
+  wire width 40 \wire109
+
+  cell $mux $cell110
+    parameter \WIDTH 40
+    connect \A 40'0000000000000000000000000000000000000000
+    connect \B 40'1100010000000010010000000001001111111111
+    connect \S \wire108
+    connect \Y \wire109
+  end
+
   wire width 40 \wire111
 
   cell $mux $cell112
     parameter \WIDTH 40
-    connect \A 40'0000000000000000000000000000000000000000
-    connect \B 40'1100010000000010010000000001001111111111
-    connect \S \wire110
+    connect \A \wire109
+    connect \B 40'1100010000000010010111111111001100000000
+    connect \S \wire105
     connect \Y \wire111
   end
 
@@ -614,67 +611,70 @@ module \top
   cell $mux $cell114
     parameter \WIDTH 40
     connect \A \wire111
-    connect \B 40'1100010000000010010111111111001100000000
-    connect \S \wire107
+    connect \B 40'1100011111111110010000000001001100000000
+    connect \S \wire102
     connect \Y \wire113
   end
 
-  wire width 40 \wire115
+  wire width 43 \wire115
+  wire width 1 \wire117
 
-  cell $mux $cell116
-    parameter \WIDTH 40
-    connect \A \wire113
-    connect \B 40'1100011111111110010000000001001100000000
-    connect \S \wire104
-    connect \Y \wire115
-  end
-
-  wire width 43 \wire117
-  wire width 1 \wire119
-
-  cell $eq $cell120
+  cell $eq $cell118
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \B_SIGNED 0
     parameter \B_WIDTH 1
     parameter \Y_WIDTH 1
-    connect \A \wire117 [42:42]
+    connect \A \wire115 [42:42]
     connect \B 1'0
-    connect \Y \wire119
+    connect \Y \wire117
   end
 
-  wire width 1 \wire121
-  connect \wire121 \wire119 [0]
-  wire width 1 \wire122
+  wire width 1 \wire119
+  connect \wire119 \wire117 [0]
+  wire width 1 \wire120
 
-  cell $eq $cell123
+  cell $eq $cell121
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \B_SIGNED 0
     parameter \B_WIDTH 1
     parameter \Y_WIDTH 1
-    connect \A \wire117 [42:42]
+    connect \A \wire115 [42:42]
     connect \B 1'1
-    connect \Y \wire122
+    connect \Y \wire120
   end
 
-  wire width 1 \wire124
-  connect \wire124 \wire122 [0]
-  wire width 2 \wire125
+  wire width 1 \wire122
+  connect \wire122 \wire120 [0]
+  wire width 2 \wire123
 
-  cell $eq $cell126
+  cell $eq $cell124
     parameter \A_SIGNED 0
     parameter \A_WIDTH 2
     parameter \B_SIGNED 0
     parameter \B_WIDTH 2
     parameter \Y_WIDTH 2
-    connect \A \wire117 [41:40]
+    connect \A \wire115 [41:40]
     connect \B 2'10
-    connect \Y \wire125
+    connect \Y \wire123
   end
 
-  wire width 1 \wire127
-  connect \wire127 \wire125 [0]
+  wire width 1 \wire125
+  connect \wire125 \wire123 [0]
+  wire width 1 \wire126
+
+  cell $logic_and $cell127
+    parameter \A_SIGNED 0
+    parameter \A_WIDTH 1
+    parameter \B_SIGNED 0
+    parameter \B_WIDTH 1
+    parameter \Y_WIDTH 1
+    connect \A \wire122
+    connect \B \wire125
+    connect \Y \wire126
+  end
+
   wire width 1 \wire128
 
   cell $logic_and $cell129
@@ -683,21 +683,18 @@ module \top
     parameter \B_SIGNED 0
     parameter \B_WIDTH 1
     parameter \Y_WIDTH 1
-    connect \A \wire124
-    connect \B \wire127
+    connect \A \wire119
+    connect \B \wire113 [39:39]
     connect \Y \wire128
   end
 
   wire width 1 \wire130
 
-  cell $logic_and $cell131
-    parameter \A_SIGNED 0
-    parameter \A_WIDTH 1
-    parameter \B_SIGNED 0
-    parameter \B_WIDTH 1
-    parameter \Y_WIDTH 1
-    connect \A \wire121
-    connect \B \wire115 [39:39]
+  cell $mux $cell131
+    parameter \WIDTH 1
+    connect \A \wire115 [42:42]
+    connect \B 1'1
+    connect \S \wire128
     connect \Y \wire130
   end
 
@@ -705,140 +702,140 @@ module \top
 
   cell $mux $cell133
     parameter \WIDTH 1
-    connect \A \wire117 [42:42]
-    connect \B 1'1
-    connect \S \wire130
+    connect \A \wire130
+    connect \B 1'0
+    connect \S \wire126
     connect \Y \wire132
   end
 
-  wire width 1 \wire134
+  wire width 2 \wire134
 
-  cell $mux $cell135
-    parameter \WIDTH 1
-    connect \A \wire132
-    connect \B 1'0
-    connect \S \wire128
-    connect \Y \wire134
-  end
-
-  wire width 2 \wire136
-
-  cell $eq $cell137
+  cell $eq $cell135
     parameter \A_SIGNED 0
     parameter \A_WIDTH 2
     parameter \B_SIGNED 0
     parameter \B_WIDTH 2
     parameter \Y_WIDTH 2
-    connect \A \wire117 [41:40]
+    connect \A \wire115 [41:40]
     connect \B 2'10
-    connect \Y \wire136
+    connect \Y \wire134
   end
 
-  wire width 1 \wire138
-  connect \wire138 \wire136 [0]
-  wire width 1 \wire139
+  wire width 1 \wire136
+  connect \wire136 \wire134 [0]
+  wire width 1 \wire137
 
-  cell $logic_or $cell140
+  cell $logic_or $cell138
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \B_SIGNED 0
     parameter \B_WIDTH 1
     parameter \Y_WIDTH 1
-    connect \A \wire130
-    connect \B \wire138
-    connect \Y \wire139
+    connect \A \wire128
+    connect \B \wire136
+    connect \Y \wire137
   end
 
-  wire width 2 \wire141
+  wire width 2 \wire139
 
-  cell $add $cell142
+  cell $add $cell140
     parameter \A_SIGNED 0
     parameter \A_WIDTH 2
     parameter \B_SIGNED 0
     parameter \B_WIDTH 1
     parameter \Y_WIDTH 2
-    connect \A \wire117 [41:40]
+    connect \A \wire115 [41:40]
     connect \B 1'1
+    connect \Y \wire139
+  end
+
+  wire width 2 \wire141
+
+  cell $mux $cell142
+    parameter \WIDTH 2
+    connect \A \wire139
+    connect \B 2'00
+    connect \S \wire137
     connect \Y \wire141
   end
 
-  wire width 2 \wire143
+  wire width 39 \wire143
 
-  cell $mux $cell144
-    parameter \WIDTH 2
-    connect \A \wire141
-    connect \B 2'00
-    connect \S \wire139
-    connect \Y \wire143
-  end
-
-  wire width 39 \wire145
-
-  cell $shr $cell146
+  cell $shr $cell144
     parameter \A_SIGNED 0
     parameter \A_WIDTH 39
     parameter \B_SIGNED 0
     parameter \B_WIDTH 8
     parameter \Y_WIDTH 39
-    connect \A \wire117 [39:0] [38:0]
+    connect \A \wire115 [39:0] [38:0]
     connect \B 8'00001101
+    connect \Y \wire143
+  end
+
+  wire width 1 \wire145
+
+  cell $eq $cell146
+    parameter \A_SIGNED 0
+    parameter \A_WIDTH 1
+    parameter \B_SIGNED 0
+    parameter \B_WIDTH 1
+    parameter \Y_WIDTH 1
+    connect \A \wire115 [42:42]
+    connect \B 1'0
     connect \Y \wire145
   end
 
   wire width 1 \wire147
+  connect \wire147 \wire145 [0]
+  wire width 40 \wire148
 
-  cell $eq $cell148
-    parameter \A_SIGNED 0
-    parameter \A_WIDTH 1
-    parameter \B_SIGNED 0
-    parameter \B_WIDTH 1
-    parameter \Y_WIDTH 1
-    connect \A \wire117 [42:42]
-    connect \B 1'0
-    connect \Y \wire147
+  cell $mux $cell149
+    parameter \WIDTH 40
+    connect \A { 1'1 \wire143 }
+    connect \B \wire113
+    connect \S \wire147
+    connect \Y \wire148
   end
 
-  wire width 1 \wire149
-  connect \wire149 \wire147 [0]
   wire width 40 \wire150
 
   cell $mux $cell151
     parameter \WIDTH 40
-    connect \A { 1'1 \wire145 }
-    connect \B \wire115
-    connect \S \wire149
+    connect \A \wire148
+    connect \B 40'0000000000000000000000000000000000000000
+    connect \S \wire126
     connect \Y \wire150
   end
 
-  wire width 40 \wire152
 
-  cell $mux $cell153
-    parameter \WIDTH 40
-    connect \A \wire150
-    connect \B 40'0000000000000000000000000000000000000000
-    connect \S \wire128
-    connect \Y \wire152
-  end
-
-
-  process $proc118
+  process $proc116
     
 
 
     sync posedge \clk
-      update \wire117 { \wire134 \wire143 \wire152 }
+      update \wire115 { \wire132 \wire141 \wire150 }
   end
 
-  wire width 1 \wire154
+  wire width 1 \wire152
 
-  cell $logic_and $cell155
+  cell $logic_and $cell153
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \B_SIGNED 0
     parameter \B_WIDTH 1
     parameter \Y_WIDTH 1
-    connect \A { \wire124 \wire117 [39:0] [12:0] } [13:13]
-    connect \B { \wire124 \wire117 [39:0] [12:0] } [12:0] [12:12]
+    connect \A { \wire122 \wire115 [39:0] [12:0] } [13:13]
+    connect \B { \wire122 \wire115 [39:0] [12:0] } [12:0] [12:12]
+    connect \Y \wire152
+  end
+
+  wire width 13 \wire154
+
+  cell $mux $cell155
+    parameter \WIDTH 13
+    connect \A { \wire152 { \wire122 \wire115 [39:0] [12:0] } [12:0] [11:0] }
+    connect \B 13'1000111111111
+    connect \S \wire99
     connect \Y \wire154
   end
 
@@ -846,53 +843,43 @@ module \top
 
   cell $mux $cell157
     parameter \WIDTH 13
-    connect \A { \wire154 { \wire124 \wire117 [39:0] [12:0] } [12:0] [11:0] }
-    connect \B 13'1000111111111
-    connect \S \wire101
+    connect \A \wire154
+    connect \B 13'1100010000000
+    connect \S \wire96
     connect \Y \wire156
   end
 
-  wire width 13 \wire158
-
-  cell $mux $cell159
-    parameter \WIDTH 13
-    connect \A \wire156
-    connect \B 13'1100010000000
-    connect \S \wire98
-    connect \Y \wire158
-  end
-
+  wire width 1 \wire158
+  wire width 1 \wire159
   wire width 1 \wire160
   wire width 1 \wire161
-  wire width 1 \wire162
-  wire width 1 \wire163
   attribute \module_not_derived 1
   cell \SB_LEDDA_IP \SB_LEDDA_IP_INST
     connect \LEDDCS 1'1
     connect \LEDDCLK \clk
-    connect \LEDDDAT7 \wire158 [11:0] [7:0] [7:7]
-    connect \LEDDDAT6 \wire158 [11:0] [7:0] [6:6]
-    connect \LEDDDAT5 \wire158 [11:0] [7:0] [5:5]
-    connect \LEDDDAT4 \wire158 [11:0] [7:0] [4:4]
-    connect \LEDDDAT3 \wire158 [11:0] [7:0] [3:3]
-    connect \LEDDDAT2 \wire158 [11:0] [7:0] [2:2]
-    connect \LEDDDAT1 \wire158 [11:0] [7:0] [1:1]
-    connect \LEDDDAT0 \wire158 [11:0] [7:0] [0:0]
-    connect \LEDDADDR3 \wire158 [11:0] [11:8] [3:3]
-    connect \LEDDADDR2 \wire158 [11:0] [11:8] [2:2]
-    connect \LEDDADDR1 \wire158 [11:0] [11:8] [1:1]
-    connect \LEDDADDR0 \wire158 [11:0] [11:8] [0:0]
-    connect \LEDDDEN \wire158 [12:12]
+    connect \LEDDDAT7 \wire156 [11:0] [7:0] [7:7]
+    connect \LEDDDAT6 \wire156 [11:0] [7:0] [6:6]
+    connect \LEDDDAT5 \wire156 [11:0] [7:0] [5:5]
+    connect \LEDDDAT4 \wire156 [11:0] [7:0] [4:4]
+    connect \LEDDDAT3 \wire156 [11:0] [7:0] [3:3]
+    connect \LEDDDAT2 \wire156 [11:0] [7:0] [2:2]
+    connect \LEDDDAT1 \wire156 [11:0] [7:0] [1:1]
+    connect \LEDDDAT0 \wire156 [11:0] [7:0] [0:0]
+    connect \LEDDADDR3 \wire156 [11:0] [11:8] [3:3]
+    connect \LEDDADDR2 \wire156 [11:0] [11:8] [2:2]
+    connect \LEDDADDR1 \wire156 [11:0] [11:8] [1:1]
+    connect \LEDDADDR0 \wire156 [11:0] [11:8] [0:0]
+    connect \LEDDDEN \wire156 [12:12]
     connect \LEDDEXE 1'1
-    connect \PWMOUT0 \wire160
-    connect \PWMOUT1 \wire161
-    connect \PWMOUT2 \wire162
-    connect \LEDDON \wire163
+    connect \PWMOUT0 \wire158
+    connect \PWMOUT1 \wire159
+    connect \PWMOUT2 \wire160
+    connect \LEDDON \wire161
   end
 
+  wire width 1 \wire162
+  wire width 1 \wire163
   wire width 1 \wire164
-  wire width 1 \wire165
-  wire width 1 \wire166
   attribute \module_not_derived 1
   cell \SB_RGBA_DRV \RGBA_DRIVER
     parameter \CURRENT_MODE "0b1"
@@ -900,19 +887,19 @@ module \top
     parameter \RGB1_CURRENT "0b111111"
     parameter \RGB2_CURRENT "0b111111"
     connect \CURREN 1'1
-    connect \RGB0 \wire164
-    connect \RGB0PWM { \wire160 \wire161 \wire162 \wire163 } [3:1] [2:2]
-    connect \RGB1 \wire165
-    connect \RGB1PWM { \wire160 \wire161 \wire162 \wire163 } [3:1] [1:1]
-    connect \RGB2 \wire166
-    connect \RGB2PWM { \wire160 \wire161 \wire162 \wire163 } [3:1] [0:0]
+    connect \RGB0 \wire162
+    connect \RGB0PWM { \wire158 \wire159 \wire160 \wire161 } [3:1] [2:2]
+    connect \RGB1 \wire163
+    connect \RGB1PWM { \wire158 \wire159 \wire160 \wire161 } [3:1] [1:1]
+    connect \RGB2 \wire164
+    connect \RGB2PWM { \wire158 \wire159 \wire160 \wire161 } [3:1] [0:0]
     connect \RGBLEDEN 1'1
   end
 
-  wire output 167 \red
-  connect \red \wire164
-  wire output 168 \green
-  connect \green \wire165
-  wire output 169 \blue
-  connect \blue \wire166
+  wire output 165 \red
+  connect \red \wire162
+  wire output 166 \green
+  connect \green \wire163
+  wire output 167 \blue
+  connect \blue \wire164
 end

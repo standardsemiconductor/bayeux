@@ -54,10 +54,8 @@ instance MonadBuffer Rtl where
       ]
     isFull <- i === sig maxBound
     b <- process $ \b -> do
-      let shamt :: Word8
-          shamt = fromIntegral w
-      shiftedBuf <- shr b $ sig shamt
-      let la = fromIntegral $ width (undefined :: Array (Finite n) e)
+      let shiftedBuf = sliceRotate 1 b
+          la = fromIntegral $ width (undefined :: Array (Finite n) e)
           le = fromIntegral w
           input' :: Sig (Array (Finite n) e)
           input' = Sig $ mconcat
