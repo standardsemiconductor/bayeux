@@ -17,7 +17,6 @@ import Bayeux.Width
 import Data.Array
 import Data.Finite
 import Data.String
-import Data.Word
 import GHC.TypeNats
 import Yosys.Rtl
 
@@ -92,7 +91,7 @@ instance MonadBuffer Rtl where
     isBusy <- fsmSig === sig Busy
     ixMax <- ixSig === sig maxBound
     gotoIdle <- isBusy `logicAnd` ixMax
-    gotoBusy <- isIdle `logicAnd` aValid
+    gotoBusy <- isIdle `logicAnd` sliceValid a
     fsm' <- ifs
       [ gotoIdle `thens` sig Idle
       , gotoBusy `thens` sig Busy
@@ -102,18 +101,14 @@ instance MonadBuffer Rtl where
       [ (pure gotoBusy .|| ixSig === sig maxBound) `thenm` val (0 :: Finite n)
       , elsem $ inc ixSig
       ]
-    let shamt = fromIntegral (width (undefined :: e)) :: Word8
-    bufValue' <- shr (sliceValue bufSig) $ sig shamt
     buf' <- flip (mux gotoIdle) (sig Nothing) =<< pats fsmSig
       [ Idle ~~> a
-      , wilds $ Sig $ "1'1" <> spec bufValue'
+      , wilds $ justSig $ sliceRotate 1 $ sliceValue bufSig
       ]
     let e  = slice (width (undefined :: e) - 1) 0 bufSig
         o  = Sig $ spec isBusy <> spec e
         s' = Sig $ spec fsm' <> spec ix' <> spec buf'
     return (s', o)
-    where
-      aValid = sliceValid a
 
 data Fsm = Idle | Busy
   deriving (Eq, Read, Show)

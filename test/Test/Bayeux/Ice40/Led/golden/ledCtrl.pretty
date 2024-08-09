@@ -759,22 +759,9 @@ module \top
     connect \Y \wire141
   end
 
-  wire width 39 \wire143
+  wire width 1 \wire143
 
-  cell $shr $cell144
-    parameter \A_SIGNED 0
-    parameter \A_WIDTH 39
-    parameter \B_SIGNED 0
-    parameter \B_WIDTH 8
-    parameter \Y_WIDTH 39
-    connect \A \wire115 [39:0] [38:0]
-    connect \B 8'00001101
-    connect \Y \wire143
-  end
-
-  wire width 1 \wire145
-
-  cell $eq $cell146
+  cell $eq $cell144
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \B_SIGNED 0
@@ -782,29 +769,29 @@ module \top
     parameter \Y_WIDTH 1
     connect \A \wire115 [42:42]
     connect \B 1'0
-    connect \Y \wire145
+    connect \Y \wire143
   end
 
-  wire width 1 \wire147
-  connect \wire147 \wire145 [0]
+  wire width 1 \wire145
+  connect \wire145 \wire143 [0]
+  wire width 40 \wire146
+
+  cell $mux $cell147
+    parameter \WIDTH 40
+    connect \A { 1'1 \wire115 [39:0] [38:0] [12:0] \wire115 [39:0] [38:0] [38:26] \wire115 [39:0] [38:0] [25:13] }
+    connect \B \wire113
+    connect \S \wire145
+    connect \Y \wire146
+  end
+
   wire width 40 \wire148
 
   cell $mux $cell149
     parameter \WIDTH 40
-    connect \A { 1'1 \wire143 }
-    connect \B \wire113
-    connect \S \wire147
-    connect \Y \wire148
-  end
-
-  wire width 40 \wire150
-
-  cell $mux $cell151
-    parameter \WIDTH 40
-    connect \A \wire148
+    connect \A \wire146
     connect \B 40'0000000000000000000000000000000000000000
     connect \S \wire126
-    connect \Y \wire150
+    connect \Y \wire148
   end
 
 
@@ -813,12 +800,12 @@ module \top
 
 
     sync posedge \clk
-      update \wire115 { \wire132 \wire141 \wire150 }
+      update \wire115 { \wire132 \wire141 \wire148 }
   end
 
-  wire width 1 \wire152
+  wire width 1 \wire150
 
-  cell $logic_and $cell153
+  cell $logic_and $cell151
     parameter \A_SIGNED 0
     parameter \A_WIDTH 1
     parameter \B_SIGNED 0
@@ -826,6 +813,16 @@ module \top
     parameter \Y_WIDTH 1
     connect \A { \wire122 \wire115 [39:0] [12:0] } [13:13]
     connect \B { \wire122 \wire115 [39:0] [12:0] } [12:0] [12:12]
+    connect \Y \wire150
+  end
+
+  wire width 13 \wire152
+
+  cell $mux $cell153
+    parameter \WIDTH 13
+    connect \A { \wire150 { \wire122 \wire115 [39:0] [12:0] } [12:0] [11:0] }
+    connect \B 13'1000111111111
+    connect \S \wire99
     connect \Y \wire152
   end
 
@@ -833,53 +830,43 @@ module \top
 
   cell $mux $cell155
     parameter \WIDTH 13
-    connect \A { \wire152 { \wire122 \wire115 [39:0] [12:0] } [12:0] [11:0] }
-    connect \B 13'1000111111111
-    connect \S \wire99
+    connect \A \wire152
+    connect \B 13'1100010000000
+    connect \S \wire96
     connect \Y \wire154
   end
 
-  wire width 13 \wire156
-
-  cell $mux $cell157
-    parameter \WIDTH 13
-    connect \A \wire154
-    connect \B 13'1100010000000
-    connect \S \wire96
-    connect \Y \wire156
-  end
-
+  wire width 1 \wire156
+  wire width 1 \wire157
   wire width 1 \wire158
   wire width 1 \wire159
-  wire width 1 \wire160
-  wire width 1 \wire161
   attribute \module_not_derived 1
   cell \SB_LEDDA_IP \SB_LEDDA_IP_INST
     connect \LEDDCS 1'1
     connect \LEDDCLK \clk
-    connect \LEDDDAT7 \wire156 [11:0] [7:0] [7:7]
-    connect \LEDDDAT6 \wire156 [11:0] [7:0] [6:6]
-    connect \LEDDDAT5 \wire156 [11:0] [7:0] [5:5]
-    connect \LEDDDAT4 \wire156 [11:0] [7:0] [4:4]
-    connect \LEDDDAT3 \wire156 [11:0] [7:0] [3:3]
-    connect \LEDDDAT2 \wire156 [11:0] [7:0] [2:2]
-    connect \LEDDDAT1 \wire156 [11:0] [7:0] [1:1]
-    connect \LEDDDAT0 \wire156 [11:0] [7:0] [0:0]
-    connect \LEDDADDR3 \wire156 [11:0] [11:8] [3:3]
-    connect \LEDDADDR2 \wire156 [11:0] [11:8] [2:2]
-    connect \LEDDADDR1 \wire156 [11:0] [11:8] [1:1]
-    connect \LEDDADDR0 \wire156 [11:0] [11:8] [0:0]
-    connect \LEDDDEN \wire156 [12:12]
+    connect \LEDDDAT7 \wire154 [11:0] [7:0] [7:7]
+    connect \LEDDDAT6 \wire154 [11:0] [7:0] [6:6]
+    connect \LEDDDAT5 \wire154 [11:0] [7:0] [5:5]
+    connect \LEDDDAT4 \wire154 [11:0] [7:0] [4:4]
+    connect \LEDDDAT3 \wire154 [11:0] [7:0] [3:3]
+    connect \LEDDDAT2 \wire154 [11:0] [7:0] [2:2]
+    connect \LEDDDAT1 \wire154 [11:0] [7:0] [1:1]
+    connect \LEDDDAT0 \wire154 [11:0] [7:0] [0:0]
+    connect \LEDDADDR3 \wire154 [11:0] [11:8] [3:3]
+    connect \LEDDADDR2 \wire154 [11:0] [11:8] [2:2]
+    connect \LEDDADDR1 \wire154 [11:0] [11:8] [1:1]
+    connect \LEDDADDR0 \wire154 [11:0] [11:8] [0:0]
+    connect \LEDDDEN \wire154 [12:12]
     connect \LEDDEXE 1'1
-    connect \PWMOUT0 \wire158
-    connect \PWMOUT1 \wire159
-    connect \PWMOUT2 \wire160
-    connect \LEDDON \wire161
+    connect \PWMOUT0 \wire156
+    connect \PWMOUT1 \wire157
+    connect \PWMOUT2 \wire158
+    connect \LEDDON \wire159
   end
 
+  wire width 1 \wire160
+  wire width 1 \wire161
   wire width 1 \wire162
-  wire width 1 \wire163
-  wire width 1 \wire164
   attribute \module_not_derived 1
   cell \SB_RGBA_DRV \RGBA_DRIVER
     parameter \CURRENT_MODE "0b1"
@@ -887,19 +874,19 @@ module \top
     parameter \RGB1_CURRENT "0b111111"
     parameter \RGB2_CURRENT "0b111111"
     connect \CURREN 1'1
-    connect \RGB0 \wire162
-    connect \RGB0PWM { \wire158 \wire159 \wire160 \wire161 } [3:1] [2:2]
-    connect \RGB1 \wire163
-    connect \RGB1PWM { \wire158 \wire159 \wire160 \wire161 } [3:1] [1:1]
-    connect \RGB2 \wire164
-    connect \RGB2PWM { \wire158 \wire159 \wire160 \wire161 } [3:1] [0:0]
+    connect \RGB0 \wire160
+    connect \RGB0PWM { \wire156 \wire157 \wire158 \wire159 } [3:1] [2:2]
+    connect \RGB1 \wire161
+    connect \RGB1PWM { \wire156 \wire157 \wire158 \wire159 } [3:1] [1:1]
+    connect \RGB2 \wire162
+    connect \RGB2PWM { \wire156 \wire157 \wire158 \wire159 } [3:1] [0:0]
     connect \RGBLEDEN 1'1
   end
 
-  wire output 165 \red
-  connect \red \wire162
-  wire output 166 \green
-  connect \green \wire163
-  wire output 167 \blue
-  connect \blue \wire164
+  wire output 163 \red
+  connect \red \wire160
+  wire output 164 \green
+  connect \green \wire161
+  wire output 165 \blue
+  connect \blue \wire162
 end
