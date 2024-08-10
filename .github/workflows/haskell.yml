@@ -100,3 +100,13 @@ jobs:
 
     - name: test
       run: cabal run test -- --no-create
+
+    - name: demo
+      run: |
+        cabal install
+        bx --FiatLux    -s
+        bx --RgbCounter -s
+        bx --RgbCycle   -s
+        bx --Hello      -s
+        bx --Echo       -s
+        bx --LedCtrl    -s
