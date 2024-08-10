@@ -78,6 +78,12 @@ jobs:
         repository: YosysHQ/icestorm
         path: icestorm
 
+    - name: install icestorm
+      working-directory: icestorm
+      run: |
+        make
+        sudo make install
+
     - name: checkout nextpnr
       uses: actions/checkout@v4
       with:
@@ -90,12 +96,6 @@ jobs:
       working-directory: nextpnr
       run: |
         cmake -DARCH=ice40 -DCMAKE_INSTALL_PREFIX=/usr/local .
-        make
-        sudo make install
-
-    - name: install icestorm
-      working-directory: icestorm
-      run: |
         make
         sudo make install
 
