@@ -34,7 +34,7 @@ library
     other-modules:    Paths_bayeux
     autogen-modules:  Paths_bayeux
     build-depends:    array
-                    , async
+                    , async              >= 2.0
                     , base
                     , bytestring
                     , containers
