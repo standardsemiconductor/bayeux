@@ -104,9 +104,10 @@ jobs:
     - name: demo
       run: |
         cabal install
-        bx --FiatLux    -s
-        bx --RgbCounter -s
-        bx --RgbCycle   -s
-        bx --Hello      -s
-        bx --Echo       -s
-        bx --LedCtrl    -s
+        bx --FiatLux      -s
+        bx --RgbCounter   -s
+        bx --RgbCycle     -s
+        bx --Hello        -s
+        bx --Echo         -s
+        bx --LedCtrl      -s
+        bx --SpramReverse -s
