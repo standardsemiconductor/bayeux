@@ -16,6 +16,7 @@ import Prettyprinter
 import Prettyprinter.Render.String
 import Test.Tasty
 import Test.Tasty.HUnit
+import Yosys.Rtl
 
 tests :: [TestTree]
 tests =
@@ -65,7 +66,42 @@ sigSlicing =
   , testCase "sliceSnd" $ (sliceSnd . sig) (False, True) @?= slice 0 0 (sig (False, True))
   , testCase "sliceValid" $ (sliceValid . sig) (Nothing :: Maybe Word8) @?= (slice 8 8 . sig) (Nothing :: Maybe Word8)
   , testCase "sliceValue" $ (sliceValue . sig) (Just 0x34 :: Maybe Word8) @?= (slice 7 0 . sig) (Just 0x34 :: Maybe Word8)
+  , testCase "sliceIx0" $ sliceIx 0 byteArrSig @?= slice 7  0  byteArrSig
+  , testCase "sliceIx1" $ sliceIx 1 byteArrSig @?= slice 15 8  byteArrSig
+  , testCase "sliceIx2" $ sliceIx 2 byteArrSig @?= slice 23 16 byteArrSig
+  , testCase "sliceIx0Bool" $ sliceIx 0 boolArrSig @?= slice 0 0 boolArrSig
+  , testCase "sliceIx1Bool" $ sliceIx 1 boolArrSig @?= slice 1 1 boolArrSig
+  , let expected = SigSpecCat
+          [ SigSpecSlice boolArrSpec 1 $ Just 1
+          , SigSpecSlice boolArrSpec 0 $ Just 0
+          ]
+    in testCase "sliceRotateBool0" $ sliceRotate 0 boolArrSig @?= Sig expected
+  , let expected = SigSpecCat
+          [ SigSpecSlice boolArrSpec 0 $ Just 0
+          , SigSpecSlice boolArrSpec 1 $ Just 1
+          ]
+    in testCase "sliceRotateBool1" $ sliceRotate 1 boolArrSig @?= Sig expected
+  , let expected = SigSpecCat
+          [ SigSpecSlice byteArrSpec 15 $ Just 8
+          , SigSpecSlice byteArrSpec 7  $ Just 0
+          , SigSpecSlice byteArrSpec 23 $ Just 16
+          ]
+    in testCase "sliceRotateByte2" $ sliceRotate 2 byteArrSig @?= Sig expected
+  , let expected = SigSpecCat
+          [ SigSpecSlice byteArrSpec 7  $ Just 0
+          , SigSpecSlice byteArrSpec 23 $ Just 16
+          , SigSpecSlice byteArrSpec 15 $ Just 8
+          ]
+    in testCase "sliceRotateByte-2" $ sliceRotate (-2) byteArrSig @?= Sig expected
   ]
+  where
+    byteArrSig  :: Sig (Array (Finite 3) Word8)
+    byteArrSig  =  sig $ listArray (0, 2) [2, 1, 0]
+    byteArrSpec =  spec byteArrSig
+
+    boolArrSig  :: Sig (Array (Finite 2) Bool)
+    boolArrSig  =  sig $ listArray (0, 1) [True, False]
+    boolArrSpec =  spec boolArrSig
 
 renderPretty :: Pretty a => a -> String
 renderPretty = renderString . layoutPretty defaultLayoutOptions . pretty

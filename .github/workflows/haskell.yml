@@ -84,6 +84,21 @@ jobs:
         make
         sudo make install
 
+    - name: checkout nextpnr
+      uses: actions/checkout@v4
+      with:
+        repository: YosysHQ/nextpnr
+        ref: master
+        path: nextpnr
+        submodules: true
+
+    - name: install nextpnr
+      working-directory: nextpnr
+      run: |
+        cmake -DARCH=ice40 -DCMAKE_INSTALL_PREFIX=/usr/local .
+        make
+        sudo make install
+
     - name: checkout yosys
       uses: actions/checkout@v4
       with:
@@ -100,3 +115,14 @@ jobs:
 
     - name: test
       run: cabal run test -- --no-create
+
+    - name: demo
+      run: |
+        cabal install
+        bx --FiatLux      -s
+        bx --RgbCounter   -s
+        bx --RgbCycle     -s
+        bx --Hello        -s
+        bx --Echo         -s
+        bx --LedCtrl      -s
+        bx --SpramReverse -s

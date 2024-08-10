@@ -1,16 +1,20 @@
 cabal-version:      3.0
 name:               bayeux
 version:            0.1.0.0
-homepage:           https://github.com/dopamane/bayeux
+homepage:           https://github.com/standardsemiconductor/bayeux
 license:            MIT
 license-file:       LICENSE
 author:             dopamane
-maintainer:         dwc1295@gmail.com
+maintainer:         standardsemiconductor@gmail.com
 copyright:          David Cox
 category:           Language
 build-type:         Simple
 extra-doc-files:    CHANGELOG.md
 data-files:         data/**/*.pcf
+
+source-repository head
+  type:     git
+  location: https://github.com/standardsemiconductor/yosys-rtl
 
 library
     ghc-options:      -Wall
@@ -35,7 +39,7 @@ library
     other-modules:    Paths_bayeux
     autogen-modules:  Paths_bayeux
     build-depends:    array
-                    , async
+                    , async              >= 2.0
                     , base
                     , bytestring
                     , containers

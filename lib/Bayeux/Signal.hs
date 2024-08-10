@@ -14,6 +14,10 @@ module Bayeux.Signal
   , mapMaybeSig
   , sliceFst
   , sliceSnd
+  , sliceIx
+  , sliceRange
+  , sliceReverse
+  , sliceRotate
   , MonadSignal(..)
   ) where
 
@@ -24,7 +28,11 @@ import Bayeux.Width
 import Control.Monad
 import Control.Monad.Except
 import Control.Monad.Writer
+import Data.Array
+import Data.Finite
+import Data.Proxy
 import Data.String
+import GHC.TypeLits
 import Prettyprinter hiding (width)
 import Yosys.Rtl
 
@@ -70,6 +78,60 @@ sliceFst s = slice (width s - 1) (width (undefined :: b)) s
 
 sliceSnd :: forall a b. Width b => Sig (a, b) -> Sig b
 sliceSnd = slice (width (undefined :: b) - 1) 0
+
+-- | Slice element @i@ from an 'Array'.
+sliceIx
+  :: forall n e
+   . KnownNat n
+  => Width e
+  => Finite n
+  -> Sig (Array (Finite n) e)
+  -> Sig e
+sliceIx i = slice ((getFinite i + 1)*w - 1) (getFinite i * w)
+  where
+    w = width (undefined :: e)
+
+-- | Slice a range of elements from 'Sig' 'Array' inclusive. Indexing starts at
+-- zero from the right.
+sliceRange
+  :: forall n m e
+   . KnownNat n
+  => KnownNat m
+  => Width e
+  => Finite n -- ^ end
+  -> Finite n -- ^ begin
+  -> Sig (Array (Finite n) e)
+  -> Sig (Array (Finite m) e)
+sliceRange e b arr = Sig $ flip foldMap (reverse [b..e]) $ \i -> spec $ sliceIx i arr
+
+-- | Reverse the elements of a 'Sig' 'Array'.
+sliceReverse :: forall n e. KnownNat n => Width e => Sig (Array (Finite n) e) -> Sig (Array (Finite n) e)
+sliceReverse arr = Sig $ flip foldMap [0..n - 1] $ \i -> spec $ sliceIx i arr
+  where
+    n = finite $ natVal (Proxy :: Proxy n)
+
+sliceRotate
+  :: forall n e
+   . KnownNat n
+  => Width e
+  => Int -- ^ Negative values rotate left, positive right.
+  -> Sig (Array (Finite n) e)
+  -> Sig (Array (Finite n) e)
+sliceRotate m arr
+  | m < 0     = Sig $ foldMap spec $ rotateL m' slices
+  | otherwise = Sig $ foldMap spec $ rotateR m  slices
+  where
+    m' = abs m
+    ixs :: [Finite n]
+    ixs = finite . fromIntegral <$> reverse [0..natVal (Proxy :: Proxy n) - 1]
+    slices :: [Sig e]
+    slices = flip sliceIx arr <$> ixs
+
+rotateL :: Int -> [a] -> [a]
+rotateL n xs = take (length xs) $ drop (length xs + n) $ cycle xs
+
+rotateR :: Int -> [a] -> [a]
+rotateR n xs = rotateL (length xs - n) xs
 
 class MonadSignal m where
   input   :: WireId -> m (Sig Bool)
