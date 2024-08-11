@@ -6,6 +6,7 @@
 
 module Bayeux.Buffer
   ( MonadBuffer(..)
+  , Cobuf(..)
   ) where
 
 import Bayeux.Cell hiding (le)
