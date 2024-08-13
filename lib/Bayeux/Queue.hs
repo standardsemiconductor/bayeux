@@ -11,6 +11,7 @@ import Bayeux.Signal
 import Bayeux.Width
 import Data.Array
 import Data.Finite
+import Data.Proxy
 import GHC.TypeNats
 
 class MonadQueue m where
@@ -55,19 +56,31 @@ instance (KnownNat n, Encode a) => Encode (Queue n a) where
     ]
 
 sliceRPtr :: Sig (Queue n a) -> Sig (Finite n)
-sliceRPtr = undefined
+sliceRPtr = slice (width (undefined :: Finite n) + base - 1) base
+  where
+    base = width (undefined :: Finite n) - 1 + dArrayWidth + 3
 
 sliceRWrap :: Sig (Queue n a) -> Sig Bool
-sliceRWrap = undefined
+sliceRWrap = slice
+  (width (undefined :: Finite n) - 1 + dArrayWidth + 2)
+  (width (undefined :: Finite n) - 1 + dArrayWidth + 2)
 
-sliceWPtr :: Sig (Queue n a) -> Sig (Finite n)
-sliceWPtr = undefined
+rWrapBase :: forall n. KnownNat n => Proxy n -> Integer
+rWrapBase _ = width (undefined :: Finite n) - 1 + dArrayWidth (Proxy :: Proxy n) + 2
 
-sliceWWrap :: Sig (Queue n a) -> Sig Bool
-sliceWWrap = undefined
+sliceWPtr :: forall n a. KnownNat n => Sig (Queue n a) -> Sig (Finite n)
+sliceWPtr = slice
+  (width (undefined :: Finite n) - 1 + dArrayWidth (Proxy :: Proxy n) + 1)
+  (dArrayWidth (Proxy :: Proxy n) + 1)
 
-sliceDArray :: Sig (Queue n a) -> Sig (Array (Finite n) a)
-sliceDArray = undefined
+sliceWWrap :: forall n a. KnownNat n => Sig (Queue n a) -> Sig Bool
+sliceWWrap = slice (dArrayWidth (Proxy :: Proxy n)) (dArrayWidth (Proxy :: Proxy n))
+
+sliceDArray :: forall n a. KnownNat n => Sig (Queue n a) -> Sig (Array (Finite n) a)
+sliceDArray = slice (dArrayWidth (Proxy :: Proxy n) - 1) 0
+
+dArrayWidth :: forall n. KnownNat n => Proxy n -> Integer
+dArrayWidth _ = width (undefined :: Array (Finite n) a)
 
 queue'
   :: forall n a
