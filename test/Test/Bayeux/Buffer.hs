@@ -22,7 +22,7 @@ tests =
     , testCase "CobufBig"  $ width (undefined :: Cobuf 99 (Maybe Word32)) @?= 3276
     ]
   , testGroup "encode"
-    [ let actual = Cobuf Idle 0 Nothing {-(listArray (0 :: Finite 1, 0) [False])-} :: Cobuf 1 Bool
+    [ let actual = Cobuf Idle 0 Nothing :: Cobuf 1 Bool
       in testCase "CobufNothing" $ encode actual @?= [B0, B0, B0, B0]
 
     , let actual = Cobuf Busy 2 $ Just $ listArray (0 :: Finite 4, 3) [0xAB :: Word8, 0xBC, 0xCD, 0xEF]
