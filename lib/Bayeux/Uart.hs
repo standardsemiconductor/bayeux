@@ -11,7 +11,7 @@ module Bayeux.Uart
   , spramReverse
   ) where
 
-import Bayeux.Buffer hiding (Cobuf(..))
+import Bayeux.Buffer hiding (Cobuf(..), Fsm(..))
 import Bayeux.Cell
 import Bayeux.Encode
 import Bayeux.Ice40.Spram
