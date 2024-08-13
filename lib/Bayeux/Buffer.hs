@@ -72,7 +72,7 @@ instance MonadBuffer Rtl where
           , elses b
           ]
     isValid' <- process $ const $ isFull `logicAnd` sliceValid inp
-    return $ Sig $ spec isValid' <> spec b
+    return $ toMaybeSig isValid' b
     where
       w :: Integer
       w = width (undefined :: e)
