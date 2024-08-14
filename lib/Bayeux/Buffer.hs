@@ -14,10 +14,11 @@ import Bayeux.Cell hiding (le)
 import qualified Bayeux.Cell as C
 import Bayeux.Encode
 import Bayeux.Rtl (Rtl)
-import Bayeux.Signal hiding (sliceIx)
+import Bayeux.Signal
 import Bayeux.Width
 import Data.Array
 import Data.Finite
+import Data.Proxy
 import Data.String
 import GHC.TypeNats
 import Yosys.Rtl
@@ -54,7 +55,17 @@ instance MonadBuffer Rtl where
       , elsem $ pure i
       ]
     isFull <- i === sig maxBound
-    b <- process $ \b -> do
+    b <- process $ \(b :: Sig (Array (Finite n) e)) -> do
+      let bLength :: Integer
+          bLength = fromIntegral $ natVal (Proxy :: Proxy n)
+          ixs :: [Finite n]
+          ixs = finite <$> reverse [1..bLength - 1]
+          b' :: Sig (Array (Finite n) e)
+          b' = Sig $ mconcat
+            [ spec $ sliceValue inp
+            , foldMap (spec . flip sliceIx b) ixs
+            ]
+{-
       let shiftedBuf = sliceRotate 1 b
           la = fromIntegral $ width (undefined :: Array (Finite n) e)
           le = fromIntegral w
@@ -69,7 +80,8 @@ instance MonadBuffer Rtl where
                   in fromString $ show la <> "'" <> zs <> ones
       maskedBuf <- shiftedBuf `C.and` mask
       buf' <- input' `C.or` maskedBuf
-      ifs [ sliceValid inp `thens` buf'
+-}
+      ifs [ sliceValid inp `thens` b'
           , elses b
           ]
     isValid' <- process $ const $ isFull `logicAnd` sliceValid inp
@@ -87,7 +99,7 @@ instance MonadBuffer Rtl where
     -> Rtl (Sig (Maybe e))
   cobuffer a = fmap snd $ machine $ \s -> do
     let fsmSig = sliceFsm s
-        ixSig  = sliceIx  s
+        ixSig  = sliceCobufIx  s
         bufSig = sliceBuf s :: Sig (Maybe (Array (Finite n) e))
     isIdle <- fsmSig === sig Idle
     isBusy <- fsmSig === sig Busy
@@ -138,8 +150,8 @@ instance (KnownNat n, Encode e, Width e) => Encode (Cobuf n e) where
 sliceFsm :: KnownNat n => Width e => Sig (Cobuf n e) -> Sig Fsm
 sliceFsm s = slice (width s - 1) (width s - 1) s
 
-sliceIx :: forall n e. KnownNat n => Width e => Sig (Cobuf n e) -> Sig (Finite n)
-sliceIx s = slice (width s - 2) (width (undefined :: Maybe (Array (Finite n) e))) s
+sliceCobufIx :: forall n e. KnownNat n => Width e => Sig (Cobuf n e) -> Sig (Finite n)
+sliceCobufIx s = slice (width s - 2) (width (undefined :: Maybe (Array (Finite n) e))) s
 
 sliceBuf
   :: forall n e
