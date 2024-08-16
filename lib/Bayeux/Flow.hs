@@ -20,7 +20,7 @@ flow prog clean name designFile pcfFile = shake shakeOptions{ shakeFiles = "_bui
     else ["_build" </> name </> "pack.bin"]
 
   phony "clean" $ do
-    putInfo "Cleaning files in _build"
+    putInfo $ "Cleaning files in " <> "_build" </> name
     removeFilesAfter ("_build" </> name) ["//*"]
 
   phony "compile" $ need ["_build" </> name </> "compile.rtlil"]
