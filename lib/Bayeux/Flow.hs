@@ -10,61 +10,64 @@ import Prettyprinter
 import Prettyprinter.Render.Text
 import Yosys.Rtl
 
+buildDir :: FilePath -> FilePath
+buildDir = combine "_build"
+
 flow :: Bool -> Bool -> String -> File -> FilePath -> IO ()
-flow prog clean name designFile pcfFile = shake shakeOptions{ shakeFiles = "_build" </> name } $ do
+flow prog clean name designFile pcfFile = shake shakeOptions{ shakeFiles = buildDir name } $ do
 
   want $ if clean
     then ["clean"]
     else if prog
     then ["prog"]
-    else ["_build" </> name </> "pack.bin"]
+    else [buildDir name </> "pack.bin"]
 
   phony "clean" $ do
-    putInfo $ "Cleaning files in " <> "_build" </> name
-    removeFilesAfter ("_build" </> name) ["//*"]
+    putInfo $ "Cleaning files in " <> buildDir name
+    removeFilesAfter (buildDir name) ["//*"]
 
-  phony "compile" $ need ["_build" </> name </> "compile.rtlil"]
-  phony "synth"   $ need ["_build" </> name </> "synth.json"]
-  phony "pnr"     $ need ["_build" </> name </> "pnr.asc"]
-  phony "pack"    $ need ["_build" </> name </> "pack.bin"]
+  phony "compile" $ need [buildDir name </> "compile.rtlil"]
+  phony "synth"   $ need [buildDir name </> "synth.json"]
+  phony "pnr"     $ need [buildDir name </> "pnr.asc"]
+  phony "pack"    $ need [buildDir name </> "pack.bin"]
   phony "prog"    $ do
     putInfo "Program VELDT"
-    need ["_build" </> name </> "pack.bin"]
-    cmd_ "iceprog" ("_build" </> name </> "pack.bin")
+    need [buildDir name </> "pack.bin"]
+    cmd_ "iceprog" (buildDir name </> "pack.bin")
 
   -- compile
-  "_build" </> name </> "compile.rtlil" %> \out -> do
+  buildDir name </> "compile.rtlil" %> \out -> do
     putInfo "compile"
     liftIO $ TIO.writeFile out $ render $ pretty designFile
 
   -- yosys synthesis
-  "_build" </> name </> "synth.json" %> \out -> do
+  buildDir name </> "synth.json" %> \out -> do
     putInfo "Synthesizing"
-    need ["_build" </> name </> "compile.rtlil"]
+    need [buildDir name </> "compile.rtlil"]
     cmd_ "yosys"
          "-q"
          "-p"
          ["synth_ice40 -json " ++ out]
          "-f rtlil"
-         ("_build" </> name </> "compile.rtlil")
+         (buildDir name </> "compile.rtlil")
 
   -- place and route NextPNR
-  "_build" </> name </> "pnr.asc" %> \out -> do
+  buildDir name </> "pnr.asc" %> \out -> do
     putInfo "Place and Route"
-    need ["_build" </> name </> "synth.json", pcfFile {-"app/FiatLux/FiatLux.pcf"-}]
+    need [buildDir name </> "synth.json", pcfFile]
     cmd_ "nextpnr-ice40"
          "--up5k"
          "--package sg48"
          ("--pcf " <> pcfFile)
          "--asc"
          [out]
-         ("--json " <> "_build" </> name </> "synth.json")
+         ("--json " <> buildDir name </> "synth.json")
 
   -- ice pack
-  "_build" </> name </> "pack.bin" %> \out -> do
+  buildDir name </> "pack.bin" %> \out -> do
     putInfo "Ice pack"
-    need ["_build" </> name </> "pnr.asc"]
-    cmd_ "icepack" ("_build" </> name </> "pnr.asc") [out]
+    need [buildDir name </> "pnr.asc"]
+    cmd_ "icepack" (buildDir name </> "pnr.asc") [out]
 
 render :: Doc ann -> Text
 render = renderStrict . layoutSmart defaultLayoutOptions
