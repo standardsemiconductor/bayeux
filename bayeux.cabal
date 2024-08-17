@@ -30,6 +30,7 @@ library
                     , Bayeux.Ice40.Spi
                     , Bayeux.Ice40.Spram
                     , Bayeux.Lp
+                    , Bayeux.Mux
                     , Bayeux.Rtl
                     , Bayeux.Signal
                     , Bayeux.Tableaux
