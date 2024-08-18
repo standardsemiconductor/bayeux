@@ -9,7 +9,8 @@ import Control.Monad.Writer
 import Yosys.Rtl
 
 class MonadMux m where
-  mux :: Sig a     -- ^ 'False'
+  mux :: Width a
+      => Sig a     -- ^ 'False'
       -> Sig a     -- ^ 'True'
       -> Sig Bool
       -> m (Sig a)
