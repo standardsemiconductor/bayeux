@@ -174,7 +174,7 @@ instance MonadRtl Rtl where
     y <- freshWire 1
     tell [ModuleBodyConnStmt $ ConnStmt y (SigSpecSlice sigSpec ix Nothing)]
     return y
-  
+
   mux w s a b = do
     y <- freshWire w
     cId <- freshCellId
