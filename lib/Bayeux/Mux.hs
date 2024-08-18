@@ -1,3 +1,4 @@
+-- | [Multiplex](https://en.wikipedia.org/wiki/Multiplexer)
 module Bayeux.Mux
   ( MonadMux(..)
   ) where
