@@ -86,14 +86,14 @@ class MonadRtl m where
           -> m SigSpec
   -- | Output width=1
   at :: SigSpec -> Integer -> m SigSpec
-
+--{-
   -- | If S == 1 then B else A
   mux :: Integer   -- ^ width
       -> SigSpec   -- ^ S
       -> SigSpec   -- ^ A
       -> SigSpec   -- ^ B
       -> m SigSpec -- ^ Y
-
+---}
   unary :: ( CellId
              -> Bool
              -> Integer
@@ -174,13 +174,13 @@ instance MonadRtl Rtl where
     y <- freshWire 1
     tell [ModuleBodyConnStmt $ ConnStmt y (SigSpecSlice sigSpec ix Nothing)]
     return y
-  
+--{- 
   mux w s a b = do
     y <- freshWire w
     cId <- freshCellId
     tell [ModuleBodyCell $ muxC cId w a b s y]
     return y
-
+---}
   unary cFn aSigned aWidth yWidth a = do
     y <- freshWire yWidth
     cId <- freshCellId
