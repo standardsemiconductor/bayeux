@@ -3,6 +3,7 @@
 module Bayeux (app) where
 
 import Bayeux.Cli
+import qualified Bayeux.Cpu as Cpu
 import Bayeux.Flow
 import Bayeux.Ice40.Led
 import Bayeux.Ice40.Rgb
@@ -29,6 +30,7 @@ app = \case
     Prog  -> runDemo True  False demo
     Synth -> runDemo False False demo
     Clean -> runDemo False True  demo
+    Run   -> Cpu.run Cpu.prog
   CliProve cli -> do
     lp <- fromJust <$> case input cli of
       FileInput f -> parseMaybe (parse <* eof) <$> TIO.readFile f
@@ -51,6 +53,7 @@ getDemo = \case
   Echo         -> handleErr $ compile echo
   LedCtrl      -> handleErr $ compile ledCtrl
   SpramReverse -> handleErr $ compile spramReverse
+  Soc          -> handleErr $ compile Cpu.soc
 
 rgbCounter :: File
 rgbCounter = handleErr $ compile prog

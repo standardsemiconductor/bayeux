@@ -26,6 +26,7 @@ parseCmd = asum
   [ flag' Prog  $ long "program"    <> short 'p' <> help "Program VELDT FPGA"
   , flag' Synth $ long "synthesize" <> short 's' <> help "Synthesize demo"
   , flag' Clean $ long "clean"      <> short 'c' <> help "Clean demo"
+  , flag' Run   $ long "run"        <> short 'r' <> help "Run serialport"
   ]
 
 parseDemo :: Parser Demo
@@ -41,6 +42,7 @@ parseDemo = asum
     , help "SpramReverse demo: Send bytes to UART, buffer them in SPRAM, then \
            \read the bytes LIFO."
     ]
+  , flag' Soc $ long "Soc" <> help "Soc demo"
   ]
 
 parseProve :: Parser Prove
