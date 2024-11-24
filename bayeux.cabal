@@ -35,6 +35,7 @@ library
                     , Bayeux.Signal
                     , Bayeux.Tableaux
                     , Bayeux.Uart
+                    , Bayeux.Vector
                     , Bayeux.Width
     other-modules:    Paths_bayeux
     autogen-modules:  Paths_bayeux
